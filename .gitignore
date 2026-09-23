@@ -20,7 +20,7 @@ dist-ssr/
 .DS_Store
 
 # SQLite data volume
-data/
+/data/
 
 
 notes.txt

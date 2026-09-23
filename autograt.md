@@ -28,7 +28,7 @@ The database schema consists of four core tables structured in a three-tier hier
 
 ### Table: `User`
 
-* **Id:** Unique identifier (Guid, Primary Key).
+* **Id:** Unique identifier (Integer, Primary Key, auto-increment).
 
 * **Username:** String, Required, Unique Index.
 
@@ -42,9 +42,9 @@ The database schema consists of four core tables structured in a three-tier hier
 
 Represents the core daily log record for a user on a given day.
 
-* **Id:** Unique identifier (Guid, Primary Key).
+* **Id:** Unique identifier (Integer, Primary Key, auto-increment).
 
-* **UserId:** Foreign Key referencing `User.Id`.
+* **UserId:** Integer, Foreign Key referencing `User.Id`, Required.
 
 * **EntryDate:** DateOnly, Required. Represents the specific calendar day. A composite unique index on `(UserId, EntryDate)` guarantees only one main journal record exists per user per day.
 
@@ -56,9 +56,9 @@ Represents the core daily log record for a user on a given day.
 
 Holds individual categorized log entries created during the initial daily log submission or added as new top-level entries for the day.
 
-* **Id:** Unique identifier (Guid, Primary Key).
+* **Id:** Unique identifier (Integer, Primary Key, auto-increment).
 
-* **JournalEntryId:** Foreign Key referencing `JournalEntry.Id`, Required.
+* **JournalEntryId:** Integer, Foreign Key referencing `JournalEntry.Id`, Required.
 
 * **Category:** Enumeration, Required. Allowed values: `Neutral`(0), `Good` (1), `Bad` (2).
 
@@ -70,9 +70,9 @@ Holds individual categorized log entries created during the initial daily log su
 
 Represents additional immutable notes appended specifically to an existing `JournalSubEntry`.
 
-* **Id:** Unique identifier (Guid, Primary Key).
+* **Id:** Unique identifier (Integer, Primary Key, auto-increment).
 
-* **JournalSubEntryId:** Foreign Key referencing `JournalSubEntry.Id`, Required.
+* **JournalSubEntryId:** Integer, Foreign Key referencing `JournalSubEntry.Id`, Required.
 
 * **Content:** String, Required. The text content of the appended note.
 
