@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Autograt.Api", "Autograt.Api\Autograt.Api.csproj", "{DB090EB5-B4D6-4C15-868D-79A0F4432061}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Autograt.Tests", "Autograt.Tests\Autograt.Tests.csproj", "{BB44F1FE-1503-4060-AB3B-34A9F6DB9F29}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{DB090EB5-B4D6-4C15-868D-79A0F4432061}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DB090EB5-B4D6-4C15-868D-79A0F4432061}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DB090EB5-B4D6-4C15-868D-79A0F4432061}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DB090EB5-B4D6-4C15-868D-79A0F4432061}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BB44F1FE-1503-4060-AB3B-34A9F6DB9F29}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BB44F1FE-1503-4060-AB3B-34A9F6DB9F29}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BB44F1FE-1503-4060-AB3B-34A9F6DB9F29}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BB44F1FE-1503-4060-AB3B-34A9F6DB9F29}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
