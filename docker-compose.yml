@@ -1,0 +1,20 @@
+services:
+  backend:
+    container_name: autograt-backend
+    build: ./backend/Autograt.Api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+    expose:
+      - "8080"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+
+  frontend:
+    container_name: autograt-frontend
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
