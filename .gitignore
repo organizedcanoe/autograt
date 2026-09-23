@@ -7,6 +7,17 @@ obj/
 # Node
 node_modules/
 dist/
+dist-ssr/
+*.local
+
+# Logs
+*.log
+
+# Editors / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
 
 # SQLite data volume
 data/
