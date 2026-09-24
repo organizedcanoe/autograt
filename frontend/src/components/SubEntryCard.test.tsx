@@ -21,11 +21,13 @@ describe('SubEntryCard', () => {
     expect(screen.getByRole('article')).toHaveStyle({ backgroundColor: categoryTint('Bad') })
   })
 
-  it('shows the full date and time of each append', () => {
+  it("shows each append's content followed by its full date and time", () => {
     const append = { id: 9, subEntryId: 5, content: 'Still tired', createdAtUtc: '2026-09-25T08:30:00Z' }
     render(<SubEntryCard subEntry={{ ...subEntry, appends: [append] }} onAppend={vi.fn()} />)
 
-    expect(screen.getByText(formatDateTime(append.createdAtUtc))).toHaveAttribute('dateTime', append.createdAtUtc)
+    const timestamp = formatDateTime(append.createdAtUtc)
+    expect(screen.getByRole('listitem').textContent).toBe(`Still tired ${timestamp}`)
+    expect(screen.getByText(timestamp).closest('small')).toBeInTheDocument()
   })
 
   it('has no edit button when editing is not allowed', () => {

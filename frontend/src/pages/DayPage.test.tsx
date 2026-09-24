@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../api/client'
 import type { DayDetail } from '../api/types'
+import { formatLongDate } from '../utils/dates'
 import DayPage from './DayPage'
 
 vi.mock('../api/client', async (importOriginal) => {
@@ -49,11 +50,12 @@ describe('DayPage', () => {
     vi.resetAllMocks()
   })
 
-  it('shows the day rating as a heading', async () => {
+  it('shows the day rating after the date in the heading', async () => {
     vi.mocked(api.getDay).mockResolvedValue(dayDetail(YESTERDAY))
     renderDay(YESTERDAY)
 
-    expect(await screen.findByRole('heading', { level: 2, name: 'Rating: 7/10' })).toBeInTheDocument()
+    const heading = await screen.findByRole('heading', { level: 1 })
+    expect(heading).toHaveTextContent(`${formatLongDate(YESTERDAY)}: 7/10`)
   })
 
   it("lets today's rating and entries be edited", async () => {
