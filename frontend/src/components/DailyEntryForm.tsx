@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import type { CreateEntryRequest, EntryCategory } from '../api/types'
 import { errorMessage } from '../utils/errors'
+import { categoryTint } from './categoryColors'
 import RatingSelect from './RatingSelect'
 
 interface EntryBox {
@@ -61,6 +62,7 @@ export default function DailyEntryForm({ date, onSubmit }: DailyEntryFormProps) 
             placeholder={box.placeholder}
             value={contents[i]}
             onChange={(e) => updateContent(i, e.target.value)}
+            style={{ backgroundColor: categoryTint(box.category) }}
           />
         </label>
       ))}
