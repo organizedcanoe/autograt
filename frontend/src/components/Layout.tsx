@@ -1,4 +1,4 @@
-import { Link, Outlet, useLocation, useSearchParams } from 'react-router'
+import { Link, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { useAuth } from '../auth/AuthContext'
 import SearchBar from './SearchBar'
 
@@ -6,7 +6,14 @@ export default function Layout() {
   const { user, logout } = useAuth()
   const { pathname } = useLocation()
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const currentQuery = pathname === '/search' ? (searchParams.get('q') ?? '') : ''
+
+  // Only a deliberate logout resets the URL; an expired session keeps it so re-login returns there.
+  function handleLogout() {
+    navigate('/')
+    logout()
+  }
 
   return (
     <>
@@ -26,7 +33,7 @@ export default function Layout() {
               </li>
             )}
             <li>
-              <button type="button" onClick={logout} title={`Signed in as ${user?.username}`}>
+              <button type="button" onClick={handleLogout} title={`Signed in as ${user?.username}`}>
                 Log out
               </button>
             </li>
