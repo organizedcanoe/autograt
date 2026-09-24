@@ -8,6 +8,8 @@ obj/
 node_modules/
 dist/
 dist-ssr/
+test-results/
+playwright-report/
 *.local
 
 # Logs

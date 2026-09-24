@@ -1,26 +1,37 @@
-import { useEffect, useState } from 'react'
-
-type HealthResponse = {
-  status: string
-}
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
+import { AuthProvider, useAuth } from './auth/AuthContext'
+import Layout from './components/Layout'
+import AdminPage from './pages/AdminPage'
+import DayPage from './pages/DayPage'
+import HomePage from './pages/HomePage'
+import LoginPage from './pages/LoginPage'
+import SearchPage from './pages/SearchPage'
 
 export default function App() {
-  const [apiStatus, setApiStatus] = useState<string>('checking...')
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </AuthProvider>
+  )
+}
 
-  useEffect(() => {
-    fetch('/api/health')
-      .then((response) => {
-        if (!response.ok) throw new Error(`HTTP ${response.status}`)
-        return response.json() as Promise<HealthResponse>
-      })
-      .then((health) => setApiStatus(health.status))
-      .catch(() => setApiStatus('unavailable'))
-  }, [])
+function AppRoutes() {
+  const { user } = useAuth()
+
+  // Signed-out users see the login page at any URL, then land where they were headed.
+  if (!user) return <LoginPage />
 
   return (
-    <main>
-      <h1>Autograt</h1>
-      <p>API status: {apiStatus}</p>
-    </main>
+    <Routes>
+      <Route element={<Layout />}>
+        <Route index element={<HomePage />} />
+        <Route path="day/:date" element={<DayPage />} />
+        <Route path="search" element={<SearchPage />} />
+        <Route path="admin" element={user.isAdmin ? <AdminPage /> : <Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
+    </Routes>
   )
 }

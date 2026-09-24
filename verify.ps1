@@ -28,6 +28,7 @@ Invoke-Step 'Backend tests' "$root\backend" { dotnet test --no-build }
 Invoke-Step 'Frontend install' "$root\frontend" { npm ci }
 Invoke-Step 'Frontend build' "$root\frontend" { npm run build }
 Invoke-Step 'Frontend tests' "$root\frontend" { npm run test }
+Invoke-Step 'Frontend E2E' "$root\frontend" { npm run test:e2e }
 Invoke-Step 'Docker images' $root { docker compose build }
 
 Write-Host "`nAll checks passed." -ForegroundColor Green
