@@ -26,8 +26,10 @@ describe('SubEntryCard', () => {
     render(<SubEntryCard subEntry={{ ...subEntry, appends: [append] }} onAppend={vi.fn()} />)
 
     const timestamp = formatDateTime(append.createdAtUtc)
-    expect(screen.getByRole('listitem').textContent).toBe(`Still tired ${timestamp}`)
-    expect(screen.getByText(timestamp).closest('small')).toBeInTheDocument()
+    const item = screen.getByRole('listitem')
+    expect(item.textContent).toBe(`Still tired${timestamp}`)
+    // The date sits on its own line beneath the content.
+    expect(item.querySelector('br + small')).toHaveTextContent(timestamp)
   })
 
   it('has no edit button when editing is not allowed', () => {

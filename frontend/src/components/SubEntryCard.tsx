@@ -52,7 +52,8 @@ export default function SubEntryCard({ subEntry, onAppend, onEdit }: SubEntryCar
         <ul>
           {subEntry.appends.map((append) => (
             <li key={append.id}>
-              {append.content}{' '}
+              {append.content}
+              <br />
               <small>
                 <time dateTime={append.createdAtUtc}>{formatDateTime(append.createdAtUtc)}</time>
               </small>

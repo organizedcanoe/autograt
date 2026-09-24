@@ -156,7 +156,7 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 * **Category Tint:** Each `JournalSubEntry` gets a light background tint by category: `Good` (green), `Bad` (red), `Neutral` (beige). The tint applies to editable and read-only entries, and to the entry text boxes when creating or editing an entry, where it follows the chosen category.
 
-* Under each individual `JournalSubEntry`, lists all attached `JournalAppend` records in chronological order, each showing its content followed by its full creation date and time in smaller text (appends can be added on later days, so the time alone is ambiguous).
+* Under each individual `JournalSubEntry`, lists all attached `JournalAppend` records in chronological order, each showing its content with its full creation date and time on the line beneath in smaller text (appends can be added on later days, so the time alone is ambiguous).
 
 * Provides an append interface attached to each `JournalSubEntry` containing a text input field to submit new append notes directly to `JournalAppend`.
 
