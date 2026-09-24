@@ -3,7 +3,9 @@ using System.Net.Http.Json;
 using Autograt.Api.Contracts;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Autograt.Tests.Infrastructure;
 
@@ -13,6 +15,9 @@ namespace Autograt.Tests.Infrastructure;
 public class AutogratApiFactory : WebApplicationFactory<Program>
 {
     public const string DefaultPassword = "correct-horse-battery";
+
+    /// <summary>The API's clock; tests move it to write entries on other days.</summary>
+    public TestClock Clock { get; } = new();
 
     private readonly string _databasePath =
         Path.Combine(Path.GetTempPath(), $"autograt-test-{Guid.NewGuid():N}.db");
@@ -40,6 +45,7 @@ public class AutogratApiFactory : WebApplicationFactory<Program>
     {
         builder.UseSetting("ConnectionStrings:Default", $"Data Source={_databasePath}");
         builder.UseSetting("Jwt:Key", "test-signing-key-that-is-at-least-32-bytes-long");
+        builder.ConfigureTestServices(services => services.AddSingleton<TimeProvider>(Clock));
     }
 
     protected override void Dispose(bool disposing)

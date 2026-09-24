@@ -77,9 +77,11 @@ public class HeatmapEndpointTests(AutogratApiFactory factory) : IClassFixture<Au
     private static async Task<List<HeatmapDayResponse>> GetHeatmapAsync(HttpClient client) =>
         (await client.GetFromJsonAsync<List<HeatmapDayResponse>>($"/api/journal/heatmap?today={Today:yyyy-MM-dd}", TestJson.Options))!;
 
+    /// <summary>Creates the entry on its own day, since past days are read-only.</summary>
     /// <returns>The ID of the first sub-entry created.</returns>
-    private static async Task<int> CreateEntryAsync(HttpClient client, DateOnly date, int dayRating, int subEntryCount)
+    private async Task<int> CreateEntryAsync(HttpClient client, DateOnly date, int dayRating, int subEntryCount)
     {
+        using var _ = factory.Clock.TravelTo(date);
         var response = await client.PostAsJsonAsync("/api/journal/entries", new
         {
             entryDate = date,

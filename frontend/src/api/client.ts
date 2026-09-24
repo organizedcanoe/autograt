@@ -90,8 +90,14 @@ export const api = {
     }
   },
 
+  updateRating: (date: string, dayRating: number) =>
+    request<DayDetail>('PUT', `/journal/entries/${date}/rating`, { dayRating }),
+
   addSubEntry: (date: string, category: EntryCategory, content: string) =>
     request<SubEntry>('POST', `/journal/entries/${date}/sub-entries`, { category, content }),
+
+  updateSubEntry: (subEntryId: number, category: EntryCategory, content: string) =>
+    request<SubEntry>('PUT', `/journal/sub-entries/${subEntryId}`, { category, content }),
 
   addAppend: (subEntryId: number, content: string) =>
     request<Append>('POST', `/journal/sub-entries/${subEntryId}/appends`, { content }),

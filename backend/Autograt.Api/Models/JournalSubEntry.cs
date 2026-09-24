@@ -1,7 +1,7 @@
 namespace Autograt.Api.Models;
 
 /// <summary>
-/// An individual categorized log entry within a day. Its content is immutable once created.
+/// An individual categorized log entry within a day. It can be edited only while its day is today.
 /// </summary>
 public class JournalSubEntry : ICreatedAtUtc
 {

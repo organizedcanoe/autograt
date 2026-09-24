@@ -38,6 +38,28 @@ describe('api client', () => {
     expect(init.body).toBe(JSON.stringify({ content: 'Note' }))
   })
 
+  it('updates a rating and a sub-entry with PUT', async () => {
+    // A fresh response per call, since a body can only be read once.
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(Response.json({})))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await api.updateRating('2026-09-23', 4)
+    await api.updateSubEntry(42, 'Bad', 'Rewritten')
+
+    const [ratingUrl, ratingInit] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect([ratingUrl, ratingInit.method, ratingInit.body]).toEqual([
+      '/api/journal/entries/2026-09-23/rating',
+      'PUT',
+      JSON.stringify({ dayRating: 4 }),
+    ])
+    const [subEntryUrl, subEntryInit] = fetchMock.mock.calls[1] as [string, RequestInit]
+    expect([subEntryUrl, subEntryInit.method, subEntryInit.body]).toEqual([
+      '/api/journal/sub-entries/42',
+      'PUT',
+      JSON.stringify({ category: 'Bad', content: 'Rewritten' }),
+    ])
+  })
+
   it('raises ApiError with the first validation message', async () => {
     stubFetch(Response.json(
       { title: 'One or more validation errors occurred.', errors: { Content: ['The Content field is required.'] } },

@@ -6,19 +6,28 @@ using Microsoft.EntityFrameworkCore;
 namespace Autograt.Api.Services;
 
 /// <summary>
-/// Journal operations for a single user. Records are only ever added, never edited.
+/// Journal operations for a single user. Today's rating and sub-entries can be edited; past days are
+/// read-only apart from appends, and appends are never edited.
 /// </summary>
-public class JournalService(AutogratDbContext db)
+public class JournalService(AutogratDbContext db, TimeProvider timeProvider)
 {
     public const int HeatmapDays = 30;
 
+    // The latest time zone, so a date stays writable until it has ended everywhere on Earth.
+    private static readonly TimeSpan LatestUtcOffset = TimeSpan.FromHours(-12);
+
     /// <summary>
     /// Creates the day's entry with its rating and one sub-entry per non-blank item.
-    /// Conflicts if the user already has an entry for that date.
+    /// Fails if the date is in the past or the user already has an entry for it.
     /// </summary>
     public async Task<ServiceResult<DayDetailResponse>> CreateEntryAsync(int userId, CreateEntryRequest request)
     {
         var entryDate = request.EntryDate!.Value;
+        if (IsPastDay(entryDate))
+        {
+            return ServiceResult<DayDetailResponse>.Failure(ServiceError.ReadOnly);
+        }
+
         if (await db.JournalEntries.AnyAsync(e => e.UserId == userId && e.EntryDate == entryDate))
         {
             return ServiceResult<DayDetailResponse>.Conflict();
@@ -62,8 +71,28 @@ public class JournalService(AutogratDbContext db)
         return new DayDetailResponse(entry.EntryDate, entry.DayRating, subEntries);
     }
 
-    /// <returns>The new sub-entry, or null if the user has no entry for that date.</returns>
-    public async Task<SubEntryResponse?> AddSubEntryAsync(int userId, DateOnly entryDate, CreateSubEntryRequest request)
+    /// <summary>Changes the rating of today's entry.</summary>
+    /// <returns>The updated day, or a failure if the user has no entry for the date or it is in the past.</returns>
+    public async Task<ServiceResult<DayDetailResponse>> UpdateRatingAsync(int userId, DateOnly entryDate, int dayRating)
+    {
+        var entry = await db.JournalEntries.SingleOrDefaultAsync(e => e.UserId == userId && e.EntryDate == entryDate);
+        if (entry is null)
+        {
+            return ServiceResult<DayDetailResponse>.Failure(ServiceError.NotFound);
+        }
+
+        if (IsPastDay(entryDate))
+        {
+            return ServiceResult<DayDetailResponse>.Failure(ServiceError.ReadOnly);
+        }
+
+        entry.DayRating = dayRating;
+        await db.SaveChangesAsync();
+        return ServiceResult<DayDetailResponse>.Success((await GetDayAsync(userId, entryDate))!);
+    }
+
+    /// <returns>The new sub-entry, or a failure if the user has no entry for the date or it is in the past.</returns>
+    public async Task<ServiceResult<SubEntryResponse>> AddSubEntryAsync(int userId, DateOnly entryDate, SubEntryRequest request)
     {
         var entryId = await db.JournalEntries
             .Where(e => e.UserId == userId && e.EntryDate == entryDate)
@@ -72,7 +101,12 @@ public class JournalService(AutogratDbContext db)
 
         if (entryId is null)
         {
-            return null;
+            return ServiceResult<SubEntryResponse>.Failure(ServiceError.NotFound);
+        }
+
+        if (IsPastDay(entryDate))
+        {
+            return ServiceResult<SubEntryResponse>.Failure(ServiceError.ReadOnly);
         }
 
         var subEntry = new JournalSubEntry
@@ -83,9 +117,35 @@ public class JournalService(AutogratDbContext db)
         };
         db.JournalSubEntries.Add(subEntry);
         await db.SaveChangesAsync();
-        return ToResponse(subEntry);
+        return ServiceResult<SubEntryResponse>.Success(ToResponse(subEntry));
     }
 
+    /// <summary>Replaces the category and content of one of today's sub-entries, keeping its appends.</summary>
+    /// <returns>The updated sub-entry, or a failure if it is not the user's or belongs to a past day.</returns>
+    public async Task<ServiceResult<SubEntryResponse>> UpdateSubEntryAsync(int userId, int subEntryId, SubEntryRequest request)
+    {
+        var subEntry = await db.JournalSubEntries
+            .Include(s => s.JournalEntry)
+            .Include(s => s.Appends)
+            .SingleOrDefaultAsync(s => s.Id == subEntryId && s.JournalEntry!.UserId == userId);
+
+        if (subEntry is null)
+        {
+            return ServiceResult<SubEntryResponse>.Failure(ServiceError.NotFound);
+        }
+
+        if (IsPastDay(subEntry.JournalEntry!.EntryDate))
+        {
+            return ServiceResult<SubEntryResponse>.Failure(ServiceError.ReadOnly);
+        }
+
+        subEntry.Category = request.Category!.Value;
+        subEntry.Content = request.Content.Trim();
+        await db.SaveChangesAsync();
+        return ServiceResult<SubEntryResponse>.Success(ToResponse(subEntry));
+    }
+
+    /// <summary>Appends a note to a sub-entry. Unlike other changes, this is allowed on past days.</summary>
     /// <returns>The new append, or null if the sub-entry does not exist or belongs to another user.</returns>
     public async Task<AppendResponse?> AddAppendAsync(int userId, int subEntryId, CreateAppendRequest request)
     {
@@ -127,6 +187,13 @@ public class JournalService(AutogratDbContext db)
                 : new HeatmapDayResponse(date, null, 0))
             .ToList();
     }
+
+    /// <summary>
+    /// The server doesn't know the user's time zone, so a date only counts as past once it has ended in the
+    /// latest time zone. Clients should apply the stricter rule for their own local date.
+    /// </summary>
+    private bool IsPastDay(DateOnly date) =>
+        date < DateOnly.FromDateTime(timeProvider.GetUtcNow().ToOffset(LatestUtcOffset).DateTime);
 
     private static SubEntryResponse ToResponse(JournalSubEntry subEntry) => new(
         subEntry.Id,

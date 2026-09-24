@@ -33,7 +33,7 @@ export default function HomePage() {
               <DailyEntryForm date={today} onSubmit={createEntry} />
             ) : (
               <p>
-                You rated today {day.dayRating}/10. <Link to={`/day/${today}`}>Open today</Link> to add entries or
+                You rated today {day.dayRating}/10. <Link to={`/day/${today}`}>Open today</Link> to edit entries or
                 append notes.
               </p>
             )

@@ -24,7 +24,7 @@ The application is structured into two distinct Docker services orchestrated by 
 
 ## 2. Database Schema Specification (EF Core Code-First)
 
-The database schema consists of four core tables structured in a three-tier hierarchy (`JournalEntry` -> `JournalSubEntry` -> `JournalAppend`) enforcing strict data ownership, date uniqueness, and append-only immutability.
+The database schema consists of four core tables structured in a three-tier hierarchy (`JournalEntry` -> `JournalSubEntry` -> `JournalAppend`) enforcing strict data ownership, date uniqueness, and read-only past days (appends excepted).
 
 ### Table: `User`
 
@@ -68,7 +68,7 @@ Holds individual categorized log entries created during the initial daily log su
 
 ### Table: `JournalAppend` (Append Notes)
 
-Represents additional immutable notes appended specifically to an existing `JournalSubEntry`.
+Represents additional immutable notes appended specifically to an existing `JournalSubEntry`. Appends are never edited, on any day.
 
 * **Id:** Unique identifier (Integer, Primary Key, auto-increment).
 
@@ -94,7 +94,13 @@ Represents additional immutable notes appended specifically to an existing `Jour
 
 * **Initial Entry Creation:** When submitting a daily journal form, the system creates one `JournalEntry` record (storing the required rating) and zero or more child `JournalSubEntry` records (for each good, neutral, or bad entry text box filled in).
 
-* **Immutability:** Endpoint logic explicitly prohibits `PUT` or `PATCH` updates to existing text content in `JournalSubEntry` or `JournalAppend` records.
+* **Editing Today:** For the current day, the user may change the `DayRating` (`PUT /api/journal/entries/{date}/rating`) and the category and text content of existing `JournalSubEntry` records (`PUT /api/journal/sub-entries/{id}`), as well as add new sub-entries. Editing a sub-entry keeps its appends and original `CreatedAtUtc`.
+
+* **Read-Only Past Days:** For days before the current day, creating a `JournalEntry`, adding or editing `JournalSubEntry` records, and changing the `DayRating` are rejected with an HTTP 400 Bad Request error. Appending notes remains allowed on any day.
+
+* **Determining "Today":** The client applies the rule using the user's local date. The server does not know the user's time zone, so it treats a date as past only once that date has ended in the latest time zone (UTC−12).
+
+* **Append Immutability:** `JournalAppend` records cannot be edited; there are no `PUT` or `PATCH` endpoints for them.
 
 * **Appending:** Appending content requires a target `JournalSubEntryId` and non-empty text content. This creates a new immutable record in `JournalAppend` linked directly to that specific `JournalSubEntry`.
 
@@ -148,13 +154,17 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 #### Day Detail & Append View
 
-* Displays the overall day rating.
+* Displays the overall day rating. For the current day, provides a control to change the rating.
 
 * Chronologically lists all `JournalSubEntry` records attached to that day, grouped or tagged by category (`Good`, `Neutral`, `Bad`).
 
 * Under each individual `JournalSubEntry`, lists all attached `JournalAppend` records in chronological order with their creation timestamps.
 
 * Provides an append interface attached to each `JournalSubEntry` containing a text input field to submit new append notes directly to `JournalAppend`.
+
+* For the current day, each `JournalSubEntry` can be edited (category and text) and new entries can be added.
+
+* Past days are read-only: the rating, entry editing, and add-entry controls are hidden, a read-only notice is shown, and only the append interface remains. A past day with no entry offers no submission form.
 
 #### Search Interface
 
@@ -196,6 +206,8 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
   * Verify that appending to an existing `JournalSubEntry` creates a `JournalAppend` record without altering existing data.
 
+  * Verify that today's rating and sub-entries can be edited, and that creating, adding to, or editing a past day is rejected while appending to it succeeds.
+
 * **Search Parser Tests:** Validate search query parsing logic against exact quoted strings, comma-separated OR lists, and standard strings across both sub-entries and appends.
 
 ### Frontend Component Tests (Vitest + React Testing Library)
@@ -205,6 +217,8 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 * Validate that the 30-day heatmap correctly assigns color styling according to day rating ranges.
 
 * Validate that the append form correctly submits new content targeted at a specific sub-entry ID.
+
+* Validate that the day view allows editing for the current day and is read-only (apart from appends) for past days.
 
 ### End-to-End Tests (Playwright)
 
