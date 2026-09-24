@@ -27,7 +27,7 @@ export default function SubEntryCard({ subEntry, onAppend, onEdit }: SubEntryCar
         <small>
           <time dateTime={subEntry.createdAtUtc}>{formatTime(subEntry.createdAtUtc)}</time>
         </small>
-        {onEdit && !editing && (
+        {onEdit && editing === false && (
           <>
             {' '}
             <button type="button" className="outline secondary" onClick={() => setEditing(true)}>

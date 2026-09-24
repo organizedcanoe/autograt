@@ -18,7 +18,7 @@ public class JournalController(JournalService journalService, SearchService sear
     public async Task<ActionResult<DayDetailResponse>> CreateEntry(CreateEntryRequest request)
     {
         var result = await journalService.CreateEntryAsync(User.GetUserId(), request);
-        if (!result.IsSuccess)
+        if (result.IsSuccess == false)
         {
             return Failure(result.Error.Value);
         }

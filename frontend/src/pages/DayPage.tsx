@@ -56,7 +56,7 @@ function DayView({ date }: { date: string }) {
               <h1>{formatLongDate(date)}</h1>
               <p>{readOnly ? 'No entry was written for this day.' : 'No entry for this day yet.'}</p>
             </hgroup>
-            {!readOnly && <DailyEntryForm date={date} onSubmit={createEntry} />}
+            {readOnly === false && <DailyEntryForm date={date} onSubmit={createEntry} />}
           </>
         ) : (
           <>
@@ -78,7 +78,7 @@ function DayView({ date }: { date: string }) {
                 onEdit={readOnly ? undefined : editSubEntry}
               />
             ))}
-            {!readOnly && (
+            {readOnly === false && (
               <section>
                 <h2>Add an entry</h2>
                 <SubEntryForm contentLabel="New entry" submitLabel="Add entry" onSubmit={addSubEntry} />

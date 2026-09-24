@@ -15,7 +15,7 @@ public class AuthController(AuthService authService, UserService userService, To
     public async Task<ActionResult<UserResponse>> Register(RegisterRequest request)
     {
         var result = await authService.RegisterAsync(request.Username, request.Password);
-        if (!result.IsSuccess)
+        if (result.IsSuccess == false)
         {
             return Conflict(new ProblemDetails { Title = "That username is already taken." });
         }
