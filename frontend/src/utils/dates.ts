@@ -10,6 +10,11 @@ export function todayIso(): string {
   return toIsoDate(new Date())
 }
 
+/** Whether a "yyyy-MM-dd" date is before today in the user's time zone. Past days are read-only apart from appends. */
+export function isPastDate(isoDate: string): boolean {
+  return isoDate < todayIso()
+}
+
 /** Parses "yyyy-MM-dd" as a local date (new Date("yyyy-MM-dd") would parse it as UTC midnight). */
 function parseIsoDate(isoDate: string): Date {
   const [year, month, day] = isoDate.split('-').map(Number)

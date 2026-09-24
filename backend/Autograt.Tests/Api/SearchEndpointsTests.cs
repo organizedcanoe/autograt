@@ -88,6 +88,7 @@ public class SearchEndpointsTests(AutogratApiFactory factory) : IClassFixture<Au
     private async Task<HttpClient> CreateSeededClientAsync()
     {
         var client = await factory.CreateAuthenticatedClientAsync();
+        using var _ = factory.Clock.TravelTo(EntryDate);
         var response = await client.PostAsJsonAsync("/api/journal/entries", new
         {
             entryDate = EntryDate,

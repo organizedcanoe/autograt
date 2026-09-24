@@ -25,13 +25,21 @@ public sealed record NewSubEntry
     public string? Content { get; init; }
 }
 
-public sealed record CreateSubEntryRequest
+/// <summary>A sub-entry to add to a day, or the new category and content of an existing one.</summary>
+public sealed record SubEntryRequest
 {
     [Required, EnumDataType(typeof(EntryCategory))]
     public EntryCategory? Category { get; init; }
 
     [Required]
     public string Content { get; init; } = "";
+}
+
+public sealed record UpdateRatingRequest
+{
+    /// <summary>Nullable so an omitted rating fails validation instead of defaulting to 0.</summary>
+    [Required, Range(0, 10)]
+    public int? DayRating { get; init; }
 }
 
 public sealed record CreateAppendRequest

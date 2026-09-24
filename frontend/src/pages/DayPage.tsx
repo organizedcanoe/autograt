@@ -1,12 +1,13 @@
 import { useParams } from 'react-router'
 import { api } from '../api/client'
 import type { CreateEntryRequest, EntryCategory } from '../api/types'
-import AddSubEntryForm from '../components/AddSubEntryForm'
 import AsyncView from '../components/AsyncView'
 import DailyEntryForm from '../components/DailyEntryForm'
+import RatingForm from '../components/RatingForm'
 import SubEntryCard from '../components/SubEntryCard'
+import SubEntryForm from '../components/SubEntryForm'
 import { useAsync } from '../hooks/useAsync'
-import { formatLongDate, isIsoDate } from '../utils/dates'
+import { formatLongDate, isIsoDate, isPastDate } from '../utils/dates'
 
 export default function DayPage() {
   const { date } = useParams()
@@ -18,14 +19,26 @@ export default function DayPage() {
 
 function DayView({ date }: { date: string }) {
   const day = useAsync(() => api.getDay(date), [date])
+  // Past days are read-only apart from appending notes.
+  const readOnly = isPastDate(date)
 
   async function createEntry(entry: CreateEntryRequest) {
     await api.createEntry(entry)
     day.reload()
   }
 
+  async function updateRating(dayRating: number) {
+    await api.updateRating(date, dayRating)
+    day.reload()
+  }
+
   async function addSubEntry(category: EntryCategory, content: string) {
     await api.addSubEntry(date, category, content)
+    day.reload()
+  }
+
+  async function editSubEntry(subEntryId: number, category: EntryCategory, content: string) {
+    await api.updateSubEntry(subEntryId, category, content)
     day.reload()
   }
 
@@ -41,9 +54,9 @@ function DayView({ date }: { date: string }) {
           <>
             <hgroup>
               <h1>{formatLongDate(date)}</h1>
-              <p>No entry for this day yet.</p>
+              <p>{readOnly ? 'No entry was written for this day.' : 'No entry for this day yet.'}</p>
             </hgroup>
-            <DailyEntryForm date={date} onSubmit={createEntry} />
+            {readOnly === false && <DailyEntryForm date={date} onSubmit={createEntry} />}
           </>
         ) : (
           <>
@@ -51,14 +64,26 @@ function DayView({ date }: { date: string }) {
               <h1>{formatLongDate(date)}</h1>
               <p>Day rating: {detail.dayRating}/10</p>
             </hgroup>
+            {readOnly ? (
+              <p>Past days are read-only. You can still append notes.</p>
+            ) : (
+              <RatingForm key={detail.dayRating} rating={detail.dayRating} onSubmit={updateRating} />
+            )}
             {detail.subEntries.length === 0 && <p>No entries yet.</p>}
             {detail.subEntries.map((subEntry) => (
-              <SubEntryCard key={subEntry.id} subEntry={subEntry} onAppend={addAppend} />
+              <SubEntryCard
+                key={subEntry.id}
+                subEntry={subEntry}
+                onAppend={addAppend}
+                onEdit={readOnly ? undefined : editSubEntry}
+              />
             ))}
-            <section>
-              <h2>Add an entry</h2>
-              <AddSubEntryForm onSubmit={addSubEntry} />
-            </section>
+            {readOnly === false && (
+              <section>
+                <h2>Add an entry</h2>
+                <SubEntryForm contentLabel="New entry" submitLabel="Add entry" onSubmit={addSubEntry} />
+              </section>
+            )}
           </>
         )
       }

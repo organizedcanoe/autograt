@@ -7,8 +7,8 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 namespace Autograt.Api.Controllers;
 
 /// <summary>
-/// Journal endpoints for the signed-in user. There are deliberately no PUT or PATCH routes:
-/// sub-entries and appends are immutable once written.
+/// Journal endpoints for the signed-in user. Only today's rating and sub-entries can be edited:
+/// past days are read-only apart from new appends, and appends are immutable once written.
 /// </summary>
 [ApiController]
 [Route("api/journal")]
@@ -18,9 +18,9 @@ public class JournalController(JournalService journalService, SearchService sear
     public async Task<ActionResult<DayDetailResponse>> CreateEntry(CreateEntryRequest request)
     {
         var result = await journalService.CreateEntryAsync(User.GetUserId(), request);
-        if (result.IsConflict)
+        if (result.IsSuccess == false)
         {
-            return Conflict(new ProblemDetails { Title = "An entry already exists for this date." });
+            return Failure(result.Error.Value);
         }
 
         return CreatedAtAction(nameof(GetDay), new { date = result.Value.EntryDate.ToString("yyyy-MM-dd") }, result.Value);
@@ -34,10 +34,24 @@ public class JournalController(JournalService journalService, SearchService sear
     }
 
     [HttpPost("entries/{date}/sub-entries")]
-    public async Task<ActionResult<SubEntryResponse>> AddSubEntry(DateOnly date, CreateSubEntryRequest request)
+    public async Task<ActionResult<SubEntryResponse>> AddSubEntry(DateOnly date, SubEntryRequest request)
     {
-        var subEntry = await journalService.AddSubEntryAsync(User.GetUserId(), date, request);
-        return subEntry is null ? NotFound() : StatusCode(StatusCodes.Status201Created, subEntry);
+        var result = await journalService.AddSubEntryAsync(User.GetUserId(), date, request);
+        return result.IsSuccess ? StatusCode(StatusCodes.Status201Created, result.Value) : Failure(result.Error.Value);
+    }
+
+    [HttpPut("entries/{date}/rating")]
+    public async Task<ActionResult<DayDetailResponse>> UpdateRating(DateOnly date, UpdateRatingRequest request)
+    {
+        var result = await journalService.UpdateRatingAsync(User.GetUserId(), date, request.DayRating!.Value);
+        return result.IsSuccess ? result.Value : Failure(result.Error.Value);
+    }
+
+    [HttpPut("sub-entries/{subEntryId:int}")]
+    public async Task<ActionResult<SubEntryResponse>> UpdateSubEntry(int subEntryId, SubEntryRequest request)
+    {
+        var result = await journalService.UpdateSubEntryAsync(User.GetUserId(), subEntryId, request);
+        return result.IsSuccess ? result.Value : Failure(result.Error.Value);
     }
 
     [HttpPost("sub-entries/{subEntryId:int}/appends")]
@@ -64,4 +78,12 @@ public class JournalController(JournalService journalService, SearchService sear
 
         return await searchService.SearchAsync(User.GetUserId(), query);
     }
+
+    private ActionResult Failure(ServiceError error) => error switch
+    {
+        ServiceError.NotFound => NotFound(),
+        ServiceError.Conflict => Conflict(new ProblemDetails { Title = "An entry already exists for this date." }),
+        ServiceError.ReadOnly => BadRequest(new ProblemDetails { Title = "Past days are read-only. You can still append notes." }),
+        _ => throw new ArgumentOutOfRangeException(nameof(error), error, null),
+    };
 }

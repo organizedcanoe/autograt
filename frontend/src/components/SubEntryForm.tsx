@@ -2,14 +2,20 @@ import { useState, type FormEvent } from 'react'
 import { ENTRY_CATEGORIES, type EntryCategory } from '../api/types'
 import { errorMessage } from '../utils/errors'
 
-interface AddSubEntryFormProps {
+interface SubEntryFormProps {
+  /** The sub-entry being edited; omitted when adding a new one. */
+  initial?: { category: EntryCategory; content: string }
+  contentLabel: string
+  submitLabel: string
   onSubmit: (category: EntryCategory, content: string) => Promise<void>
+  /** Shows a cancel button when given. */
+  onCancel?: () => void
 }
 
-/** Adds a new top-level entry to a day that already has one. */
-export default function AddSubEntryForm({ onSubmit }: AddSubEntryFormProps) {
-  const [category, setCategory] = useState<EntryCategory>('Good')
-  const [content, setContent] = useState('')
+/** Adds a new top-level entry to a day that already has one, or edits an existing entry. */
+export default function SubEntryForm({ initial, contentLabel, submitLabel, onSubmit, onCancel }: SubEntryFormProps) {
+  const [category, setCategory] = useState<EntryCategory>(initial?.category ?? 'Good')
+  const [content, setContent] = useState(initial?.content ?? '')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -19,7 +25,7 @@ export default function AddSubEntryForm({ onSubmit }: AddSubEntryFormProps) {
     setError(null)
     try {
       await onSubmit(category, content.trim())
-      setContent('')
+      setContent(initial?.content ?? '')
     } catch (e) {
       setError(errorMessage(e))
     } finally {
@@ -40,13 +46,18 @@ export default function AddSubEntryForm({ onSubmit }: AddSubEntryFormProps) {
         </select>
       </label>
       <label>
-        New entry
+        {contentLabel}
         <textarea rows={2} value={content} onChange={(e) => setContent(e.target.value)} />
       </label>
       {error && <p role="alert">{error}</p>}
       <button type="submit" disabled={content.trim() === '' || submitting} aria-busy={submitting}>
-        Add entry
-      </button>
+        {submitLabel}
+      </button>{' '}
+      {onCancel && (
+        <button type="button" className="secondary" onClick={onCancel} disabled={submitting}>
+          Cancel
+        </button>
+      )}
     </form>
   )
 }

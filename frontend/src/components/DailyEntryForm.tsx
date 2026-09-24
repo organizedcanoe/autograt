@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import type { CreateEntryRequest, EntryCategory } from '../api/types'
 import { errorMessage } from '../utils/errors'
+import RatingSelect from './RatingSelect'
 
 interface EntryBox {
   label: string
@@ -14,14 +15,6 @@ const ENTRY_BOXES: readonly EntryBox[] = [
   { label: 'Good thing 2', category: 'Good', placeholder: 'Something else you are grateful for…' },
   { label: 'Bad thing', category: 'Bad', placeholder: 'Something that could have gone better…' },
 ]
-
-const RATINGS = Array.from({ length: 11 }, (_, rating) => rating)
-
-function ratingLabel(rating: number): string {
-  if (rating === 0) return '0 – awful'
-  if (rating === 10) return '10 – amazing'
-  return String(rating)
-}
 
 interface DailyEntryFormProps {
   date: string
@@ -58,19 +51,7 @@ export default function DailyEntryForm({ date, onSubmit }: DailyEntryFormProps) 
 
   return (
     <form onSubmit={handleSubmit}>
-      <label>
-        How was your day?
-        <select value={rating} onChange={(e) => setRating(e.target.value)} required>
-          <option value="" disabled>
-            Choose a rating from 0 to 10
-          </option>
-          {RATINGS.map((value) => (
-            <option key={value} value={value}>
-              {ratingLabel(value)}
-            </option>
-          ))}
-        </select>
-      </label>
+      <RatingSelect label="How was your day?" value={rating} onChange={setRating} />
 
       {ENTRY_BOXES.map((box, i) => (
         <label key={box.label}>
