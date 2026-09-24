@@ -20,4 +20,15 @@ public static class SqliteConnectionStrings
         Directory.CreateDirectory(Path.GetDirectoryName(builder.DataSource)!);
         return builder.ToString();
     }
+
+    /// <summary>
+    /// The folder holding the database file, where other persistent files (such as the JWT key) also live.
+    /// </summary>
+    public static string GetDataDirectory(string connectionString, string contentRootPath)
+    {
+        var dataSource = new SqliteConnectionStringBuilder(connectionString).DataSource;
+        return dataSource == ":memory:"
+            ? Path.Combine(contentRootPath, "data")
+            : Path.GetDirectoryName(Path.GetFullPath(dataSource, contentRootPath))!;
+    }
 }
