@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { EntryCategory, SubEntry } from '../api/types'
-import { formatTime } from '../utils/dates'
+import { formatDateTime, formatTime } from '../utils/dates'
 import AppendForm from './AppendForm'
 import { categoryTint } from './categoryColors'
 import SubEntryForm from './SubEntryForm'
@@ -53,7 +53,7 @@ export default function SubEntryCard({ subEntry, onAppend, onEdit }: SubEntryCar
           {subEntry.appends.map((append) => (
             <li key={append.id}>
               <small>
-                <time dateTime={append.createdAtUtc}>{formatTime(append.createdAtUtc)}</time>
+                <time dateTime={append.createdAtUtc}>{formatDateTime(append.createdAtUtc)}</time>
               </small>{' '}
               — {append.content}
             </li>

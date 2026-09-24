@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import type { SubEntry } from '../api/types'
+import { formatDateTime } from '../utils/dates'
 import SubEntryCard from './SubEntryCard'
 import { categoryTint } from './categoryColors'
 
@@ -18,6 +19,13 @@ describe('SubEntryCard', () => {
     render(<SubEntryCard subEntry={{ ...subEntry, category: 'Bad' }} onAppend={vi.fn()} />)
 
     expect(screen.getByRole('article')).toHaveStyle({ backgroundColor: categoryTint('Bad') })
+  })
+
+  it('shows the full date and time of each append', () => {
+    const append = { id: 9, subEntryId: 5, content: 'Still tired', createdAtUtc: '2026-09-25T08:30:00Z' }
+    render(<SubEntryCard subEntry={{ ...subEntry, appends: [append] }} onAppend={vi.fn()} />)
+
+    expect(screen.getByText(formatDateTime(append.createdAtUtc))).toHaveAttribute('dateTime', append.createdAtUtc)
   })
 
   it('has no edit button when editing is not allowed', () => {

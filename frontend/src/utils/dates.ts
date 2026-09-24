@@ -44,3 +44,15 @@ export function formatShortDate(isoDate: string): string {
 export function formatTime(utcTimestamp: string): string {
   return new Date(utcTimestamp).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
 }
+
+/** Local date and time of a UTC timestamp, e.g. "Wed, Sep 23, 2026, 6:05 PM" */
+export function formatDateTime(utcTimestamp: string): string {
+  return new Date(utcTimestamp).toLocaleString(undefined, {
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}

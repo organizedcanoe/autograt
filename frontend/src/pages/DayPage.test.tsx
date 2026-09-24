@@ -49,6 +49,13 @@ describe('DayPage', () => {
     vi.resetAllMocks()
   })
 
+  it('shows the day rating as a heading', async () => {
+    vi.mocked(api.getDay).mockResolvedValue(dayDetail(YESTERDAY))
+    renderDay(YESTERDAY)
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'Rating: 7/10' })).toBeInTheDocument()
+  })
+
   it("lets today's rating and entries be edited", async () => {
     vi.mocked(api.getDay).mockResolvedValue(dayDetail(TODAY))
     renderDay(TODAY)
