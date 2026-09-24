@@ -144,11 +144,7 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
   * **No entry / unrated day:** Neutral muted/grey box.
 
-  * **Rating 0 to 3:** Bad day indicator (Red spectrum).
-
-  * **Rating 4 to 6:** Neutral day indicator (Yellow/Amber spectrum).
-
-  * **Rating 7 to 10:** Good day indicator (Green spectrum).
+  * **Rated day:** One smooth scale from red (0) through yellow/amber (5) to green (10). Every rating from 0 to 10 has its own distinct color, each step slightly greener than the one below.
 
 * Interaction: Clicking any day block opens the detail view for that specific day.
 
@@ -157,6 +153,8 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 * Displays the overall day rating. For the current day, provides a control to change the rating.
 
 * Chronologically lists all `JournalSubEntry` records attached to that day, grouped or tagged by category (`Good`, `Neutral`, `Bad`).
+
+* **Category Tint:** Each `JournalSubEntry` gets a light background tint by category: `Good` (green), `Bad` (red), `Neutral` (beige). The tint applies to editable and read-only entries, and to the entry text boxes when creating or editing an entry, where it follows the chosen category.
 
 * Under each individual `JournalSubEntry`, lists all attached `JournalAppend` records in chronological order with their creation timestamps.
 
@@ -214,7 +212,7 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
 * Validate that the daily submission form enforces `DayRating` selection prior to submission.
 
-* Validate that the 30-day heatmap correctly assigns color styling according to day rating ranges.
+* Validate that the 30-day heatmap correctly assigns each day rating its own color on the red-to-green scale.
 
 * Validate that the append form correctly submits new content targeted at a specific sub-entry ID.
 

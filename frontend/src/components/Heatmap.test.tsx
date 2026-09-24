@@ -31,21 +31,17 @@ describe('Heatmap', () => {
     expect(blocks[29]).toHaveAttribute('href', '/day/2026-09-30')
   })
 
-  it('colors each block according to its rating range', () => {
+  it('colors each block according to its rating', () => {
     const blocks = renderHeatmap(buildDays({ 0: 2, 1: 5, 2: 9 }))
 
-    expect(blocks[0]).toHaveAttribute('data-band', 'bad')
     expect(blocks[0]).toHaveStyle({ backgroundColor: ratingColor(2) })
-    expect(blocks[1]).toHaveAttribute('data-band', 'neutral')
     expect(blocks[1]).toHaveStyle({ backgroundColor: ratingColor(5) })
-    expect(blocks[2]).toHaveAttribute('data-band', 'good')
     expect(blocks[2]).toHaveStyle({ backgroundColor: ratingColor(9) })
   })
 
   it('shows days without an entry in the muted grey', () => {
     const blocks = renderHeatmap(buildDays({}))
 
-    expect(blocks[3]).toHaveAttribute('data-band', 'none')
     expect(blocks[3]).toHaveStyle({ backgroundColor: NO_ENTRY_COLOR })
   })
 

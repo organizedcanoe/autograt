@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import DailyEntryForm from './DailyEntryForm'
+import { categoryTint } from './categoryColors'
 
 describe('DailyEntryForm', () => {
   it('keeps submit disabled until a day rating is chosen', async () => {
@@ -23,6 +24,13 @@ describe('DailyEntryForm', () => {
     expect(screen.getByLabelText('Good thing 1')).toBeInTheDocument()
     expect(screen.getByLabelText('Good thing 2')).toBeInTheDocument()
     expect(screen.getByLabelText('Bad thing')).toBeInTheDocument()
+  })
+
+  it('tints each box by its category', () => {
+    render(<DailyEntryForm date="2026-09-23" onSubmit={vi.fn()} />)
+
+    expect(screen.getByLabelText('Good thing 1')).toHaveStyle({ backgroundColor: categoryTint('Good') })
+    expect(screen.getByLabelText('Bad thing')).toHaveStyle({ backgroundColor: categoryTint('Bad') })
   })
 
   it('submits the rating and only the filled-in boxes', async () => {

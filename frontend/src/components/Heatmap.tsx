@@ -2,9 +2,9 @@ import type { CSSProperties } from 'react'
 import { Link } from 'react-router'
 import type { HeatmapDay } from '../api/types'
 import { formatShortDate } from '../utils/dates'
-import { ratingBand, ratingColor } from './heatmapColors'
+import { ratingColor } from './heatmapColors'
 
-// Inline styles are allowed only here (CLAUDE.md): Pico has no grid-of-colored-blocks primitive.
+// Inline styles (CLAUDE.md exception): Pico has no grid-of-colored-blocks primitive.
 const gridStyle: CSSProperties = {
   display: 'grid',
   gridTemplateColumns: 'repeat(30, 1fr)',
@@ -37,7 +37,6 @@ export default function Heatmap({ days }: { days: HeatmapDay[] }) {
             to={`/day/${day.date}`}
             aria-label={description}
             title={description}
-            data-band={ratingBand(day.dayRating)}
             style={{ ...blockStyle, backgroundColor: ratingColor(day.dayRating) }}
           />
         )

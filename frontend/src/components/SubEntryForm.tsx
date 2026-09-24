@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { ENTRY_CATEGORIES, type EntryCategory } from '../api/types'
 import { errorMessage } from '../utils/errors'
+import { categoryTint } from './categoryColors'
 
 interface SubEntryFormProps {
   /** The sub-entry being edited; omitted when adding a new one. */
@@ -47,7 +48,12 @@ export default function SubEntryForm({ initial, contentLabel, submitLabel, onSub
       </label>
       <label>
         {contentLabel}
-        <textarea rows={2} value={content} onChange={(e) => setContent(e.target.value)} />
+        <textarea
+          rows={2}
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          style={{ backgroundColor: categoryTint(category) }}
+        />
       </label>
       {error && <p role="alert">{error}</p>}
       <button type="submit" disabled={content.trim() === '' || submitting} aria-busy={submitting}>

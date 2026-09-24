@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import type { SubEntry } from '../api/types'
 import SubEntryCard from './SubEntryCard'
+import { categoryTint } from './categoryColors'
 
 const subEntry: SubEntry = {
   id: 5,
@@ -13,6 +14,12 @@ const subEntry: SubEntry = {
 }
 
 describe('SubEntryCard', () => {
+  it('tints the card by its category', () => {
+    render(<SubEntryCard subEntry={{ ...subEntry, category: 'Bad' }} onAppend={vi.fn()} />)
+
+    expect(screen.getByRole('article')).toHaveStyle({ backgroundColor: categoryTint('Bad') })
+  })
+
   it('has no edit button when editing is not allowed', () => {
     render(<SubEntryCard subEntry={subEntry} onAppend={vi.fn()} />)
 
