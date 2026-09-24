@@ -60,10 +60,9 @@ function DayView({ date }: { date: string }) {
           </>
         ) : (
           <>
-            <hgroup>
-              <h1>{formatLongDate(date)}</h1>
-              <p>Day rating: {detail.dayRating}/10</p>
-            </hgroup>
+            <h1>
+              {formatLongDate(date)}: {detail.dayRating}/10
+            </h1>
             {readOnly ? (
               <p>Past days are read-only. You can still append notes.</p>
             ) : (

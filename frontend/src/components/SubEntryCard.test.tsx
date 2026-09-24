@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import type { SubEntry } from '../api/types'
+import { formatDateTime } from '../utils/dates'
 import SubEntryCard from './SubEntryCard'
 import { categoryTint } from './categoryColors'
 
@@ -18,6 +19,17 @@ describe('SubEntryCard', () => {
     render(<SubEntryCard subEntry={{ ...subEntry, category: 'Bad' }} onAppend={vi.fn()} />)
 
     expect(screen.getByRole('article')).toHaveStyle({ backgroundColor: categoryTint('Bad') })
+  })
+
+  it("shows each append's content followed by its full date and time", () => {
+    const append = { id: 9, subEntryId: 5, content: 'Still tired', createdAtUtc: '2026-09-25T08:30:00Z' }
+    render(<SubEntryCard subEntry={{ ...subEntry, appends: [append] }} onAppend={vi.fn()} />)
+
+    const timestamp = formatDateTime(append.createdAtUtc)
+    const item = screen.getByRole('listitem')
+    expect(item.textContent).toBe(`Still tired${timestamp}`)
+    // The date sits on its own line beneath the content.
+    expect(item.querySelector('br + small')).toHaveTextContent(timestamp)
   })
 
   it('has no edit button when editing is not allowed', () => {

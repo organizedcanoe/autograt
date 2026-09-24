@@ -150,13 +150,13 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 #### Day Detail & Append View
 
-* Displays the overall day rating. For the current day, provides a control to change the rating.
+* Displays the overall day rating in the page heading after the date, e.g. "Thursday, September 24, 2026: 9/10". For the current day, provides a control to change the rating.
 
 * Chronologically lists all `JournalSubEntry` records attached to that day, grouped or tagged by category (`Good`, `Neutral`, `Bad`).
 
 * **Category Tint:** Each `JournalSubEntry` gets a light background tint by category: `Good` (green), `Bad` (red), `Neutral` (beige). The tint applies to editable and read-only entries, and to the entry text boxes when creating or editing an entry, where it follows the chosen category.
 
-* Under each individual `JournalSubEntry`, lists all attached `JournalAppend` records in chronological order with their creation timestamps.
+* Under each individual `JournalSubEntry`, lists all attached `JournalAppend` records in chronological order, each showing its content with its full creation date and time on the line beneath in smaller text (appends can be added on later days, so the time alone is ambiguous).
 
 * Provides an append interface attached to each `JournalSubEntry` containing a text input field to submit new append notes directly to `JournalAppend`.
 
