@@ -1,3 +1,5 @@
+@use "sass:map";
+
 // Pico's classless build, configured only (no custom styles): React renders into <div id="root">,
 // so Pico's centered <header>/<main> containers must target #root instead of <body>.
 @use "@picocss/pico/scss/index" with (
@@ -5,3 +7,33 @@
   $enable-semantic-container: true,
   $enable-classes: false
 );
+@use "@picocss/pico/scss/themes/default/theme-colors" as pico-theme-colors;
+
+// Pico bakes a single theme color in at build time. To switch at runtime, re-emit Pico's own
+// primary color variables for each selectable color under [data-color] (see src/theme/theme.ts).
+$selectable-colors: "azure", "jade", "violet", "pumpkin", "pink", "slate";
+$primary-keys: "text-selection-color", "primary", "primary-background", "primary-underline",
+  "primary-hover", "primary-hover-background", "primary-focus", "primary-inverse";
+
+@mixin primary-vars($color, $mode) {
+  $values: map.get(pico-theme-colors.$color-mappings, $color, $mode);
+  @each $key in $primary-keys {
+    --pico-#{$key}: #{map.get($values, $key)};
+  }
+}
+
+@each $color in $selectable-colors {
+  :root[data-color="#{$color}"]:not([data-theme="dark"]) {
+    @include primary-vars($color, "light");
+  }
+
+  @media only screen and (prefers-color-scheme: dark) {
+    :root[data-color="#{$color}"]:not([data-theme]) {
+      @include primary-vars($color, "dark");
+    }
+  }
+
+  :root[data-color="#{$color}"][data-theme="dark"] {
+    @include primary-vars($color, "dark");
+  }
+}
