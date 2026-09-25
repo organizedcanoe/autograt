@@ -18,3 +18,11 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+  
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: autograt_tunnel
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${CF_TUNNEL_TOKEN}
+    restart: unless-stopped
