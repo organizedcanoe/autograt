@@ -22,11 +22,22 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and Push
+      - name: Build and Push Backend
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ./backend/Autograt.Api
+          file: ./backend/Autograt.Api/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/myapp:latest
-            ghcr.io/${{ github.repository_owner }}/myapp:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/autograt-backend:latest
+            ghcr.io/${{ github.repository_owner }}/autograt-backend:${{ github.sha }}
+      
+      - name: Build and Push Frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/autograt-frontend:latest
+            ghcr.io/${{ github.repository_owner }}/autograt-frontend:${{ github.sha }}
