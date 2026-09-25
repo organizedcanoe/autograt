@@ -1,4 +1,5 @@
-export const NO_ENTRY_COLOR = '#c8ccd2'
+// A faint wash of Pico's muted text color, so empty days stay visible but subdued in light and dark mode.
+export const NO_ENTRY_COLOR = 'color-mix(in srgb, var(--pico-muted-color) 30%, transparent)'
 
 const RED_HUE = 0
 const GREEN_HUE = 120

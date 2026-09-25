@@ -1,6 +1,7 @@
 import { Link, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { useAuth } from '../auth/AuthContext'
 import SearchBar from './SearchBar'
+import ThemePicker from './ThemePicker'
 
 export default function Layout() {
   const { user, logout } = useAuth()
@@ -27,6 +28,7 @@ export default function Layout() {
             </li>
           </ul>
           <ul>
+            <ThemePicker />
             {user?.isAdmin && (
               <li>
                 <Link to="/admin">Admin</Link>
