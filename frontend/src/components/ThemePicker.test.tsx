@@ -10,14 +10,22 @@ describe('ThemePicker', () => {
   })
 
   it('shows the current choice', () => {
-    render(<ThemePicker />)
+    render(
+      <ul>
+        <ThemePicker />
+      </ul>,
+    )
 
     expect(screen.getByRole('combobox', { name: 'Mode' })).toHaveValue('system')
     expect(screen.getByRole('combobox', { name: 'Color' })).toHaveValue('azure')
   })
 
   it('switches the mode and color and remembers them', async () => {
-    render(<ThemePicker />)
+    render(
+      <ul>
+        <ThemePicker />
+      </ul>,
+    )
 
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Mode' }), 'dark')
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Color' }), 'jade')

@@ -28,6 +28,7 @@ export default function Layout() {
             </li>
           </ul>
           <ul>
+            <ThemePicker />
             {user?.isAdmin && (
               <li>
                 <Link to="/admin">Admin</Link>
@@ -46,9 +47,6 @@ export default function Layout() {
       <main>
         <Outlet />
       </main>
-      <footer>
-        <ThemePicker />
-      </footer>
     </>
   )
 }
