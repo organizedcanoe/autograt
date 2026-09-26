@@ -9,7 +9,7 @@ vi.mock('../api/client', async (importOriginal) => {
   const original = await importOriginal<typeof import('../api/client')>()
   return {
     ...original,
-    api: { ...original.api, listUsers: vi.fn(), approveUser: vi.fn(), promoteUser: vi.fn() },
+    api: { ...original.api, listUsers: vi.fn(), approveUser: vi.fn(), promoteUser: vi.fn(), deleteUser: vi.fn() },
   }
 })
 
@@ -28,6 +28,8 @@ describe('AdminPage', () => {
     vi.mocked(api.listUsers).mockReset()
     vi.mocked(api.approveUser).mockReset()
     vi.mocked(api.promoteUser).mockReset()
+    vi.mocked(api.deleteUser).mockReset()
+    vi.restoreAllMocks()
   })
 
   it('shows each role with the action that applies to it', async () => {
@@ -45,6 +47,8 @@ describe('AdminPage', () => {
     const pendingRow = within(await findRow('newcomer'))
     expect(pendingRow.getByRole('cell', { name: 'Pending approval' })).toBeInTheDocument()
     expect(pendingRow.getByRole('button', { name: 'Approve' })).toBeInTheDocument()
+    expect(pendingRow.getByRole('button', { name: 'Delete' })).toBeInTheDocument()
+    expect(regularRow.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
     expect(pendingRow.queryByRole('button', { name: 'Promote' })).not.toBeInTheDocument()
   })
 
@@ -58,5 +62,30 @@ describe('AdminPage', () => {
 
     expect(api.approveUser).toHaveBeenCalledWith(3)
     expect(api.listUsers).toHaveBeenCalledTimes(2)
+  })
+
+  it('deletes a pending user once confirmed and reloads the list', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    vi.mocked(api.listUsers).mockResolvedValue(users)
+    vi.mocked(api.deleteUser).mockResolvedValue(undefined)
+    render(<AdminPage />)
+
+    await user.click(within(await findRow('newcomer')).getByRole('button', { name: 'Delete' }))
+
+    expect(window.confirm).toHaveBeenCalledWith("Delete pending user 'newcomer'? This cannot be undone.")
+    expect(api.deleteUser).toHaveBeenCalledWith(3)
+    expect(api.listUsers).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not delete when the confirmation is cancelled', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
+    vi.mocked(api.listUsers).mockResolvedValue(users)
+    render(<AdminPage />)
+
+    await user.click(within(await findRow('newcomer')).getByRole('button', { name: 'Delete' }))
+
+    expect(api.deleteUser).not.toHaveBeenCalled()
   })
 })

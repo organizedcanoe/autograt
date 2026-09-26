@@ -128,6 +128,53 @@ public class AdminEndpointsTests : IDisposable
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    [Fact]
+    public async Task Delete_PendingUser_Returns204_AndUserIsGone()
+    {
+        var admin = await _factory.CreateAuthenticatedClientAsync("admin");
+        var pending = await RegisterPendingUserAsync("pending");
+
+        var response = await admin.DeleteAsync($"/api/admin/users/{pending.Id}");
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        var users = await admin.GetFromJsonAsync<List<UserResponse>>("/api/admin/users", TestJson.Options);
+        Assert.Equal(["admin"], users!.Select(u => u.Username));
+    }
+
+    [Fact]
+    public async Task Delete_AsNonAdmin_Returns403()
+    {
+        await _factory.CreateAuthenticatedClientAsync("admin");
+        var regular = await _factory.CreateAuthenticatedClientAsync("regular");
+        var pending = await RegisterPendingUserAsync("pending");
+
+        var response = await regular.DeleteAsync($"/api/admin/users/{pending.Id}");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Delete_UserNotPending_Returns400()
+    {
+        var admin = await _factory.CreateAuthenticatedClientAsync("admin");
+        var regular = await _factory.CreateAuthenticatedClientAsync("regular");
+        var regularUser = await regular.GetFromJsonAsync<UserResponse>("/api/auth/me", TestJson.Options);
+
+        var response = await admin.DeleteAsync($"/api/admin/users/{regularUser!.Id}");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Delete_UnknownUser_Returns404()
+    {
+        var admin = await _factory.CreateAuthenticatedClientAsync("admin");
+
+        var response = await admin.DeleteAsync("/api/admin/users/9999");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
     private async Task<UserResponse> RegisterPendingUserAsync(string username)
     {
         var response = await _factory.CreateClient().PostAsJsonAsync(

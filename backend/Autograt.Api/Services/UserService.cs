@@ -20,7 +20,35 @@ public class UserService(AutogratDbContext db)
     public Task<ServiceResult<User>> PromoteToAdminAsync(int userId) =>
         ChangeRoleAsync(userId, from: UserRole.Standard, to: UserRole.Admin);
 
+    /// <summary>
+    /// Removes a pending user, e.g. a duplicate sign-up. Pending users cannot log in, so they have no journal data.
+    /// Fails with InvalidState when the user is not pending.
+    /// </summary>
+    public async Task<ServiceResult<User>> DeletePendingAsync(int userId)
+    {
+        var result = await FindWithRoleAsync(userId, UserRole.Pending);
+        if (result.IsSuccess)
+        {
+            db.Users.Remove(result.Value);
+            await db.SaveChangesAsync();
+        }
+
+        return result;
+    }
+
     private async Task<ServiceResult<User>> ChangeRoleAsync(int userId, UserRole from, UserRole to)
+    {
+        var result = await FindWithRoleAsync(userId, from);
+        if (result.IsSuccess)
+        {
+            result.Value.Role = to;
+            await db.SaveChangesAsync();
+        }
+
+        return result;
+    }
+
+    private async Task<ServiceResult<User>> FindWithRoleAsync(int userId, UserRole role)
     {
         var user = await db.Users.FindAsync(userId);
         if (user is null)
@@ -28,13 +56,8 @@ public class UserService(AutogratDbContext db)
             return ServiceResult<User>.Failure(ServiceError.NotFound);
         }
 
-        if (user.Role != from)
-        {
-            return ServiceResult<User>.Failure(ServiceError.InvalidState);
-        }
-
-        user.Role = to;
-        await db.SaveChangesAsync();
-        return ServiceResult<User>.Success(user);
+        return user.Role == role
+            ? ServiceResult<User>.Success(user)
+            : ServiceResult<User>.Failure(ServiceError.InvalidState);
     }
 }

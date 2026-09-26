@@ -88,7 +88,7 @@ Represents additional immutable notes appended specifically to an existing `Jour
 
 * **Authentication:** Authenticated via JSON Web Tokens (JWT) provided in the Authorization HTTP header.
 
-* **Admin Capabilities:** Endpoints restricted to admin users that list all users, approve `Pending` users (`POST /api/admin/users/{id}/approve`, making them `Standard`), and promote `Standard` users to `Admin` (`POST /api/admin/users/{id}/promote`). Approving a user who is not pending, or promoting one who is not standard, is rejected with an HTTP 400 Bad Request error; an unknown user returns 404.
+* **Admin Capabilities:** Endpoints restricted to admin users that list all users, approve `Pending` users (`POST /api/admin/users/{id}/approve`, making them `Standard`), promote `Standard` users to `Admin` (`POST /api/admin/users/{id}/promote`), and delete `Pending` users such as duplicate sign-ups (`DELETE /api/admin/users/{id}`). Approving or deleting a user who is not pending, or promoting one who is not standard, is rejected with an HTTP 400 Bad Request error; an unknown user returns 404.
 
 ### Journal Rules & Operations
 
@@ -178,7 +178,7 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 * After registering, a user who needs approval is not logged in; the form switches to login and shows "Account created. An admin must approve it before you can log in." The first user, who becomes the admin, is logged in straight away.
 
-* The admin users page lists every user with their role (`Pending approval`, `User`, `Admin`), an **Approve** button for pending users, and a **Promote** button for standard users.
+* The admin users page lists every user with their role (`Pending approval`, `User`, `Admin`), **Approve** and **Delete** buttons for pending users (deleting asks for confirmation first), and a **Promote** button for standard users.
 
 ## 6. Docker & Containerization Specification
 
@@ -206,7 +206,7 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
 * **Authentication Unit Tests:** Verify user creation logic, initial user admin assignment, later users starting as pending, and password hashing logic.
 
-* **Admin Endpoint Tests:** Verify that pending users cannot log in, that admins can approve pending users and promote standard users, and that invalid approvals and promotions are rejected.
+* **Admin Endpoint Tests:** Verify that pending users cannot log in, that admins can approve or delete pending users and promote standard users, and that invalid approvals, deletions and promotions are rejected.
 
 * **Journal Service Integration Tests:**
 
@@ -230,7 +230,7 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
 * Validate that the day view allows editing for the current day and is read-only (apart from appends) for past days.
 
-* Validate that registering a pending account shows the approval notice without logging in, and that the admin page approves pending users.
+* Validate that registering a pending account shows the approval notice without logging in, and that the admin page approves pending users and deletes them only after confirmation.
 
 ### End-to-End Tests (Playwright)
 

@@ -107,5 +107,7 @@ export const api = {
 
   approveUser: (userId: number) => request<void>('POST', `/admin/users/${userId}/approve`),
 
+  deleteUser: (userId: number) => request<void>('DELETE', `/admin/users/${userId}`),
+
   promoteUser: (userId: number) => request<void>('POST', `/admin/users/${userId}/promote`),
 }

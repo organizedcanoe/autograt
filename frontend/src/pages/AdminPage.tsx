@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { api } from '../api/client'
-import type { UserRole } from '../api/types'
+import type { User, UserRole } from '../api/types'
 import AsyncView from '../components/AsyncView'
 import { useAsync } from '../hooks/useAsync'
 import { errorMessage } from '../utils/errors'
@@ -22,6 +22,12 @@ export default function AdminPage() {
       users.reload()
     } catch (e) {
       setError(errorMessage(e))
+    }
+  }
+
+  function deletePendingUser(user: User) {
+    if (window.confirm(`Delete pending user '${user.username}'? This cannot be undone.`)) {
+      void runAction(() => api.deleteUser(user.id))
     }
   }
 
@@ -51,9 +57,14 @@ export default function AdminPage() {
                   <td>{ROLE_LABELS[user.role]}</td>
                   <td>
                     {user.role === 'Pending' && (
-                      <button type="button" onClick={() => runAction(() => api.approveUser(user.id))}>
-                        Approve
-                      </button>
+                      <div role="group">
+                        <button type="button" onClick={() => runAction(() => api.approveUser(user.id))}>
+                          Approve
+                        </button>
+                        <button type="button" className="secondary" onClick={() => deletePendingUser(user)}>
+                          Delete
+                        </button>
+                      </div>
                     )}
                     {user.role === 'Standard' && (
                       <button type="button" onClick={() => runAction(() => api.promoteUser(user.id))}>

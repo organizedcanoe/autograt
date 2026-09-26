@@ -25,6 +25,10 @@ public class AdminController(UserService userService) : ControllerBase
     public async Task<IActionResult> Promote(int id) =>
         ToActionResult(await userService.PromoteToAdminAsync(id), "Only approved, non-admin users can be promoted.");
 
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id) =>
+        ToActionResult(await userService.DeletePendingAsync(id), "Only pending users can be deleted.");
+
     private IActionResult ToActionResult(ServiceResult<User> result, string invalidStateMessage) => result.Error switch
     {
         null => NoContent(),
