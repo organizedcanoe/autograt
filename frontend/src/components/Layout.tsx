@@ -2,6 +2,7 @@ import { Link, Outlet, useLocation, useNavigate, useSearchParams } from 'react-r
 import { useAuth } from '../auth/AuthContext'
 import SearchBar from './SearchBar'
 import ThemePicker from './ThemePicker'
+import './Layout.css'
 
 export default function Layout() {
   const { user, logout } = useAuth()
@@ -26,6 +27,9 @@ export default function Layout() {
                 <Link to="/">Autograt</Link>
               </strong>
             </li>
+          </ul>
+          <ul>
+            <li>Hello, {user?.username}</li>
           </ul>
           <ul>
             <ThemePicker />
