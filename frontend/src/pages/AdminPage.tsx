@@ -67,7 +67,7 @@ export default function AdminPage() {
                       </div>
                     )}
                     {user.role === 'Standard' && (
-                      <button type="button" onClick={() => runAction(() => api.promoteUser(user.id))}>
+                      <button type="button" className="outline" onClick={() => runAction(() => api.promoteUser(user.id))}>
                         Promote
                       </button>
                     )}
