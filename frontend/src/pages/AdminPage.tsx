@@ -4,6 +4,7 @@ import type { User, UserRole } from '../api/types'
 import AsyncView from '../components/AsyncView'
 import { useAsync } from '../hooks/useAsync'
 import { errorMessage } from '../utils/errors'
+import './AdminPage.css'
 
 const ROLE_LABELS: Record<UserRole, string> = {
   Pending: 'Pending approval',
@@ -56,21 +57,23 @@ export default function AdminPage() {
                   <td>{user.username}</td>
                   <td>{ROLE_LABELS[user.role]}</td>
                   <td>
-                    {user.role === 'Pending' && (
-                      <div role="group">
-                        <button type="button" onClick={() => runAction(() => api.approveUser(user.id))}>
-                          Approve
+                    <div data-row-actions>
+                      {user.role === 'Pending' && (
+                        <>
+                          <button type="button" onClick={() => runAction(() => api.approveUser(user.id))}>
+                            Approve
+                          </button>
+                          <button type="button" data-danger onClick={() => deletePendingUser(user)}>
+                            Delete
+                          </button>
+                        </>
+                      )}
+                      {user.role === 'Standard' && (
+                        <button type="button" className="secondary" onClick={() => runAction(() => api.promoteUser(user.id))}>
+                          Promote
                         </button>
-                        <button type="button" style={{ backgroundColor: 'red', border: '0px' }}  onClick={() => deletePendingUser(user)}>
-                          Delete
-                        </button>
-                      </div>
-                    )}
-                    {user.role === 'Standard' && (
-                      <button type="button" className="secondary" onClick={() => runAction(() => api.promoteUser(user.id))}>
-                        Promote
-                      </button>
-                    )}
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
