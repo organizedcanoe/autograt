@@ -13,13 +13,13 @@ public class AuthServiceTests : IDisposable
     public void Dispose() => _database.Dispose();
 
     [Fact]
-    public async Task Register_FirstUserIsAdmin_LaterUsersAreNot()
+    public async Task Register_FirstUserIsAdmin_LaterUsersArePending()
     {
         var first = await RegisterAsync("first", "password-one");
         var second = await RegisterAsync("second", "password-two");
 
-        Assert.True(first.Value!.IsAdmin);
-        Assert.False(second.Value!.IsAdmin);
+        Assert.Equal(UserRole.Admin, first.Value!.Role);
+        Assert.Equal(UserRole.Pending, second.Value!.Role);
     }
 
     [Fact]

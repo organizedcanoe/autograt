@@ -13,6 +13,9 @@ public enum ServiceError
 
     /// <summary>The record belongs to a past day, which can no longer be changed.</summary>
     ReadOnly,
+
+    /// <summary>The record is not in a state that allows the operation.</summary>
+    InvalidState,
 }
 
 /// <summary>

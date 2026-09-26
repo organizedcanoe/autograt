@@ -12,17 +12,29 @@ public class UserService(AutogratDbContext db)
     public Task<List<User>> ListAsync() =>
         db.Users.AsNoTracking().OrderBy(u => u.Id).ToListAsync();
 
-    /// <returns>False when the user does not exist.</returns>
-    public async Task<bool> PromoteToAdminAsync(int userId)
+    /// <summary>Lets a pending user log in. Fails with InvalidState when the user is not pending.</summary>
+    public Task<ServiceResult<User>> ApproveAsync(int userId) =>
+        ChangeRoleAsync(userId, from: UserRole.Pending, to: UserRole.Standard);
+
+    /// <summary>Makes a standard user an admin. Fails with InvalidState when the user is not a standard user.</summary>
+    public Task<ServiceResult<User>> PromoteToAdminAsync(int userId) =>
+        ChangeRoleAsync(userId, from: UserRole.Standard, to: UserRole.Admin);
+
+    private async Task<ServiceResult<User>> ChangeRoleAsync(int userId, UserRole from, UserRole to)
     {
         var user = await db.Users.FindAsync(userId);
         if (user is null)
         {
-            return false;
+            return ServiceResult<User>.Failure(ServiceError.NotFound);
         }
 
-        user.IsAdmin = true;
+        if (user.Role != from)
+        {
+            return ServiceResult<User>.Failure(ServiceError.InvalidState);
+        }
+
+        user.Role = to;
         await db.SaveChangesAsync();
-        return true;
+        return ServiceResult<User>.Success(user);
     }
 }

@@ -29,7 +29,7 @@ function AppRoutes() {
         <Route index element={<HomePage />} />
         <Route path="day/:date" element={<DayPage />} />
         <Route path="search" element={<SearchPage />} />
-        <Route path="admin" element={user.isAdmin ? <AdminPage /> : <Navigate to="/" replace />} />
+        <Route path="admin" element={user.role === 'Admin' ? <AdminPage /> : <Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

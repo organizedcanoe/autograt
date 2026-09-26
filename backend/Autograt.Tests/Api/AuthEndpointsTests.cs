@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Autograt.Api.Contracts;
+using Autograt.Api.Models;
 using Autograt.Tests.Infrastructure;
 
 namespace Autograt.Tests.Api;
@@ -20,14 +21,14 @@ public class AuthEndpointsTests : IDisposable
     public void Dispose() => _factory.Dispose();
 
     [Fact]
-    public async Task Register_Returns201_AndFirstUserIsAdmin()
+    public async Task Register_Returns201_FirstUserIsAdmin_LaterUsersArePending()
     {
         var first = await _client.PostAsJsonAsync("/api/auth/register", new { username = "first", password = "password-one" });
         var second = await _client.PostAsJsonAsync("/api/auth/register", new { username = "second", password = "password-two" });
 
         Assert.Equal(HttpStatusCode.Created, first.StatusCode);
-        Assert.True((await first.Content.ReadFromJsonAsync<UserResponse>(TestJson.Options))!.IsAdmin);
-        Assert.False((await second.Content.ReadFromJsonAsync<UserResponse>(TestJson.Options))!.IsAdmin);
+        Assert.Equal(UserRole.Admin, (await first.Content.ReadFromJsonAsync<UserResponse>(TestJson.Options))!.Role);
+        Assert.Equal(UserRole.Pending, (await second.Content.ReadFromJsonAsync<UserResponse>(TestJson.Options))!.Role);
     }
 
     [Theory]
@@ -76,6 +77,17 @@ public class AuthEndpointsTests : IDisposable
         var response = await _client.PostAsJsonAsync("/api/auth/login", new { username = "billy", password = "wrong-password" });
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Login_PendingUser_Returns403()
+    {
+        await _client.PostAsJsonAsync("/api/auth/register", new { username = "admin", password = "password-one" });
+        await _client.PostAsJsonAsync("/api/auth/register", new { username = "pending", password = "password-two" });
+
+        var response = await _client.PostAsJsonAsync("/api/auth/login", new { username = "pending", password = "password-two" });
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
     [Fact]

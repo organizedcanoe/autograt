@@ -8,7 +8,8 @@ namespace Autograt.Api.Services;
 public class AuthService(AutogratDbContext db, IPasswordHasher<User> passwordHasher)
 {
     /// <summary>
-    /// Creates a user. The very first user becomes the admin. Usernames are unique, ignoring case.
+    /// Creates a user. The very first user becomes the admin; later users are pending until an admin approves them.
+    /// Usernames are unique, ignoring case.
     /// </summary>
     public async Task<ServiceResult<User>> RegisterAsync(string username, string password)
     {
@@ -24,7 +25,7 @@ public class AuthService(AutogratDbContext db, IPasswordHasher<User> passwordHas
         {
             Username = username,
             PasswordHash = "",
-            IsAdmin = isFirstUser,
+            Role = isFirstUser ? UserRole.Admin : UserRole.Pending,
         };
         user.PasswordHash = passwordHasher.HashPassword(user, password);
 

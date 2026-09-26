@@ -21,7 +21,7 @@ public class TokenService(JwtSigningKey signingKey)
             new(AuthClaims.UserId, user.Id.ToString()),
             new(AuthClaims.Username, user.Username),
         };
-        if (user.IsAdmin)
+        if (user.Role == UserRole.Admin)
         {
             claims.Add(new Claim(AuthClaims.Role, AuthClaims.AdminRole));
         }

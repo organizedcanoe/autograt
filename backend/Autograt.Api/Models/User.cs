@@ -8,7 +8,7 @@ public class User : ICreatedAtUtc
 
     public required string PasswordHash { get; set; }
 
-    public bool IsAdmin { get; set; }
+    public UserRole Role { get; set; }
 
     public DateTime CreatedAtUtc { get; set; }
 

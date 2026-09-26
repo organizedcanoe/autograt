@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using Autograt.Api.Contracts;
+using Autograt.Api.Models;
 using Autograt.Tests.Infrastructure;
 
 namespace Autograt.Tests.Api;
@@ -54,7 +55,7 @@ public class AdminEndpointsTests : IDisposable
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
         var promoted = await regular.GetFromJsonAsync<UserResponse>("/api/auth/me", TestJson.Options);
-        Assert.True(promoted!.IsAdmin);
+        Assert.Equal(UserRole.Admin, promoted!.Role);
     }
 
     [Fact]
@@ -65,5 +66,73 @@ public class AdminEndpointsTests : IDisposable
         var response = await admin.PostAsync("/api/admin/users/9999/promote", null);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Promote_PendingUser_Returns400()
+    {
+        var admin = await _factory.CreateAuthenticatedClientAsync("admin");
+        var pending = await RegisterPendingUserAsync("pending");
+
+        var response = await admin.PostAsync($"/api/admin/users/{pending.Id}/promote", null);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Approve_AsAdmin_Returns204_AndUserCanLogIn()
+    {
+        var admin = await _factory.CreateAuthenticatedClientAsync("admin");
+        var pending = await RegisterPendingUserAsync("pending");
+
+        var response = await admin.PostAsync($"/api/admin/users/{pending.Id}/approve", null);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        var login = await _factory.CreateClient().PostAsJsonAsync(
+            "/api/auth/login", new { username = "pending", password = AutogratApiFactory.DefaultPassword });
+        var session = await login.Content.ReadFromJsonAsync<LoginResponse>(TestJson.Options);
+        Assert.Equal(UserRole.Standard, session!.User.Role);
+    }
+
+    [Fact]
+    public async Task Approve_AsNonAdmin_Returns403()
+    {
+        await _factory.CreateAuthenticatedClientAsync("admin");
+        var regular = await _factory.CreateAuthenticatedClientAsync("regular");
+        var pending = await RegisterPendingUserAsync("pending");
+
+        var response = await regular.PostAsync($"/api/admin/users/{pending.Id}/approve", null);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Approve_UserNotPending_Returns400()
+    {
+        var admin = await _factory.CreateAuthenticatedClientAsync("admin");
+        var regular = await _factory.CreateAuthenticatedClientAsync("regular");
+        var regularUser = await regular.GetFromJsonAsync<UserResponse>("/api/auth/me", TestJson.Options);
+
+        var response = await admin.PostAsync($"/api/admin/users/{regularUser!.Id}/approve", null);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Approve_UnknownUser_Returns404()
+    {
+        var admin = await _factory.CreateAuthenticatedClientAsync("admin");
+
+        var response = await admin.PostAsync("/api/admin/users/9999/approve", null);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    private async Task<UserResponse> RegisterPendingUserAsync(string username)
+    {
+        var response = await _factory.CreateClient().PostAsJsonAsync(
+            "/api/auth/register", new { username, password = AutogratApiFactory.DefaultPassword });
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<UserResponse>(TestJson.Options))!;
     }
 }

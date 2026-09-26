@@ -22,7 +22,7 @@ describe('App', () => {
 
   it('greets the signed-in user in the header', () => {
     vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})))
-    const session = { token: 'token', user: { id: 1, username: 'billy', isAdmin: false } }
+    const session = { token: 'token', user: { id: 1, username: 'billy', role: 'Standard' } }
     localStorage.setItem('autograt.session', JSON.stringify(session))
     render(<App />)
 
@@ -31,7 +31,7 @@ describe('App', () => {
 
   it('resets the URL to the root when logging out', async () => {
     vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})))
-    const session = { token: 'token', user: { id: 1, username: 'billy', isAdmin: false } }
+    const session = { token: 'token', user: { id: 1, username: 'billy', role: 'Standard' } }
     localStorage.setItem('autograt.session', JSON.stringify(session))
     window.history.replaceState(null, '', '/search?q=dog')
     render(<App />)

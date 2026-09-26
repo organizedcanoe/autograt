@@ -1,17 +1,24 @@
 import { useState } from 'react'
 import { api } from '../api/client'
+import type { UserRole } from '../api/types'
 import AsyncView from '../components/AsyncView'
 import { useAsync } from '../hooks/useAsync'
 import { errorMessage } from '../utils/errors'
+
+const ROLE_LABELS: Record<UserRole, string> = {
+  Pending: 'Pending approval',
+  Standard: 'User',
+  Admin: 'Admin',
+}
 
 export default function AdminPage() {
   const users = useAsync(() => api.listUsers(), [])
   const [error, setError] = useState<string | null>(null)
 
-  async function promote(userId: number) {
+  async function runAction(action: () => Promise<void>) {
     setError(null)
     try {
-      await api.promoteUser(userId)
+      await action()
       users.reload()
     } catch (e) {
       setError(errorMessage(e))
@@ -22,7 +29,7 @@ export default function AdminPage() {
     <>
       <hgroup>
         <h1>Users</h1>
-        <p>Promoted users get admin rights the next time they log in.</p>
+        <p>New users can log in once approved. Promoted users get admin rights the next time they log in.</p>
       </hgroup>
       {error && <p role="alert">{error}</p>}
       <AsyncView state={users}>
@@ -41,10 +48,15 @@ export default function AdminPage() {
               {list.map((user) => (
                 <tr key={user.id}>
                   <td>{user.username}</td>
-                  <td>{user.isAdmin ? 'Admin' : 'User'}</td>
+                  <td>{ROLE_LABELS[user.role]}</td>
                   <td>
-                    {!user.isAdmin && (
-                      <button type="button" onClick={() => promote(user.id)}>
+                    {user.role === 'Pending' && (
+                      <button type="button" onClick={() => runAction(() => api.approveUser(user.id))}>
+                        Approve
+                      </button>
+                    )}
+                    {user.role === 'Standard' && (
+                      <button type="button" onClick={() => runAction(() => api.promoteUser(user.id))}>
                         Promote
                       </button>
                     )}

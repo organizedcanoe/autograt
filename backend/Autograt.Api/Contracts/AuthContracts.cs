@@ -21,9 +21,9 @@ public sealed record LoginRequest
     public string Password { get; init; } = "";
 }
 
-public sealed record UserResponse(int Id, string Username, bool IsAdmin)
+public sealed record UserResponse(int Id, string Username, UserRole Role)
 {
-    public static UserResponse From(User user) => new(user.Id, user.Username, user.IsAdmin);
+    public static UserResponse From(User user) => new(user.Id, user.Username, user.Role);
 }
 
 public sealed record LoginResponse(string Token, DateTime ExpiresAtUtc, UserResponse User);
