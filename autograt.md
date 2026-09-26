@@ -132,9 +132,11 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 * **Rating Input:** Optional integer selector from 0 to 10 with its own save button. The day can be rated before, after, or without any entries, and the rating can be changed later in the day.
 
-* **Default Input Nudge:** When the day has no entries yet, presents two text boxes for positive/good experiences and one text box for negative/bad experiences to encourage a positive ratio. This is a nudge, not a fixed structure: each box's category can be changed (e.g. to `Neutral`), and boxes can be left empty.
+* **Default Input Nudge:** Always presents three fixed text boxes, in this order: two for positive/good experiences and one for a negative/bad experience, to encourage a positive ratio. Each box has a fixed category and its own save button. Once saved, a box is replaced in place by its entry (with its append form); nudge boxes never move. Each box is filled by the earliest saved entry of its category.
 
-* **Submission Logic:** Each text box is saved on its own, creating one `JournalSubEntry` (and the day's `JournalEntry` if needed). A saved box disappears; once all are saved, a blank box remains so any number of entries in any mix of categories can be added.
+* **Custom Entries:** Below the nudge boxes, separated by a horizontal rule, a "Custom Entry" form lets the user add an entry of any category (`Good`, `Neutral` or `Bad`). The text box label and tint follow the chosen category. Saved custom entries appear beneath the nudge boxes, above the rule, and the form clears back to the `Good` category.
+
+* **Submission Logic:** Every save creates one `JournalSubEntry` (and the day's `JournalEntry` if needed). The rating is saved separately.
 
 #### 30-Day Heatmap Component
 
@@ -210,7 +212,7 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
 ### Frontend Component Tests (Vitest + React Testing Library)
 
-* Validate that the today view nudges with two good boxes and one bad box, saves each box on its own, and allows changing a box's category.
+* Validate that the today view always shows the good/good/bad nudge boxes, saves each on its own and replaces it in place by its entry, and that the custom entry form accepts any category.
 
 * Validate that the 30-day heatmap correctly assigns each day rating its own color on the red-to-green scale.
 

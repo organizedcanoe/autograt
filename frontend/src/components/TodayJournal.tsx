@@ -1,8 +1,15 @@
 import { api } from '../api/client'
 import type { DayDetail, EntryCategory } from '../api/types'
-import EntryDrafts from './EntryDrafts'
+import { assignNudgeSlots, NUDGE_SLOTS } from './nudgeSlots'
 import RatingForm from './RatingForm'
 import SubEntryCard from './SubEntryCard'
+import SubEntryForm from './SubEntryForm'
+
+const CUSTOM_PLACEHOLDERS: Record<EntryCategory, string> = {
+  Good: 'Something else that went well…',
+  Neutral: 'Something worth remembering…',
+  Bad: 'Something else that could have gone better…',
+}
 
 interface TodayJournalProps {
   date: string
@@ -12,10 +19,13 @@ interface TodayJournalProps {
   onChange: () => void
 }
 
-/** Today's editable journal: the rating, the saved entries, and boxes for adding entries one at a time. */
+/**
+ * Today's editable journal: the rating, the fixed good/good/bad nudge boxes (each replaced in place by its
+ * entry once saved), any custom entries, and a form for adding custom entries of any category.
+ */
 export default function TodayJournal({ date, day, onChange }: TodayJournalProps) {
   const rating = day?.dayRating ?? null
-  const subEntries = day?.subEntries ?? []
+  const { slotted, custom } = assignNudgeSlots(day?.subEntries ?? [])
 
   async function updateRating(dayRating: number) {
     await api.updateRating(date, dayRating)
@@ -40,10 +50,36 @@ export default function TodayJournal({ date, day, onChange }: TodayJournalProps)
   return (
     <>
       <RatingForm key={rating ?? 'unrated'} rating={rating} onSubmit={updateRating} />
-      {subEntries.map((subEntry) => (
+
+      {NUDGE_SLOTS.map((slot, index) => {
+        const subEntry = slotted[index]
+        return subEntry ? (
+          <SubEntryCard key={slot.label} subEntry={subEntry} onAppend={addAppend} onEdit={editSubEntry} />
+        ) : (
+          <SubEntryForm
+            key={slot.label}
+            initial={{ category: slot.category, content: '' }}
+            lockCategory
+            contentLabel={slot.label}
+            placeholder={slot.placeholder}
+            submitLabel="Save"
+            onSubmit={addSubEntry}
+          />
+        )
+      })}
+
+      {custom.map((subEntry) => (
         <SubEntryCard key={subEntry.id} subEntry={subEntry} onAppend={addAppend} onEdit={editSubEntry} />
       ))}
-      <EntryDrafts nudge={subEntries.length === 0} onAdd={addSubEntry} />
+
+      <hr />
+      <h3>Custom Entry</h3>
+      <SubEntryForm
+        contentLabel={(category) => `${category} thing`}
+        placeholder={(category) => CUSTOM_PLACEHOLDERS[category]}
+        submitLabel="Add entry"
+        onSubmit={addSubEntry}
+      />
     </>
   )
 }

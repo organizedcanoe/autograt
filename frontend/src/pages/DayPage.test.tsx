@@ -118,18 +118,53 @@ describe('DayPage', () => {
     expect(screen.getByLabelText('Good thing 1')).toBeInTheDocument()
     expect(screen.getByLabelText('Good thing 2')).toBeInTheDocument()
     expect(screen.getByLabelText('Bad thing')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Custom Entry' })).toBeInTheDocument()
   })
 
-  it('saves a single entry for today without a rating', async () => {
+  it('saves a nudge box on its own without a rating', async () => {
     const user = userEvent.setup()
     vi.mocked(api.getDay).mockResolvedValue(null)
     renderDay(TODAY)
 
-    await user.selectOptions((await screen.findAllByLabelText('Category'))[2], 'Neutral')
-    await user.type(screen.getByLabelText('Bad thing'), 'Quiet evening')
-    await user.click(screen.getAllByRole('button', { name: 'Add entry' })[2])
+    await user.type(await screen.findByLabelText('Bad thing'), 'Missed the bus')
+    await user.click(screen.getAllByRole('button', { name: 'Save' })[2])
+
+    expect(api.addSubEntry).toHaveBeenCalledWith(TODAY, 'Bad', 'Missed the bus')
+    expect(api.updateRating).not.toHaveBeenCalled()
+  })
+
+  it('shows a saved nudge entry in place of its box and custom entries after the nudge boxes', async () => {
+    const at = `${TODAY}T18:00:00Z`
+    vi.mocked(api.getDay).mockResolvedValue({
+      entryDate: TODAY,
+      dayRating: null,
+      subEntries: [
+        { id: 1, category: 'Neutral', content: 'Quiet evening', createdAtUtc: at, appends: [] },
+        { id: 2, category: 'Good', content: 'Walked the dog', createdAtUtc: at, appends: [] },
+      ],
+    })
+    renderDay(TODAY)
+
+    const good = await screen.findByText('Walked the dog')
+    const custom = screen.getByText('Quiet evening')
+    const bad = screen.getByLabelText('Bad thing')
+    expect(screen.queryByLabelText('Good thing 1')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Good thing 2')).toBeInTheDocument()
+    // Document order: Good thing 1's entry, Good thing 2, Bad thing, then the custom entry.
+    expect(good.compareDocumentPosition(bad) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(bad.compareDocumentPosition(custom) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('adds a custom entry in any category, labelled by that category', async () => {
+    const user = userEvent.setup()
+    vi.mocked(api.getDay).mockResolvedValue(null)
+    renderDay(TODAY)
+
+    await user.selectOptions(await screen.findByLabelText('Category'), 'Neutral')
+    await user.type(screen.getByLabelText('Neutral thing'), 'Quiet evening')
+    await user.click(screen.getByRole('button', { name: 'Add entry' }))
 
     expect(api.addSubEntry).toHaveBeenCalledWith(TODAY, 'Neutral', 'Quiet evening')
-    expect(api.updateRating).not.toHaveBeenCalled()
+    expect(screen.getByLabelText('Category')).toHaveValue('Good')
   })
 })

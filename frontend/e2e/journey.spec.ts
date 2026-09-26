@@ -20,14 +20,14 @@ test('complete user journey: register, rate, heatmap, append, search', async ({ 
   await page.getByRole('button', { name: 'Create account' }).click()
   await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible()
 
-  // 2. Save good/bad thoughts one at a time, then rate the day.
+  // 2. Save the good and bad nudge boxes one at a time, then rate the day.
   const todayBlock = page.locator(`a[data-band][href="/day/${today}"]`)
   await expect(todayBlock).toHaveAttribute('data-band', 'none')
   await page.getByLabel('Good thing 1').fill('Walked the dog in the sunshine')
-  await page.getByRole('button', { name: 'Add entry' }).first().click()
+  await page.getByRole('button', { name: 'Save', exact: true }).first().click()
   await expect(page.getByRole('article').filter({ hasText: 'Walked the dog in the sunshine' })).toBeVisible()
   await page.getByLabel('Bad thing').fill('Missed the morning bus')
-  await page.getByRole('button', { name: 'Add entry' }).last().click()
+  await page.getByRole('button', { name: 'Save', exact: true }).last().click()
   await expect(page.getByRole('article').filter({ hasText: 'Missed the morning bus' })).toBeVisible()
   await page.getByLabel('How was your day?').selectOption('8')
   await page.getByRole('button', { name: 'Save rating' }).click()
