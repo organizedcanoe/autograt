@@ -7,14 +7,22 @@ interface SubEntryFormProps {
   /** The sub-entry being edited; omitted when adding a new one. */
   initial?: { category: EntryCategory; content: string }
   contentLabel: string
+  placeholder?: string
   submitLabel: string
   onSubmit: (category: EntryCategory, content: string) => Promise<void>
   /** Shows a cancel button when given. */
   onCancel?: () => void
 }
 
-/** Adds a new top-level entry to a day that already has one, or edits an existing entry. */
-export default function SubEntryForm({ initial, contentLabel, submitLabel, onSubmit, onCancel }: SubEntryFormProps) {
+/** Adds a new top-level entry to a day, or edits an existing entry. */
+export default function SubEntryForm({
+  initial,
+  contentLabel,
+  placeholder,
+  submitLabel,
+  onSubmit,
+  onCancel,
+}: SubEntryFormProps) {
   const [category, setCategory] = useState<EntryCategory>(initial?.category ?? 'Good')
   const [content, setContent] = useState(initial?.content ?? '')
   const [submitting, setSubmitting] = useState(false)
@@ -50,6 +58,7 @@ export default function SubEntryForm({ initial, contentLabel, submitLabel, onSub
         {contentLabel}
         <textarea
           rows={2}
+          placeholder={placeholder}
           value={content}
           onChange={(e) => setContent(e.target.value)}
           style={{ backgroundColor: categoryTint(category) }}

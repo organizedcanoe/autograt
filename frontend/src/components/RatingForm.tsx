@@ -3,13 +3,15 @@ import { errorMessage } from '../utils/errors'
 import RatingSelect from './RatingSelect'
 
 interface RatingFormProps {
-  rating: number
+  /** The day's current rating, or null if it hasn't been rated yet. */
+  rating: number | null
   onSubmit: (rating: number) => Promise<void>
 }
 
-/** Changes the rating of a day that already has an entry. */
+/** Rates a day for the first time or changes its rating. */
 export default function RatingForm({ rating, onSubmit }: RatingFormProps) {
-  const [value, setValue] = useState(String(rating))
+  const savedValue = rating === null ? '' : String(rating)
+  const [value, setValue] = useState(savedValue)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -28,9 +30,9 @@ export default function RatingForm({ rating, onSubmit }: RatingFormProps) {
 
   return (
     <form onSubmit={handleSubmit}>
-      <RatingSelect label="Change rating" value={value} onChange={setValue} />
+      <RatingSelect label={rating === null ? 'How was your day?' : 'Change rating'} value={value} onChange={setValue} />
       {error && <p role="alert">{error}</p>}
-      <button type="submit" disabled={value === String(rating) || submitting} aria-busy={submitting}>
+      <button type="submit" disabled={value === savedValue || submitting} aria-busy={submitting}>
         Save rating
       </button>
     </form>

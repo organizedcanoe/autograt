@@ -49,7 +49,7 @@ namespace Autograt.Api.Migrations
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("DayRating")
+                    b.Property<int?>("DayRating")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateOnly>("EntryDate")

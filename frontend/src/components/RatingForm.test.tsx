@@ -16,6 +16,21 @@ describe('RatingForm', () => {
     expect(save).toBeEnabled()
   })
 
+  it('asks for a first rating when the day is unrated', async () => {
+    const user = userEvent.setup()
+    const onSubmit = vi.fn().mockResolvedValue(undefined)
+    render(<RatingForm rating={null} onSubmit={onSubmit} />)
+    const save = screen.getByRole('button', { name: 'Save rating' })
+
+    expect(screen.getByLabelText('How was your day?')).toHaveValue('')
+    expect(save).toBeDisabled()
+
+    await user.selectOptions(screen.getByLabelText('How was your day?'), '0')
+    await user.click(save)
+
+    expect(onSubmit).toHaveBeenCalledWith(0)
+  })
+
   it('submits the new rating as a number', async () => {
     const user = userEvent.setup()
     const onSubmit = vi.fn().mockResolvedValue(undefined)

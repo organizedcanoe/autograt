@@ -16,17 +16,6 @@ export interface LoginResponse {
   user: User
 }
 
-export interface NewSubEntry {
-  category: EntryCategory
-  content: string
-}
-
-export interface CreateEntryRequest {
-  entryDate: string
-  dayRating: number
-  subEntries: NewSubEntry[]
-}
-
 export interface Append {
   id: number
   subEntryId: number
@@ -44,7 +33,8 @@ export interface SubEntry {
 
 export interface DayDetail {
   entryDate: string
-  dayRating: number
+  /** Null until the day is rated; a day can have entries before it has a rating. */
+  dayRating: number | null
   subEntries: SubEntry[]
 }
 
