@@ -24,7 +24,7 @@
 ## Frontend Conventions (React / TS / Vite)
 * Use functional components and React Hooks.
 * Enforce strict TypeScript typing. Do not use `any`.
-* **Styling Strict Rule:** Use Pico CSS (`@picocss/pico`). Rely entirely on classless semantic HTML tags (`<main>`, `<article>`, `<dialog>`). Do not write custom CSS or use inline styles unless absolutely necessary for the Heatmap Grid colors.
+* **Styling Strict Rule:** Use Pico CSS (`@picocss/pico`). Rely on semantic HTML tags (`<main>`, `<article>`, `<dialog>`) first; Pico's own modifier classes (`secondary`, `outline`, `contrast`) are allowed, but do not invent custom classes. Do not write custom CSS or use inline styles unless absolutely necessary (e.g. the Heatmap Grid colors).
 
 ## Agent Operational Directives
 1. **Always read `autograt.md`** before implementing new features to understand the exact schema and requirements.
@@ -32,6 +32,13 @@
 3. Run `dotnet test` or `npm run test` to verify your own work before declaring a task complete.
 4. If a task requires modifying more than two files, output a brief plan and wait for user approval before writing code.
 5. When writing code, value readability, clarity, and reusability of code.
+6. When given a link to a Github issue, the workflow is: 
+   1. Create a plan
+   2. Wait for approval
+   3. Once approved, create a branch
+   4. Make and push changes
+   5. Make a PR 
+7. When instructed to respond to PR comments, after making the changes (and running tests), you may push immediately to the PR branch. However, when requests are made directly in the chat window, do not commit until told to.
 
 ## Most Important Rule
 1. When replying back, prefer short, concise answers unless explicitly told to respond with your "normal" length replies. Limit conversational filler, pleasantries, introductory remarks, and concluding summaries.
