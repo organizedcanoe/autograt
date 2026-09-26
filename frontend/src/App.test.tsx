@@ -20,6 +20,15 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: 'Log in' })).toBeInTheDocument()
   })
 
+  it('greets the signed-in user in the header', () => {
+    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})))
+    const session = { token: 'token', user: { id: 1, username: 'billy', isAdmin: false } }
+    localStorage.setItem('autograt.session', JSON.stringify(session))
+    render(<App />)
+
+    expect(screen.getByRole('banner')).toHaveTextContent('Hello, billy')
+  })
+
   it('resets the URL to the root when logging out', async () => {
     vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})))
     const session = { token: 'token', user: { id: 1, username: 'billy', isAdmin: false } }

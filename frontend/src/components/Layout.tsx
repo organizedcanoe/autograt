@@ -28,6 +28,7 @@ export default function Layout() {
             </li>
           </ul>
           <ul>
+            <li>Hello, {user?.username}</li>
             <ThemePicker />
             {user?.isAdmin && (
               <li>
