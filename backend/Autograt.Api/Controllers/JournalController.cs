@@ -14,18 +14,6 @@ namespace Autograt.Api.Controllers;
 [Route("api/journal")]
 public class JournalController(JournalService journalService, SearchService searchService) : ControllerBase
 {
-    [HttpPost("entries")]
-    public async Task<ActionResult<DayDetailResponse>> CreateEntry(CreateEntryRequest request)
-    {
-        var result = await journalService.CreateEntryAsync(User.GetUserId(), request);
-        if (result.IsSuccess == false)
-        {
-            return Failure(result.Error.Value);
-        }
-
-        return CreatedAtAction(nameof(GetDay), new { date = result.Value.EntryDate.ToString("yyyy-MM-dd") }, result.Value);
-    }
-
     [HttpGet("entries/{date}")]
     public async Task<ActionResult<DayDetailResponse>> GetDay(DateOnly date)
     {
@@ -82,7 +70,6 @@ public class JournalController(JournalService journalService, SearchService sear
     private ActionResult Failure(ServiceError error) => error switch
     {
         ServiceError.NotFound => NotFound(),
-        ServiceError.Conflict => Conflict(new ProblemDetails { Title = "An entry already exists for this date." }),
         ServiceError.ReadOnly => BadRequest(new ProblemDetails { Title = "Past days are read-only. You can still append notes." }),
         _ => throw new ArgumentOutOfRangeException(nameof(error), error, null),
     };

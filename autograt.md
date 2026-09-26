@@ -48,13 +48,13 @@ Represents the core daily log record for a user on a given day.
 
 * **EntryDate:** DateOnly, Required. Represents the specific calendar day. A composite unique index on `(UserId, EntryDate)` guarantees only one main journal record exists per user per day.
 
-* **DayRating:** Integer, **Required**, Range 0–10. Numeric rating representing overall day assessment.
+* **DayRating:** Integer, Optional (null until the user rates the day), Range 0–10 when set. Numeric rating representing overall day assessment.
 
 * **CreatedAtUtc:** DateTime, Required. Creation timestamp.
 
 ### Table: `JournalSubEntry` (Child Entries)
 
-Holds individual categorized log entries created during the initial daily log submission or added as new top-level entries for the day.
+Holds individual categorized log entries for the day, each added on its own as a top-level entry.
 
 * **Id:** Unique identifier (Integer, Primary Key, auto-increment).
 
@@ -90,13 +90,13 @@ Represents additional immutable notes appended specifically to an existing `Jour
 
 ### Journal Rules & Operations
 
-* **Day Rating Requirement:** Every journal creation request must include a `DayRating` integer between 0 and 10. Submissions missing a `DayRating` must be rejected with an HTTP 400 Bad Request error.
+* **Day Rating:** The `DayRating` is optional. Setting it (`PUT /api/journal/entries/{date}/rating`) requires an integer between 0 and 10; a missing or out-of-range value is rejected with an HTTP 400 Bad Request error.
 
-* **Initial Entry Creation:** When submitting a daily journal form, the system creates one `JournalEntry` record (storing the required rating) and zero or more child `JournalSubEntry` records (for each good, neutral, or bad entry text box filled in).
+* **Initial Entry Creation:** There is no separate "create day" request. The day's `JournalEntry` record is created by whichever comes first: adding its first `JournalSubEntry` (`POST /api/journal/entries/{date}/sub-entries`, leaving the rating null) or setting its `DayRating`. Entries are added one at a time, in any mix of categories.
 
-* **Editing Today:** For the current day, the user may change the `DayRating` (`PUT /api/journal/entries/{date}/rating`) and the category and text content of existing `JournalSubEntry` records (`PUT /api/journal/sub-entries/{id}`), as well as add new sub-entries. Editing a sub-entry keeps its appends and original `CreatedAtUtc`.
+* **Editing Today:** For the current day, the user may change the `DayRating` (`PUT /api/journal/entries/{date}/rating`) and the category and text content of existing `JournalSubEntry` records (`PUT /api/journal/sub-entries/{id}`), as well as add new sub-entries. Adding a sub-entry or setting the rating creates the day's `JournalEntry` if it does not exist yet. Editing a sub-entry keeps its appends and original `CreatedAtUtc`.
 
-* **Read-Only Past Days:** For days before the current day, creating a `JournalEntry`, adding or editing `JournalSubEntry` records, and changing the `DayRating` are rejected with an HTTP 400 Bad Request error. Appending notes remains allowed on any day.
+* **Read-Only Past Days:** For days before the current day, adding or editing `JournalSubEntry` records, and changing the `DayRating` are rejected with an HTTP 400 Bad Request error. Appending notes remains allowed on any day.
 
 * **Determining "Today":** The client applies the rule using the user's local date. The server does not know the user's time zone, so it treats a date as past only once that date has ended in the latest time zone (UTC−12).
 
@@ -104,7 +104,7 @@ Represents additional immutable notes appended specifically to an existing `Jour
 
 * **Appending:** Appending content requires a target `JournalSubEntryId` and non-empty text content. This creates a new immutable record in `JournalAppend` linked directly to that specific `JournalSubEntry`.
 
-* **30-Day Heatmap Data:** An endpoint generates a contiguous 30-day array ending on the current date. For each day, it returns the calendar date, the `DayRating` (or null if no entry exists), and the aggregate count of all sub-entries and appends for that date.
+* **30-Day Heatmap Data:** An endpoint generates a contiguous 30-day array ending on the current date. For each day, it returns the calendar date, the `DayRating` (or null if no entry exists or the day is unrated), and the aggregate count of all sub-entries and appends for that date.
 
 ## 4. Search Query Engine Specification
 
@@ -128,13 +128,15 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 ### Primary Screen Modules
 
-#### Initial Journal Submission View
+#### Today Journal View
 
-* **Rating Input:** Mandatory visual sliding range control or integer selector from 0 to 10. Submissions are disabled until a rating is chosen.
+* **Rating Input:** Optional integer selector from 0 to 10 with its own save button. The day can be rated before, after, or without any entries, and the rating can be changed later in the day.
 
-* **Default Input Nudge:** Presents two text boxes for positive/good experiences and one text box for negative/bad experiences to encourage a positive ratio nudge.
+* **Default Input Nudge:** Always presents three fixed text boxes, in this order: two for positive/good experiences and one for a negative/bad experience, to encourage a positive ratio. Each box has a fixed category and its own save button. Once saved, a box is replaced in place by its entry (with its append form); nudge boxes never move. Each box is filled by the earliest saved entry of its category.
 
-* **Submission Logic:** Form submission creates the daily `JournalEntry` record with the required rating and writes the submitted text entries into individual `JournalSubEntry` records.
+* **Custom Entries:** Below the nudge boxes, separated by a horizontal rule, a "Custom Entry" form lets the user add an entry of any category (`Good`, `Neutral` or `Bad`). The text box label and tint follow the chosen category. Saved custom entries appear beneath the nudge boxes, above the rule, and the form clears back to the `Good` category.
+
+* **Submission Logic:** Every save creates one `JournalSubEntry` (and the day's `JournalEntry` if needed). The rating is saved separately.
 
 #### 30-Day Heatmap Component
 
@@ -198,9 +200,9 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
 * **Journal Service Integration Tests:**
 
-  * Verify that creating an entry without a `DayRating` fails validation.
+  * Verify that adding the first sub-entry creates an unrated `JournalEntry`, that setting the rating first creates the day without sub-entries, and that a missing or out-of-range `DayRating` fails validation.
 
-  * Verify that creating an entry creates associated `JournalSubEntry` records.
+  * Verify that sub-entries can be added one at a time in any mix of categories.
 
   * Verify that appending to an existing `JournalSubEntry` creates a `JournalAppend` record without altering existing data.
 
@@ -210,7 +212,7 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
 ### Frontend Component Tests (Vitest + React Testing Library)
 
-* Validate that the daily submission form enforces `DayRating` selection prior to submission.
+* Validate that the today view always shows the good/good/bad nudge boxes, saves each on its own and replaces it in place by its entry, and that the custom entry form accepts any category.
 
 * Validate that the 30-day heatmap correctly assigns each day rating its own color on the red-to-green scale.
 

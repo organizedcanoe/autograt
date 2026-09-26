@@ -97,6 +97,17 @@ public class AutogratDbContextTests : IDisposable
     }
 
     [Fact]
+    public async Task JournalEntry_WithoutDayRating_IsAccepted()
+    {
+        var user = await AddUserAsync("billy");
+
+        await AddEntryAsync(user.Id, Today, dayRating: null);
+
+        await using var context = _database.CreateContext();
+        Assert.Null((await context.JournalEntries.SingleAsync()).DayRating);
+    }
+
+    [Fact]
     public async Task JournalHierarchy_RoundTripsWithCategoryAndAppends()
     {
         var user = await AddUserAsync("billy");
@@ -195,7 +206,7 @@ public class AutogratDbContextTests : IDisposable
         return user;
     }
 
-    private async Task AddEntryAsync(int userId, DateOnly entryDate, int dayRating)
+    private async Task AddEntryAsync(int userId, DateOnly entryDate, int? dayRating)
     {
         await using var context = _database.CreateContext();
         context.JournalEntries.Add(new JournalEntry { UserId = userId, EntryDate = entryDate, DayRating = dayRating });

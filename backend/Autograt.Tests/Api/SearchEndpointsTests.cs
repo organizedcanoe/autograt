@@ -89,22 +89,11 @@ public class SearchEndpointsTests(AutogratApiFactory factory) : IClassFixture<Au
     {
         var client = await factory.CreateAuthenticatedClientAsync();
         using var _ = factory.Clock.TravelTo(EntryDate);
-        var response = await client.PostAsJsonAsync("/api/journal/entries", new
-        {
-            entryDate = EntryDate,
-            dayRating = 6,
-            subEntries = new[]
-            {
-                new { category = "Good", content = "Walked the dog" },
-                new { category = "Good", content = "Fed the cat" },
-                new { category = "Bad", content = "Rainy day" },
-                new { category = "Neutral", content = "Pets: dog, cat" },
-            },
-        });
-        response.EnsureSuccessStatusCode();
-        var day = await response.Content.ReadFromJsonAsync<DayDetailResponse>(TestJson.Options);
+        await client.AddSubEntryAsync(EntryDate, "Good", "Walked the dog");
+        await client.AddSubEntryAsync(EntryDate, "Good", "Fed the cat");
+        var rainy = await client.AddSubEntryAsync(EntryDate, "Bad", "Rainy day");
+        await client.AddSubEntryAsync(EntryDate, "Neutral", "Pets: dog, cat");
 
-        var rainy = day!.SubEntries.Single(s => s.Content == "Rainy day");
         var append = await client.PostAsJsonAsync($"/api/journal/sub-entries/{rainy.Id}/appends", new { content = "Dog got wet" });
         append.EnsureSuccessStatusCode();
 

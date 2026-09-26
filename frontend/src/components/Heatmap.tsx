@@ -20,9 +20,10 @@ const blockStyle: CSSProperties = {
 
 function describeDay(day: HeatmapDay): string {
   const date = formatShortDate(day.date)
-  if (day.dayRating === null) return `${date}: no entry`
+  if (day.dayRating === null && day.entryCount === 0) return `${date}: no entry`
   const entries = day.entryCount === 1 ? '1 entry' : `${day.entryCount} entries`
-  return `${date}: rating ${day.dayRating}, ${entries}`
+  const rating = day.dayRating === null ? 'unrated' : `rating ${day.dayRating}`
+  return `${date}: ${rating}, ${entries}`
 }
 
 /** One colored block per day, oldest on the left; each opens that day's detail view. */

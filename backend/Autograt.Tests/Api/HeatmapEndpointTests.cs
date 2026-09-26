@@ -39,6 +39,17 @@ public class HeatmapEndpointTests(AutogratApiFactory factory) : IClassFixture<Au
     }
 
     [Fact]
+    public async Task Heatmap_UnratedDayWithEntries_ReportsNullRatingAndCount()
+    {
+        var client = await factory.CreateAuthenticatedClientAsync();
+        await CreateEntryAsync(client, Today, dayRating: null, subEntryCount: 2);
+
+        var days = await GetHeatmapAsync(client);
+
+        Assert.Equal((null, 2), (days[^1].DayRating, days[^1].EntryCount));
+    }
+
+    [Fact]
     public async Task Heatmap_ExcludesEntriesOutsideTheWindow()
     {
         var client = await factory.CreateAuthenticatedClientAsync();
@@ -79,17 +90,20 @@ public class HeatmapEndpointTests(AutogratApiFactory factory) : IClassFixture<Au
 
     /// <summary>Creates the entry on its own day, since past days are read-only.</summary>
     /// <returns>The ID of the first sub-entry created.</returns>
-    private async Task<int> CreateEntryAsync(HttpClient client, DateOnly date, int dayRating, int subEntryCount)
+    private async Task<int> CreateEntryAsync(HttpClient client, DateOnly date, int? dayRating, int subEntryCount)
     {
         using var _ = factory.Clock.TravelTo(date);
-        var response = await client.PostAsJsonAsync("/api/journal/entries", new
+        var subEntries = new List<SubEntryResponse>();
+        for (var i = 1; i <= subEntryCount; i++)
         {
-            entryDate = date,
-            dayRating,
-            subEntries = Enumerable.Range(1, subEntryCount).Select(i => new { category = "Good", content = $"Thing {i}" }),
-        });
-        response.EnsureSuccessStatusCode();
-        var created = await response.Content.ReadFromJsonAsync<DayDetailResponse>(TestJson.Options);
-        return created!.SubEntries[0].Id;
+            subEntries.Add(await client.AddSubEntryAsync(date, "Good", $"Thing {i}"));
+        }
+
+        if (dayRating is not null)
+        {
+            await client.RateDayAsync(date, dayRating.Value);
+        }
+
+        return subEntries[0].Id;
     }
 }

@@ -6,8 +6,8 @@ using Microsoft.EntityFrameworkCore;
 namespace Autograt.Api.Services;
 
 /// <summary>
-/// Journal operations for a single user. Today's rating and sub-entries can be edited; past days are
-/// read-only apart from appends, and appends are never edited.
+/// Journal operations for a single user. Today's rating and sub-entries can be edited, and the day's entry is
+/// created by whichever comes first; past days are read-only apart from appends, and appends are never edited.
 /// </summary>
 public class JournalService(AutogratDbContext db, TimeProvider timeProvider)
 {
@@ -15,40 +15,6 @@ public class JournalService(AutogratDbContext db, TimeProvider timeProvider)
 
     // The latest time zone, so a date stays writable until it has ended everywhere on Earth.
     private static readonly TimeSpan LatestUtcOffset = TimeSpan.FromHours(-12);
-
-    /// <summary>
-    /// Creates the day's entry with its rating and one sub-entry per non-blank item.
-    /// Fails if the date is in the past or the user already has an entry for it.
-    /// </summary>
-    public async Task<ServiceResult<DayDetailResponse>> CreateEntryAsync(int userId, CreateEntryRequest request)
-    {
-        var entryDate = request.EntryDate!.Value;
-        if (IsPastDay(entryDate))
-        {
-            return ServiceResult<DayDetailResponse>.Failure(ServiceError.ReadOnly);
-        }
-
-        if (await db.JournalEntries.AnyAsync(e => e.UserId == userId && e.EntryDate == entryDate))
-        {
-            return ServiceResult<DayDetailResponse>.Conflict();
-        }
-
-        var entry = new JournalEntry
-        {
-            UserId = userId,
-            EntryDate = entryDate,
-            DayRating = request.DayRating!.Value,
-        };
-        foreach (var item in request.SubEntries.Where(s => !string.IsNullOrWhiteSpace(s.Content)))
-        {
-            entry.SubEntries.Add(new JournalSubEntry { Category = item.Category!.Value, Content = item.Content!.Trim() });
-        }
-
-        db.JournalEntries.Add(entry);
-        await db.SaveChangesAsync();
-
-        return ServiceResult<DayDetailResponse>.Success((await GetDayAsync(userId, entryDate))!);
-    }
 
     /// <returns>The day's rating, sub-entries and appends in chronological order, or null if there is no entry.</returns>
     public async Task<DayDetailResponse?> GetDayAsync(int userId, DateOnly entryDate)
@@ -71,51 +37,37 @@ public class JournalService(AutogratDbContext db, TimeProvider timeProvider)
         return new DayDetailResponse(entry.EntryDate, entry.DayRating, subEntries);
     }
 
-    /// <summary>Changes the rating of today's entry.</summary>
-    /// <returns>The updated day, or a failure if the user has no entry for the date or it is in the past.</returns>
+    /// <summary>Sets the rating of today's entry, creating the entry if the day has none yet.</summary>
+    /// <returns>The updated day, or a failure if the date is in the past.</returns>
     public async Task<ServiceResult<DayDetailResponse>> UpdateRatingAsync(int userId, DateOnly entryDate, int dayRating)
     {
-        var entry = await db.JournalEntries.SingleOrDefaultAsync(e => e.UserId == userId && e.EntryDate == entryDate);
-        if (entry is null)
-        {
-            return ServiceResult<DayDetailResponse>.Failure(ServiceError.NotFound);
-        }
-
         if (IsPastDay(entryDate))
         {
             return ServiceResult<DayDetailResponse>.Failure(ServiceError.ReadOnly);
         }
 
+        var entry = await FindOrAddEntryAsync(userId, entryDate);
         entry.DayRating = dayRating;
         await db.SaveChangesAsync();
         return ServiceResult<DayDetailResponse>.Success((await GetDayAsync(userId, entryDate))!);
     }
 
-    /// <returns>The new sub-entry, or a failure if the user has no entry for the date or it is in the past.</returns>
+    /// <summary>Adds a sub-entry to today's entry, creating an unrated entry if the day has none yet.</summary>
+    /// <returns>The new sub-entry, or a failure if the date is in the past.</returns>
     public async Task<ServiceResult<SubEntryResponse>> AddSubEntryAsync(int userId, DateOnly entryDate, SubEntryRequest request)
     {
-        var entryId = await db.JournalEntries
-            .Where(e => e.UserId == userId && e.EntryDate == entryDate)
-            .Select(e => (int?)e.Id)
-            .SingleOrDefaultAsync();
-
-        if (entryId is null)
-        {
-            return ServiceResult<SubEntryResponse>.Failure(ServiceError.NotFound);
-        }
-
         if (IsPastDay(entryDate))
         {
             return ServiceResult<SubEntryResponse>.Failure(ServiceError.ReadOnly);
         }
 
+        var entry = await FindOrAddEntryAsync(userId, entryDate);
         var subEntry = new JournalSubEntry
         {
-            JournalEntryId = entryId.Value,
             Category = request.Category!.Value,
             Content = request.Content.Trim(),
         };
-        db.JournalSubEntries.Add(subEntry);
+        entry.SubEntries.Add(subEntry);
         await db.SaveChangesAsync();
         return ServiceResult<SubEntryResponse>.Success(ToResponse(subEntry));
     }
@@ -186,6 +138,19 @@ public class JournalService(AutogratDbContext db, TimeProvider timeProvider)
                 ? new HeatmapDayResponse(date, entry.DayRating, entry.EntryCount)
                 : new HeatmapDayResponse(date, null, 0))
             .ToList();
+    }
+
+    /// <summary>Returns the user's tracked entry for the date, or a new unrated one that the next save inserts.</summary>
+    private async Task<JournalEntry> FindOrAddEntryAsync(int userId, DateOnly entryDate)
+    {
+        var entry = await db.JournalEntries.SingleOrDefaultAsync(e => e.UserId == userId && e.EntryDate == entryDate);
+        if (entry is null)
+        {
+            entry = new JournalEntry { UserId = userId, EntryDate = entryDate };
+            db.JournalEntries.Add(entry);
+        }
+
+        return entry;
     }
 
     /// <summary>

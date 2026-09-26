@@ -51,4 +51,13 @@ describe('Heatmap', () => {
     expect(blocks[0]).toHaveAccessibleName(/rating 8, 2 entries/)
     expect(blocks[1]).toHaveAccessibleName(/no entry/)
   })
+
+  it('describes a day with entries but no rating as unrated', () => {
+    const days = buildDays({})
+    days[0] = { ...days[0], entryCount: 1 }
+    const blocks = renderHeatmap(days)
+
+    expect(blocks[0]).toHaveAccessibleName(/unrated, 1 entry/)
+    expect(blocks[0]).toHaveStyle({ backgroundColor: NO_ENTRY_COLOR })
+  })
 })

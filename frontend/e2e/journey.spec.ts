@@ -20,16 +20,20 @@ test('complete user journey: register, rate, heatmap, append, search', async ({ 
   await page.getByRole('button', { name: 'Create account' }).click()
   await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible()
 
-  // 2. Choose the required rating and write initial good/bad thoughts.
+  // 2. Save the good and bad nudge boxes one at a time, then rate the day.
   const todayBlock = page.locator(`a[data-band][href="/day/${today}"]`)
   await expect(todayBlock).toHaveAttribute('data-band', 'none')
-  await page.getByLabel('How was your day?').selectOption('8')
   await page.getByLabel('Good thing 1').fill('Walked the dog in the sunshine')
+  await page.getByRole('button', { name: 'Save', exact: true }).first().click()
+  await expect(page.getByRole('article').filter({ hasText: 'Walked the dog in the sunshine' })).toBeVisible()
   await page.getByLabel('Bad thing').fill('Missed the morning bus')
-  await page.getByRole('button', { name: 'Save day' }).click()
+  await page.getByRole('button', { name: 'Save', exact: true }).last().click()
+  await expect(page.getByRole('article').filter({ hasText: 'Missed the morning bus' })).toBeVisible()
+  await page.getByLabel('How was your day?').selectOption('8')
+  await page.getByRole('button', { name: 'Save rating' }).click()
 
-  // 3. The day record exists and today's heatmap block turns green.
-  await expect(page.getByText('You rated today 8/10.')).toBeVisible()
+  // 3. The rating is saved and today's heatmap block turns green.
+  await expect(page.getByLabel('Change rating')).toHaveValue('8')
   await expect(todayBlock).toHaveAttribute('data-band', 'good')
 
   // 4. Open the day view and append a note to a specific sub-entry.
@@ -52,5 +56,5 @@ test('complete user journey: register, rate, heatmap, append, search', async ({ 
   await expect(result).toContainText('Note on a Good entry')
   await result.getByRole('link').click()
   await expect(page).toHaveURL(`/day/${today}`)
-  await expect(page.getByText('Day rating: 8/10')).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(': 8/10')
 })

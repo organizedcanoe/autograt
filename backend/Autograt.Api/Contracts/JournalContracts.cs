@@ -3,28 +3,6 @@ using Autograt.Api.Models;
 
 namespace Autograt.Api.Contracts;
 
-public sealed record CreateEntryRequest
-{
-    /// <summary>The client's local calendar date for this entry.</summary>
-    [Required]
-    public DateOnly? EntryDate { get; init; }
-
-    /// <summary>Nullable so an omitted rating fails validation instead of defaulting to 0.</summary>
-    [Required, Range(0, 10)]
-    public int? DayRating { get; init; }
-
-    /// <summary>One item per form text box; items with blank content are skipped.</summary>
-    public List<NewSubEntry> SubEntries { get; init; } = [];
-}
-
-public sealed record NewSubEntry
-{
-    [Required, EnumDataType(typeof(EntryCategory))]
-    public EntryCategory? Category { get; init; }
-
-    public string? Content { get; init; }
-}
-
 /// <summary>A sub-entry to add to a day, or the new category and content of an existing one.</summary>
 public sealed record SubEntryRequest
 {
@@ -48,7 +26,7 @@ public sealed record CreateAppendRequest
     public string Content { get; init; } = "";
 }
 
-public sealed record DayDetailResponse(DateOnly EntryDate, int DayRating, IReadOnlyList<SubEntryResponse> SubEntries);
+public sealed record DayDetailResponse(DateOnly EntryDate, int? DayRating, IReadOnlyList<SubEntryResponse> SubEntries);
 
 public sealed record SubEntryResponse(
     int Id,

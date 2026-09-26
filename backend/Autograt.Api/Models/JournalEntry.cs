@@ -11,8 +11,8 @@ public class JournalEntry : ICreatedAtUtc
 
     public DateOnly EntryDate { get; set; }
 
-    /// <summary>Overall day assessment, 0–10.</summary>
-    public int DayRating { get; set; }
+    /// <summary>Overall day assessment, 0–10, or null until the user rates the day.</summary>
+    public int? DayRating { get; set; }
 
     public DateTime CreatedAtUtc { get; set; }
 

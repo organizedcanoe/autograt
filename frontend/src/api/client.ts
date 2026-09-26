@@ -1,6 +1,5 @@
 import type {
   Append,
-  CreateEntryRequest,
   DayDetail,
   EntryCategory,
   HeatmapDay,
@@ -77,8 +76,6 @@ export const api = {
     request<LoginResponse>('POST', '/auth/login', { username, password }),
 
   me: () => request<User>('GET', '/auth/me'),
-
-  createEntry: (entry: CreateEntryRequest) => request<DayDetail>('POST', '/journal/entries', entry),
 
   /** Resolves to null when there is no entry for the date. */
   getDay: async (date: string): Promise<DayDetail | null> => {

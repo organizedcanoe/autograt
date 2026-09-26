@@ -15,105 +15,77 @@ public class JournalEndpointsTests(AutogratApiFactory factory) : IClassFixture<A
     private const string ReadOnlyTitle = "Past days are read-only. You can still append notes.";
 
     [Fact]
-    public async Task CreateEntry_WithoutDayRating_Returns400()
+    public async Task AddSubEntry_WithNoEntryForDay_CreatesUnratedDay()
     {
         var client = await factory.CreateAuthenticatedClientAsync();
 
-        var response = await client.PostAsJsonAsync("/api/journal/entries", new { entryDate = Today, subEntries = Array.Empty<object>() });
+        var response = await client.PostAsJsonAsync($"/api/journal/entries/{Today}/sub-entries",
+            new { category = "Neutral", content = "  First thought  " });
 
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var day = await client.GetFromJsonAsync<DayDetailResponse>($"/api/journal/entries/{Today}", TestJson.Options);
+        Assert.Null(day!.DayRating);
+        Assert.Equal((EntryCategory.Neutral, "First thought"), (day.SubEntries.Single().Category, day.SubEntries.Single().Content));
+    }
+
+    [Fact]
+    public async Task AddSubEntry_OneAtATime_AcceptsAnyMixOfCategories()
+    {
+        var client = await factory.CreateAuthenticatedClientAsync();
+
+        foreach (var content in new[] { "Missed the bus", "Spilled coffee", "Rained all day" })
+        {
+            await client.AddSubEntryAsync(DateOnly.Parse(Today), "Bad", content);
+        }
+
+        var day = await client.GetFromJsonAsync<DayDetailResponse>($"/api/journal/entries/{Today}", TestJson.Options);
+        Assert.All(day!.SubEntries, s => Assert.Equal(EntryCategory.Bad, s.Category));
+        Assert.Equal(["Missed the bus", "Spilled coffee", "Rained all day"], day.SubEntries.Select(s => s.Content));
     }
 
     [Theory]
-    [InlineData(-1)]
-    [InlineData(11)]
-    public async Task CreateEntry_DayRatingOutOfRange_Returns400(int dayRating)
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task AddSubEntry_EmptyContent_Returns400AndCreatesNoDay(string content)
     {
         var client = await factory.CreateAuthenticatedClientAsync();
 
-        var response = await client.PostAsJsonAsync("/api/journal/entries", new { entryDate = Today, dayRating });
+        var response = await client.PostAsJsonAsync($"/api/journal/entries/{Today}/sub-entries", new { category = "Good", content });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/journal/entries/{Today}")).StatusCode);
     }
 
     [Fact]
-    public async Task CreateEntry_WithoutEntryDate_Returns400()
+    public async Task AddSubEntry_ToPastDayWithNoEntry_Returns400()
     {
         var client = await factory.CreateAuthenticatedClientAsync();
 
-        var response = await client.PostAsJsonAsync("/api/journal/entries", new { dayRating = 5 });
-
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task CreateEntry_CreatesSubEntries_SkippingBlankOnes()
-    {
-        var client = await factory.CreateAuthenticatedClientAsync();
-
-        var response = await client.PostAsJsonAsync("/api/journal/entries", new
-        {
-            entryDate = Today,
-            dayRating = 8,
-            subEntries = new[]
-            {
-                new { category = "Good", content = "Walked the dog" },
-                new { category = "Good", content = "   " },
-                new { category = "Bad", content = "Missed the bus" },
-            },
-        });
-
-        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        var created = await response.Content.ReadFromJsonAsync<DayDetailResponse>(TestJson.Options);
-        Assert.Equal(8, created!.DayRating);
-        Assert.Collection(created.SubEntries,
-            s => Assert.Equal((EntryCategory.Good, "Walked the dog"), (s.Category, s.Content)),
-            s => Assert.Equal((EntryCategory.Bad, "Missed the bus"), (s.Category, s.Content)));
-
-        var fetched = await client.GetFromJsonAsync<DayDetailResponse>($"/api/journal/entries/{Today}", TestJson.Options);
-        Assert.Equal(2, fetched!.SubEntries.Count);
-    }
-
-    [Fact]
-    public async Task CreateEntry_SameDayTwice_Returns409()
-    {
-        var client = await factory.CreateAuthenticatedClientAsync();
-        await CreateEntryAsync(client);
-
-        var response = await client.PostAsJsonAsync("/api/journal/entries", new { entryDate = Today, dayRating = 3 });
-
-        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task CreateEntry_ForPastDay_Returns400()
-    {
-        var client = await factory.CreateAuthenticatedClientAsync();
-
-        var response = await client.PostAsJsonAsync("/api/journal/entries", new { entryDate = Yesterday, dayRating = 5 });
+        var response = await client.PostAsJsonAsync($"/api/journal/entries/{Yesterday}/sub-entries",
+            new { category = "Good", content = "Too late" });
 
         await AssertReadOnlyAsync(response);
     }
 
     [Fact]
-    public async Task CreateEntry_WhileStillTodayInTheLatestTimeZone_Succeeds()
+    public async Task AddSubEntry_WhileStillTodayInTheLatestTimeZone_Succeeds()
     {
         var client = await factory.CreateAuthenticatedClientAsync();
         // 11:59 UTC on the 24th is still 23:59 on the 23rd in UTC-12.
         using var _ = factory.Clock.TravelTo(new DateTimeOffset(2026, 9, 24, 11, 59, 0, TimeSpan.Zero));
 
-        var response = await client.PostAsJsonAsync("/api/journal/entries", new { entryDate = Today, dayRating = 5 });
+        var response = await client.PostAsJsonAsync($"/api/journal/entries/{Today}/sub-entries", new { category = "Good", content = "Just in time" });
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }
 
     [Fact]
-    public async Task CreateEntry_OnceTodayHasEndedEverywhere_Returns400()
+    public async Task AddSubEntry_OnceTodayHasEndedEverywhere_Returns400()
     {
         var client = await factory.CreateAuthenticatedClientAsync();
         using var _ = factory.Clock.TravelTo(new DateTimeOffset(2026, 9, 24, 12, 0, 0, TimeSpan.Zero));
 
-        var response = await client.PostAsJsonAsync("/api/journal/entries", new { entryDate = Today, dayRating = 5 });
+        var response = await client.PostAsJsonAsync($"/api/journal/entries/{Today}/sub-entries", new { category = "Good", content = "Too late" });
 
         await AssertReadOnlyAsync(response);
     }
@@ -153,17 +125,6 @@ public class JournalEndpointsTests(AutogratApiFactory factory) : IClassFixture<A
         var day = await client.GetFromJsonAsync<DayDetailResponse>($"/api/journal/entries/{Today}", TestJson.Options);
         Assert.Equal("Evening thought", day!.SubEntries[^1].Content);
         Assert.Equal(EntryCategory.Neutral, day.SubEntries[^1].Category);
-    }
-
-    [Fact]
-    public async Task AddSubEntry_WithNoEntryForDay_Returns404()
-    {
-        var client = await factory.CreateAuthenticatedClientAsync();
-
-        var response = await client.PostAsJsonAsync($"/api/journal/entries/{Today}/sub-entries",
-            new { category = "Good", content = "Orphan" });
-
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]
@@ -276,13 +237,26 @@ public class JournalEndpointsTests(AutogratApiFactory factory) : IClassFixture<A
     }
 
     [Fact]
-    public async Task UpdateRating_WithNoEntryForDay_Returns404()
+    public async Task UpdateRating_WithNoEntryForDay_CreatesDayWithoutEntries()
     {
         var client = await factory.CreateAuthenticatedClientAsync();
 
         var response = await client.PutAsJsonAsync($"/api/journal/entries/{Today}/rating", new { dayRating = 5 });
 
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var day = await client.GetFromJsonAsync<DayDetailResponse>($"/api/journal/entries/{Today}", TestJson.Options);
+        Assert.Equal(5, day!.DayRating);
+        Assert.Empty(day.SubEntries);
+    }
+
+    [Fact]
+    public async Task UpdateRating_ForPastDayWithNoEntry_Returns400()
+    {
+        var client = await factory.CreateAuthenticatedClientAsync();
+
+        var response = await client.PutAsJsonAsync($"/api/journal/entries/{Yesterday}/rating", new { dayRating = 5 });
+
+        await AssertReadOnlyAsync(response);
     }
 
     [Fact]
@@ -379,15 +353,11 @@ public class JournalEndpointsTests(AutogratApiFactory factory) : IClassFixture<A
         Assert.Equal(ReadOnlyTitle, problem!.Title);
     }
 
+    /// <summary>Creates a rated day with one Good sub-entry, as the today page would.</summary>
     private static async Task<DayDetailResponse> CreateEntryAsync(HttpClient client, string entryDate = Today)
     {
-        var response = await client.PostAsJsonAsync("/api/journal/entries", new
-        {
-            entryDate,
-            dayRating = 7,
-            subEntries = new[] { new { category = "Good", content = "Coffee with a friend" } },
-        });
-        response.EnsureSuccessStatusCode();
-        return (await response.Content.ReadFromJsonAsync<DayDetailResponse>(TestJson.Options))!;
+        var date = DateOnly.Parse(entryDate);
+        await client.AddSubEntryAsync(date, "Good", "Coffee with a friend");
+        return await client.RateDayAsync(date, 7);
     }
 }
