@@ -30,7 +30,7 @@ public class AutogratDbContextTests : IDisposable
     }
 
     [Fact]
-    public async Task User_IdIsGeneratedAndIsAdminDefaultsToFalse()
+    public async Task User_IdIsGeneratedAndRoleDefaultsToPending()
     {
         var user = await AddUserAsync("billy");
 
@@ -38,7 +38,7 @@ public class AutogratDbContextTests : IDisposable
         var saved = await context.Users.SingleAsync();
         Assert.True(user.Id > 0);
         Assert.Equal(user.Id, saved.Id);
-        Assert.False(saved.IsAdmin);
+        Assert.Equal(UserRole.Pending, saved.Role);
     }
 
     [Theory]

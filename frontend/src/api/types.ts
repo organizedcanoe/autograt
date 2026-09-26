@@ -4,10 +4,13 @@ export type EntryCategory = 'Good' | 'Neutral' | 'Bad'
 
 export const ENTRY_CATEGORIES: readonly EntryCategory[] = ['Good', 'Neutral', 'Bad']
 
+/** Pending users are awaiting admin approval and cannot log in. */
+export type UserRole = 'Pending' | 'Standard' | 'Admin'
+
 export interface User {
   id: number
   username: string
-  isAdmin: boolean
+  role: UserRole
 }
 
 export interface LoginResponse {

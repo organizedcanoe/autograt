@@ -34,7 +34,7 @@ The database schema consists of four core tables structured in a three-tier hier
 
 * **PasswordHash:** String, Required. Securely hashed password.
 
-* **IsAdmin:** Boolean, Required, Default: False. Indicates whether the account has administrative privileges.
+* **Role:** Enumeration, Required, Default: `Pending`. Allowed values: `Pending` (0), `Standard` (1), `Admin` (2). `Pending` accounts are awaiting admin approval and cannot log in; `Admin` accounts have administrative privileges.
 
 * **CreatedAtUtc:** DateTime, Required. Account creation timestamp.
 
@@ -82,11 +82,13 @@ Represents additional immutable notes appended specifically to an existing `Jour
 
 ### Authentication & Authorization
 
-* **Registration:** Open registration endpoint. During user creation, the system checks total user count. If the user count is zero, `IsAdmin` is automatically set to true; otherwise, `IsAdmin` defaults to false.
+* **Registration:** Open registration endpoint. During user creation, the system checks total user count. If the user count is zero, `Role` is set to `Admin`; otherwise, it is set to `Pending`.
+
+* **Approval:** A `Pending` user cannot log in; login is rejected with an HTTP 403 Forbidden error explaining that the account awaits admin approval. Registration returns no token, so a pending user cannot call authenticated endpoints.
 
 * **Authentication:** Authenticated via JSON Web Tokens (JWT) provided in the Authorization HTTP header.
 
-* **Admin Capabilities:** Endpoint restricted to admin users that allows promoting standard users to admin status.
+* **Admin Capabilities:** Endpoints restricted to admin users that list all users, approve `Pending` users (`POST /api/admin/users/{id}/approve`, making them `Standard`), promote `Standard` users to `Admin` (`POST /api/admin/users/{id}/promote`), and delete `Pending` users such as duplicate sign-ups (`DELETE /api/admin/users/{id}`). Approving or deleting a user who is not pending, or promoting one who is not standard, is rejected with an HTTP 400 Bad Request error; an unknown user returns 404.
 
 ### Journal Rules & Operations
 
@@ -172,6 +174,12 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 * Renders matching journal sub-entries and appended notes with date links pointing directly to the corresponding day view.
 
+#### Registration & Admin Views
+
+* After registering, a user who needs approval is not logged in; the form switches to login and shows "Account created. An admin must approve it before you can log in." The first user, who becomes the admin, is logged in straight away.
+
+* The admin users page lists every user with their role (`Pending approval`, `User`, `Admin`), **Approve** and **Delete** buttons for pending users (deleting asks for confirmation first), and a **Promote** button for standard users.
+
 ## 6. Docker & Containerization Specification
 
 ### Multi-Service Docker Compose Setup
@@ -196,7 +204,9 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
 ### Backend Tests (xUnit + Moq + EF Core In-Memory / SQLite)
 
-* **Authentication Unit Tests:** Verify user creation logic, initial user admin assignment, and password hashing logic.
+* **Authentication Unit Tests:** Verify user creation logic, initial user admin assignment, later users starting as pending, and password hashing logic.
+
+* **Admin Endpoint Tests:** Verify that pending users cannot log in, that admins can approve or delete pending users and promote standard users, and that invalid approvals, deletions and promotions are rejected.
 
 * **Journal Service Integration Tests:**
 
@@ -220,11 +230,13 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
 * Validate that the day view allows editing for the current day and is read-only (apart from appends) for past days.
 
+* Validate that registering a pending account shows the approval notice without logging in, and that the admin page approves pending users and deletes them only after confirmation.
+
 ### End-to-End Tests (Playwright)
 
 * **Complete User Journey:**
 
-  1. Register new user.
+  1. Register new user (the first user on a fresh database, so no approval is needed).
 
   2. Select required day rating (e.g., 8) and enter initial good/bad thoughts.
 

@@ -33,7 +33,7 @@ export default function Layout() {
           </ul>
           <ul>
             <ThemePicker />
-            {user?.isAdmin && (
+            {user?.role === 'Admin' && (
               <li>
                 <Link to="/admin">Admin</Link>
               </li>

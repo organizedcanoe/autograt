@@ -1,11 +1,12 @@
 @use "sass:map";
 
-// Pico's classless build, configured only (no custom styles): React renders into <div id="root">,
-// so Pico's centered <header>/<main> containers must target #root instead of <body>.
+// Pico configured only (no custom styles): semantic HTML first, with Pico's own modifier classes
+// (secondary, outline, contrast) enabled. React renders into <div id="root">, so Pico's centered
+// <header>/<main> containers must target #root instead of <body>.
 @use "@picocss/pico/scss/index" with (
   $semantic-root-element: "#root",
   $enable-semantic-container: true,
-  $enable-classes: false
+  $enable-classes: true
 );
 @use "@picocss/pico/scss/themes/default/theme-colors" as pico-theme-colors;
 

@@ -1,5 +1,6 @@
 using Autograt.Api.Auth;
 using Autograt.Api.Contracts;
+using Autograt.Api.Models;
 using Autograt.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -31,6 +32,11 @@ public class AuthController(AuthService authService, UserService userService, To
         if (user is null)
         {
             return Unauthorized(new ProblemDetails { Title = "Invalid username or password." });
+        }
+
+        if (user.Role == UserRole.Pending)
+        {
+            return Problem(title: "Your account is awaiting admin approval.", statusCode: StatusCodes.Status403Forbidden);
         }
 
         var (token, expiresAtUtc) = tokenService.CreateToken(user);

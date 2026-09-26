@@ -39,7 +39,7 @@ public class AutogratDbContext(DbContextOptions<AutogratDbContext> options) : Db
             user.Property(u => u.Username).IsRequired().UseCollation("NOCASE");
             user.HasIndex(u => u.Username).IsUnique();
             user.Property(u => u.PasswordHash).IsRequired();
-            user.Property(u => u.IsAdmin).HasDefaultValue(false);
+            user.Property(u => u.Role).HasDefaultValue(UserRole.Pending);
         });
 
         modelBuilder.Entity<JournalEntry>(entry =>

@@ -10,7 +10,8 @@ interface Session {
 interface AuthContextValue {
   user: User | null
   login: (username: string, password: string) => Promise<void>
-  register: (username: string, password: string) => Promise<void>
+  /** Registers and logs in, unless the new account is pending approval. Returns the new user. */
+  register: (username: string, password: string) => Promise<User>
   logout: () => void
 }
 
@@ -61,8 +62,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = useCallback(
     async (username: string, password: string) => {
-      await api.register(username, password)
-      await login(username, password)
+      const user = await api.register(username, password)
+      if (user.role !== 'Pending') await login(username, password)
+      return user
     },
     [login],
   )

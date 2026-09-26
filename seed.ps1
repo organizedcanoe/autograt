@@ -69,7 +69,7 @@ try {
     $subEntryId = $entry.subEntries[0].id
     Invoke-Api Post "/api/journal/sub-entries/$subEntryId/appends" -Headers $auth -Body @{ content = 'Everything worked on the first try' } | Out-Null
 
-    Write-Host "`nSeeded user '$($user.username)' (admin: $($user.isAdmin)) with an entry for $today." -ForegroundColor Green
+    Write-Host "`nSeeded user '$($user.username)' (role: $($user.role)) with an entry for $today." -ForegroundColor Green
 }
 finally {
     Stop-Process -Id $backend.Id -Force -ErrorAction SilentlyContinue

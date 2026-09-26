@@ -11,20 +11,33 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const isRegister = mode === 'register'
 
   function switchMode() {
     setMode(isRegister ? 'login' : 'register')
     setError(null)
+    setNotice(null)
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setSubmitting(true)
     setError(null)
+    setNotice(null)
     try {
-      // On success the app switches to the signed-in routes and this page unmounts.
-      await (isRegister ? register(username, password) : login(username, password))
+      // Once logged in, the app switches to the signed-in routes and this page unmounts.
+      if (!isRegister) {
+        await login(username, password)
+        return
+      }
+      const user = await register(username, password)
+      if (user.role === 'Pending') {
+        setMode('login')
+        setPassword('')
+        setNotice('Account created. An admin must approve it before you can log in.')
+        setSubmitting(false)
+      }
     } catch (e) {
       setError(errorMessage(e))
       setSubmitting(false)
@@ -63,6 +76,7 @@ export default function LoginPage() {
             />
           </label>
           {isRegister && <small id="password-hint">At least 8 characters.</small>}
+          {notice && <p role="status">{notice}</p>}
           {error && <p role="alert">{error}</p>}
           <button type="submit" aria-busy={submitting} disabled={submitting}>
             {isRegister ? 'Create account' : 'Log in'}

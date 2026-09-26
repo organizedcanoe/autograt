@@ -29,7 +29,7 @@ describe('LoginPage', () => {
     vi.mocked(api.login).mockResolvedValue({
       token: 'token',
       expiresAtUtc: '2026-09-30T00:00:00Z',
-      user: { id: 1, username: 'billy', isAdmin: true },
+      user: { id: 1, username: 'billy', role: 'Admin' },
     })
     renderLoginPage()
 
@@ -64,5 +64,40 @@ describe('LoginPage', () => {
 
     expect(api.register).toHaveBeenCalledWith('billy', 'password')
     expect(await screen.findByRole('alert')).toHaveTextContent('That username is already taken.')
+  })
+
+  it('does not log in a pending user after registering and explains that approval is needed', async () => {
+    const user = userEvent.setup()
+    vi.mocked(api.register).mockResolvedValue({ id: 2, username: 'billy', role: 'Pending' })
+    renderLoginPage()
+
+    await user.click(screen.getByRole('button', { name: 'Need an account? Register' }))
+    await user.type(screen.getByLabelText('Username'), 'billy')
+    await user.type(screen.getByLabelText('Password'), 'password')
+    await user.click(screen.getByRole('button', { name: 'Create account' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Account created. An admin must approve it before you can log in.',
+    )
+    expect(api.login).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'Log in' })).toBeInTheDocument()
+  })
+
+  it('logs in straight after registering when the account needs no approval', async () => {
+    const user = userEvent.setup()
+    vi.mocked(api.register).mockResolvedValue({ id: 1, username: 'billy', role: 'Admin' })
+    vi.mocked(api.login).mockResolvedValue({
+      token: 'token',
+      expiresAtUtc: '2026-09-30T00:00:00Z',
+      user: { id: 1, username: 'billy', role: 'Admin' },
+    })
+    renderLoginPage()
+
+    await user.click(screen.getByRole('button', { name: 'Need an account? Register' }))
+    await user.type(screen.getByLabelText('Username'), 'billy')
+    await user.type(screen.getByLabelText('Password'), 'password')
+    await user.click(screen.getByRole('button', { name: 'Create account' }))
+
+    expect(api.login).toHaveBeenCalledWith('billy', 'password')
   })
 })

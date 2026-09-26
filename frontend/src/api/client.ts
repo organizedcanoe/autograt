@@ -105,5 +105,9 @@ export const api = {
 
   listUsers: () => request<User[]>('GET', '/admin/users'),
 
+  approveUser: (userId: number) => request<void>('POST', `/admin/users/${userId}/approve`),
+
+  deleteUser: (userId: number) => request<void>('DELETE', `/admin/users/${userId}`),
+
   promoteUser: (userId: number) => request<void>('POST', `/admin/users/${userId}/promote`),
 }
