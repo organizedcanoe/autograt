@@ -1,6 +1,8 @@
 # autograt
 
-A personal journaling app. ASP.NET Core 8 Web API backend, React 19 + Vite + TypeScript frontend, SQLite database.
+A self-hosted personal journaling app.
+
+Full transparency: this app was developed using Claude Code. I was curious about it's capabilities, and wanted to build something *somewhat* complex with it.
 
 See [autograt.md](autograt.md) for feature specifications and the database schema.
 
