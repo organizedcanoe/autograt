@@ -176,6 +176,8 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 #### Registration & Admin Views
 
+* The register form asks for the password twice ("Password" and "Confirm password"). If they differ, the form shows "Passwords do not match." and does not submit.
+
 * After registering, a user who needs approval is not logged in; the form switches to login and shows "Account created. An admin must approve it before you can log in." The first user, who becomes the admin, is logged in straight away.
 
 * The admin users page lists every user with their role (`Pending approval`, `User`, `Admin`), **Approve** and **Delete** buttons for pending users (deleting asks for confirmation first), and a **Promote** button for standard users.

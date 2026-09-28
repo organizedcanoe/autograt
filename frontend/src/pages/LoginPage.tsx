@@ -9,6 +9,7 @@ export default function LoginPage() {
   const [mode, setMode] = useState<Mode>('login')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -16,12 +17,23 @@ export default function LoginPage() {
 
   function switchMode() {
     setMode(isRegister ? 'login' : 'register')
+    clearPasswords()
     setError(null)
     setNotice(null)
   }
 
+  function clearPasswords() {
+    setPassword('')
+    setConfirmPassword('')
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (isRegister && password !== confirmPassword) {
+      setError('Passwords do not match.')
+      setNotice(null)
+      return
+    }
     setSubmitting(true)
     setError(null)
     setNotice(null)
@@ -34,7 +46,7 @@ export default function LoginPage() {
       const user = await register(username, password)
       if (user.role === 'Pending') {
         setMode('login')
-        setPassword('')
+        clearPasswords()
         setNotice('Account created. An admin must approve it before you can log in.')
         setSubmitting(false)
       }
@@ -76,6 +88,18 @@ export default function LoginPage() {
             />
           </label>
           {isRegister && <small id="password-hint">At least 8 characters.</small>}
+          {isRegister && (
+            <label>
+              Confirm password
+              <input
+                type="password"
+                autoComplete="new-password"
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </label>
+          )}
           {notice && <p role="status">{notice}</p>}
           {error && <p role="alert">{error}</p>}
           <button type="submit" aria-busy={submitting} disabled={submitting}>

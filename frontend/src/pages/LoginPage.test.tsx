@@ -60,6 +60,7 @@ describe('LoginPage', () => {
     await user.click(screen.getByRole('button', { name: 'Need an account? Register' }))
     await user.type(screen.getByLabelText('Username'), 'billy')
     await user.type(screen.getByLabelText('Password'), 'password')
+    await user.type(screen.getByLabelText('Confirm password'), 'password')
     await user.click(screen.getByRole('button', { name: 'Create account' }))
 
     expect(api.register).toHaveBeenCalledWith('billy', 'password')
@@ -74,6 +75,7 @@ describe('LoginPage', () => {
     await user.click(screen.getByRole('button', { name: 'Need an account? Register' }))
     await user.type(screen.getByLabelText('Username'), 'billy')
     await user.type(screen.getByLabelText('Password'), 'password')
+    await user.type(screen.getByLabelText('Confirm password'), 'password')
     await user.click(screen.getByRole('button', { name: 'Create account' }))
 
     expect(await screen.findByRole('status')).toHaveTextContent(
@@ -96,8 +98,32 @@ describe('LoginPage', () => {
     await user.click(screen.getByRole('button', { name: 'Need an account? Register' }))
     await user.type(screen.getByLabelText('Username'), 'billy')
     await user.type(screen.getByLabelText('Password'), 'password')
+    await user.type(screen.getByLabelText('Confirm password'), 'password')
     await user.click(screen.getByRole('button', { name: 'Create account' }))
 
     expect(api.login).toHaveBeenCalledWith('billy', 'password')
+  })
+
+  it('asks for password confirmation only when registering', async () => {
+    const user = userEvent.setup()
+    renderLoginPage()
+
+    expect(screen.queryByLabelText('Confirm password')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Need an account? Register' }))
+    expect(screen.getByLabelText('Confirm password')).toBeInTheDocument()
+  })
+
+  it('does not register when the passwords do not match', async () => {
+    const user = userEvent.setup()
+    renderLoginPage()
+
+    await user.click(screen.getByRole('button', { name: 'Need an account? Register' }))
+    await user.type(screen.getByLabelText('Username'), 'billy')
+    await user.type(screen.getByLabelText('Password'), 'password')
+    await user.type(screen.getByLabelText('Confirm password'), 'passwrod')
+    await user.click(screen.getByRole('button', { name: 'Create account' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Passwords do not match.')
+    expect(api.register).not.toHaveBeenCalled()
   })
 })
