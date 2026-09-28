@@ -1,0 +1,17 @@
+/* Pico has no alert component. These cards tint Pico's own surface with a status color,
+   so they follow the light/dark theme. */
+[data-alert] {
+  padding: var(--pico-spacing);
+  border-left: 0.25rem solid var(--alert-color);
+  border-radius: var(--pico-border-radius);
+  background-color: color-mix(in srgb, var(--alert-color) 15%, var(--pico-background-color));
+  color: var(--pico-color);
+}
+
+[data-alert="error"] {
+  --alert-color: #c62828; /* matches the danger buttons in AdminPage.css */
+}
+
+[data-alert="warning"] {
+  --alert-color: #e8a317;
+}
