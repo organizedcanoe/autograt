@@ -3,11 +3,12 @@
 ## Project Structure
 * `/backend`: ASP.NET Core 8 Web API.
 * `/frontend`: React 19 + Vite + TypeScript.
-* `/docker-compose.yml`: Multi-container orchestration.
+* `/docker-compose.yml`: Production orchestration using the published GHCR images.
 * `autograt.md`: The single source of truth for feature specifications and database schema. 
 
 ## Build & Run Commands
-* **Start Full Stack:** `docker compose up --build`
+* **Start Full Stack (Local):** `cd frontend && npm run dev:all`
+* **Run Production Stack:** `docker compose pull && docker compose up -d` (runs the published GHCR images; does not build local changes)
 * **Start Backend (Local):** `cd backend && dotnet run --project Autograt.Api`
 * **Start Frontend (Local):** `cd frontend && npm run dev`
 * **Run Backend Tests:** `cd backend && dotnet test`
