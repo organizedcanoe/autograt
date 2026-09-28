@@ -126,4 +126,29 @@ describe('LoginPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Passwords do not match.')
     expect(api.register).not.toHaveBeenCalled()
   })
+
+  it('shows an alert instead of submitting when a field is empty', async () => {
+    const user = userEvent.setup()
+    renderLoginPage()
+
+    await user.type(screen.getByLabelText('Username'), 'billy')
+    await user.click(screen.getByRole('button', { name: 'Log in' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Enter your username and password.')
+    expect(api.login).not.toHaveBeenCalled()
+  })
+
+  it('does not register when the password is too short', async () => {
+    const user = userEvent.setup()
+    renderLoginPage()
+
+    await user.click(screen.getByRole('button', { name: 'Need an account? Register' }))
+    await user.type(screen.getByLabelText('Username'), 'billy')
+    await user.type(screen.getByLabelText('Password'), 'short')
+    await user.type(screen.getByLabelText('Confirm password'), 'short')
+    await user.click(screen.getByRole('button', { name: 'Create account' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Password must be at least 8 characters.')
+    expect(api.register).not.toHaveBeenCalled()
+  })
 })
