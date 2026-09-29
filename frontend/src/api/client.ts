@@ -5,6 +5,8 @@ import type {
   EntryCategory,
   HeatmapDay,
   LoginResponse,
+  PushPublicKey,
+  PushSubscriptionRequest,
   SearchResult,
   SettingName,
   SubEntry,
@@ -110,6 +112,16 @@ export const api = {
 
   updateSetting: (setting: SettingName, values: string[]) =>
     request<UserSetting>('PUT', `/settings/${setting}`, { values }),
+
+  getPushPublicKey: () => request<PushPublicKey>('GET', '/push/public-key'),
+
+  savePushSubscription: (subscription: PushSubscriptionRequest) =>
+    request<void>('POST', '/push/subscriptions', subscription),
+
+  deletePushSubscription: (endpoint: string) => request<void>('DELETE', '/push/subscriptions', { endpoint }),
+
+  /** Sends a test notification to every device the user enabled reminders on. */
+  sendTestPush: () => request<void>('POST', '/push/test'),
 
   listUsers: () => request<User[]>('GET', '/admin/users'),
 

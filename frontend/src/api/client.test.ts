@@ -60,6 +60,27 @@ describe('api client', () => {
     ])
   })
 
+  it('calls the push endpoints', async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string) =>
+      Promise.resolve(url.endsWith('/public-key') ? Response.json({ publicKey: 'AQID' }) : new Response(null, { status: 204 })),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const subscription = { endpoint: 'https://push.example/1', keys: { p256dh: 'key', auth: 'secret' } }
+
+    expect(await api.getPushPublicKey()).toEqual({ publicKey: 'AQID' })
+    await api.savePushSubscription(subscription)
+    await api.deletePushSubscription('https://push.example/1')
+    await api.sendTestPush()
+
+    const calls = (fetchMock.mock.calls as [string, RequestInit][]).map(([url, init]) => [url, init.method, init.body])
+    expect(calls).toEqual([
+      ['/api/push/public-key', 'GET', undefined],
+      ['/api/push/subscriptions', 'POST', JSON.stringify(subscription)],
+      ['/api/push/subscriptions', 'DELETE', JSON.stringify({ endpoint: 'https://push.example/1' })],
+      ['/api/push/test', 'POST', undefined],
+    ])
+  })
+
   it('raises ApiError with the first validation message', async () => {
     stubFetch(Response.json(
       { title: 'One or more validation errors occurred.', errors: { Content: ['The Content field is required.'] } },

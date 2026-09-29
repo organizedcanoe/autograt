@@ -60,12 +60,23 @@ export interface SearchResult {
 }
 
 /** A user preference; mirrors the backend Setting enum. */
-export type SettingName = 'BrightnessTheme' | 'ColourTheme'
+export type SettingName = 'BrightnessTheme' | 'ColourTheme' | 'RemindersEnabled' | 'ReminderTime' | 'TimeZone'
 
 /** A setting's saved values, or its defaults when the user has not saved any. */
 export interface UserSetting {
   setting: SettingName
   values: string[]
+}
+
+export interface PushPublicKey {
+  /** The server's VAPID public key, base64url-encoded. */
+  publicKey: string
+}
+
+/** A browser's push subscription, in the shape of PushSubscription.toJSON(). */
+export interface PushSubscriptionRequest {
+  endpoint: string
+  keys: { p256dh: string; auth: string }
 }
 
 /** A running build; local dev builds are "0.0.0-dev" / "local" with no build date. */
