@@ -102,6 +102,14 @@ Represents additional immutable notes appended specifically to an existing `Jour
 
 * **Admin Capabilities:** Endpoints restricted to admin users that list all users, approve `Pending` users (`POST /api/admin/users/{id}/approve`, making them `Standard`), promote `Standard` users to `Admin` (`POST /api/admin/users/{id}/promote`), and delete `Pending` users such as duplicate sign-ups (`DELETE /api/admin/users/{id}`). Approving or deleting a user who is not pending, or promoting one who is not standard, is rejected with an HTTP 400 Bad Request error; an unknown user returns 404.
 
+### Rate Limiting
+
+* **Limits:** Every request is limited per one-minute window: signed-in requests per user (default 300), anonymous requests per client IP (default 60), and login and register additionally per client IP (default 10). The limits are set in the `RateLimiting` configuration section.
+
+* **Rejection:** A request over a limit is rejected with an HTTP 429 Too Many Requests error, a `Retry-After` header in seconds, and a problem title telling the user when to try again.
+
+* **Client IP:** The backend takes the client IP from the `X-Forwarded-For` header set by the frontend's nginx proxy, which uses Cloudflare's `CF-Connecting-IP` when present.
+
 ### User Settings
 
 * **Reading:** `GET /api/settings` returns every setting for the signed-in user as `{ setting, values }`, using the default for settings the user has not saved.

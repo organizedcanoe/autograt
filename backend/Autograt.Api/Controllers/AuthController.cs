@@ -1,9 +1,11 @@
 using Autograt.Api.Auth;
 using Autograt.Api.Contracts;
 using Autograt.Api.Models;
+using Autograt.Api.RateLimiting;
 using Autograt.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Autograt.Api.Controllers;
 
@@ -12,6 +14,7 @@ namespace Autograt.Api.Controllers;
 public class AuthController(AuthService authService, UserService userService, TokenService tokenService) : ControllerBase
 {
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitingSetup.AuthPolicy)]
     [HttpPost("register")]
     public async Task<ActionResult<UserResponse>> Register(RegisterRequest request)
     {
@@ -25,6 +28,7 @@ public class AuthController(AuthService authService, UserService userService, To
     }
 
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitingSetup.AuthPolicy)]
     [HttpPost("login")]
     public async Task<ActionResult<LoginResponse>> Login(LoginRequest request)
     {
