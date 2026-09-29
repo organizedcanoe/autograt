@@ -116,6 +116,12 @@ Represents additional immutable notes appended specifically to an existing `Jour
 
 * **Saving:** `PUT /api/settings/{setting}` with `{ values: [...] }` replaces the user's values for that setting. An unknown setting returns 404; an empty list, a disallowed value, a repeated value, or several values for a single-value setting are rejected with an HTTP 400 Bad Request error.
 
+### Build Version
+
+* **Endpoint:** `GET /api/version` (anonymous) returns the running backend build as `{ version, commit, buildDate }`, e.g. `{ "version": "0.1.42", "commit": "a1b2c3d", "buildDate": "2026-09-28T12:00:00Z" }`. Local builds return `0.0.0-dev` / `local` with a null `buildDate`.
+
+* **Numbering:** Each image published from `main` is versioned `0.1.<CI run number>`, tagged with the short commit SHA, and stamped with its UTC build date.
+
 ### Journal Rules & Operations
 
 * **Day Rating:** The `DayRating` is optional. Setting it (`PUT /api/journal/entries/{date}/rating`) requires an integer between 0 and 10; a missing or out-of-range value is rejected with an HTTP 400 Bad Request error.
@@ -238,6 +244,8 @@ The application deployment is governed by a `docker-compose.yml` file defining t
   * Builds using a multi-stage Dockerfile targeting Node.js for Vite compilation and Nginx (or lightweight web server) for serving built assets.
 
   * Configured to forward API network requests to the `backend` service container.
+
+* **Build info:** Both images take `VERSION`, `COMMIT` and `BUILD_DATE` build args. Every page shows the frontend build in a footer (version, commit linked to GitHub, build date), and warns when `GET /api/version` reports a different backend build, meaning one container is stale.
 
 ## 7. Testing Strategy Specification
 

@@ -1,5 +1,6 @@
 import type {
   Append,
+  BuildVersion,
   DayDetail,
   EntryCategory,
   HeatmapDay,
@@ -117,4 +118,6 @@ export const api = {
   deleteUser: (userId: number) => request<void>('DELETE', `/admin/users/${userId}`),
 
   promoteUser: (userId: number) => request<void>('POST', `/admin/users/${userId}/promote`),
+
+  getVersion: () => request<BuildVersion>('GET', '/version'),
 }

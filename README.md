@@ -96,6 +96,8 @@ Every push to `main` that passes CI publishes images to GitHub Container Registr
 - `ghcr.io/oversizedcanoe/autograt-backend`
 - `ghcr.io/oversizedcanoe/autograt-frontend`
 
+Each image is tagged `latest`, the commit SHA, and a version `0.1.<CI run number>`.
+
 `docker-compose.yml` runs those images. It does not build from source.
 
 ### Deploy
@@ -119,10 +121,14 @@ The frontend (nginx) listens on port 3000 and proxies `/api` to the backend cont
 
 ### Update
 
+The footer of every page shows the running version, commit and build date (`GET /api/version` returns the backend's). Compare the commit with the latest on `main`, then update:
+
 ```sh
 docker compose pull
 docker compose up -d
 ```
+
+If the footer warns that the backend is on a different build, one container is stale; pulling and restarting fixes it.
 
 ### Data
 
