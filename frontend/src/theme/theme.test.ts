@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { applyTheme, DEFAULT_THEME, loadTheme, saveTheme } from './theme'
+import { applyTheme, DEFAULT_THEME, loadTheme, saveTheme, themeFromSettings } from './theme'
 
 const root = document.documentElement
 
@@ -27,6 +27,19 @@ describe('theme', () => {
 
     localStorage.setItem('autograt.theme', '{not json')
     expect(loadTheme()).toEqual(DEFAULT_THEME)
+  })
+
+  it('reads the theme from server settings', () => {
+    const theme = themeFromSettings([
+      { setting: 'BrightnessTheme', values: ['dark'] },
+      { setting: 'ColourTheme', values: ['jade'] },
+    ])
+
+    expect(theme).toEqual({ scheme: 'dark', color: 'jade' })
+  })
+
+  it('uses the default for missing or unknown server settings', () => {
+    expect(themeFromSettings([{ setting: 'ColourTheme', values: ['plaid'] }])).toEqual(DEFAULT_THEME)
   })
 
   it('forces light or dark through data-theme', () => {

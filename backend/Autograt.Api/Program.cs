@@ -66,6 +66,7 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<JournalService>();
 builder.Services.AddScoped<SearchService>();
+builder.Services.AddScoped<SettingsService>();
 builder.Services.AddSingleton<TokenService>();
 
 var app = builder.Build();

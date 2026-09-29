@@ -1,37 +1,24 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it } from 'vitest'
-import { loadTheme } from '../theme/theme'
+import { describe, expect, it, vi } from 'vitest'
 import ThemePicker from './ThemePicker'
 
 describe('ThemePicker', () => {
-  beforeEach(() => {
-    localStorage.clear()
-  })
-
   it('shows the current choice', () => {
-    render(
-      <ul>
-        <ThemePicker />
-      </ul>,
-    )
+    render(<ThemePicker theme={{ scheme: 'dark', color: 'jade' }} onChange={() => {}} />)
 
-    expect(screen.getByRole('combobox', { name: 'Mode' })).toHaveValue('system')
-    expect(screen.getByRole('combobox', { name: 'Color' })).toHaveValue('azure')
+    expect(screen.getByRole('combobox', { name: 'Mode' })).toHaveValue('dark')
+    expect(screen.getByRole('combobox', { name: 'Color' })).toHaveValue('jade')
   })
 
-  it('switches the mode and color and remembers them', async () => {
-    render(
-      <ul>
-        <ThemePicker />
-      </ul>,
-    )
+  it('reports a new mode or color, keeping the other part of the theme', async () => {
+    const onChange = vi.fn()
+    render(<ThemePicker theme={{ scheme: 'system', color: 'azure' }} onChange={onChange} />)
 
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Mode' }), 'dark')
-    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Color' }), 'jade')
+    expect(onChange).toHaveBeenLastCalledWith({ scheme: 'dark', color: 'azure' })
 
-    expect(document.documentElement).toHaveAttribute('data-theme', 'dark')
-    expect(document.documentElement).toHaveAttribute('data-color', 'jade')
-    expect(loadTheme()).toEqual({ scheme: 'dark', color: 'jade' })
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Color' }), 'jade')
+    expect(onChange).toHaveBeenLastCalledWith({ scheme: 'system', color: 'jade' })
   })
 })

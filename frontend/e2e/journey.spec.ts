@@ -19,7 +19,7 @@ test('complete user journey: register, rate, heatmap, append, search', async ({ 
   await page.getByLabel('Password', { exact: true }).fill('password123')
   await page.getByLabel('Confirm password').fill('password123')
   await page.getByRole('button', { name: 'Create account' }).click()
-  await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible()
+  await expect(page.getByRole('banner').getByText(username)).toBeVisible()
 
   // 2. Save the good and bad nudge boxes one at a time, then rate the day.
   const todayBlock = page.locator(`a[href="/day/${today}"]`)

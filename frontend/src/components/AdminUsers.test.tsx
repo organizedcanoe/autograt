@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../api/client'
 import type { User } from '../api/types'
-import AdminPage from './AdminPage'
+import AdminUsers from './AdminUsers'
 
 vi.mock('../api/client', async (importOriginal) => {
   const original = await importOriginal<typeof import('../api/client')>()
@@ -23,7 +23,7 @@ async function findRow(username: string) {
   return (await screen.findByRole('cell', { name: username })).closest('tr')!
 }
 
-describe('AdminPage', () => {
+describe('AdminUsers', () => {
   afterEach(() => {
     vi.mocked(api.listUsers).mockReset()
     vi.mocked(api.approveUser).mockReset()
@@ -34,7 +34,7 @@ describe('AdminPage', () => {
 
   it('shows each role with the action that applies to it', async () => {
     vi.mocked(api.listUsers).mockResolvedValue(users)
-    render(<AdminPage />)
+    render(<AdminUsers />)
 
     const adminRow = within(await findRow('admin'))
     expect(adminRow.getByRole('cell', { name: 'Admin' })).toBeInTheDocument()
@@ -56,7 +56,7 @@ describe('AdminPage', () => {
     const user = userEvent.setup()
     vi.mocked(api.listUsers).mockResolvedValue(users)
     vi.mocked(api.approveUser).mockResolvedValue(undefined)
-    render(<AdminPage />)
+    render(<AdminUsers />)
 
     await user.click(within(await findRow('newcomer')).getByRole('button', { name: 'Approve' }))
 
@@ -69,7 +69,7 @@ describe('AdminPage', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true)
     vi.mocked(api.listUsers).mockResolvedValue(users)
     vi.mocked(api.deleteUser).mockResolvedValue(undefined)
-    render(<AdminPage />)
+    render(<AdminUsers />)
 
     await user.click(within(await findRow('newcomer')).getByRole('button', { name: 'Delete' }))
 
@@ -82,7 +82,7 @@ describe('AdminPage', () => {
     const user = userEvent.setup()
     vi.spyOn(window, 'confirm').mockReturnValue(false)
     vi.mocked(api.listUsers).mockResolvedValue(users)
-    render(<AdminPage />)
+    render(<AdminUsers />)
 
     await user.click(within(await findRow('newcomer')).getByRole('button', { name: 'Delete' }))
 

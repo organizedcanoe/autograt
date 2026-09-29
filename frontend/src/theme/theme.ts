@@ -1,3 +1,5 @@
+import type { SettingName, UserSetting } from '../api/types'
+
 export const COLOR_SCHEMES = ['system', 'light', 'dark'] as const
 export type ColorScheme = (typeof COLOR_SCHEMES)[number]
 
@@ -12,6 +14,9 @@ export interface Theme {
 
 export const DEFAULT_THEME: Theme = { scheme: 'system', color: 'azure' }
 
+/** The server setting that stores each part of the theme. */
+export const THEME_SETTINGS: Record<keyof Theme, SettingName> = { scheme: 'BrightnessTheme', color: 'ColourTheme' }
+
 const STORAGE_KEY = 'autograt.theme'
 
 function isOneOf<T extends string>(options: readonly T[], value: unknown): value is T {
@@ -23,12 +28,22 @@ export function loadTheme(): Theme {
     const saved: unknown = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null')
     if (typeof saved !== 'object' || saved === null) return DEFAULT_THEME
     const { scheme, color } = saved as Record<string, unknown>
-    return {
-      scheme: isOneOf(COLOR_SCHEMES, scheme) ? scheme : DEFAULT_THEME.scheme,
-      color: isOneOf(THEME_COLORS, color) ? color : DEFAULT_THEME.color,
-    }
+    return toTheme(scheme, color)
   } catch {
     return DEFAULT_THEME
+  }
+}
+
+/** Reads the theme from the user's server settings, using the default for anything missing or unknown. */
+export function themeFromSettings(settings: UserSetting[]): Theme {
+  const valueOf = (key: keyof Theme) => settings.find((s) => s.setting === THEME_SETTINGS[key])?.values[0]
+  return toTheme(valueOf('scheme'), valueOf('color'))
+}
+
+function toTheme(scheme: unknown, color: unknown): Theme {
+  return {
+    scheme: isOneOf(COLOR_SCHEMES, scheme) ? scheme : DEFAULT_THEME.scheme,
+    color: isOneOf(THEME_COLORS, color) ? color : DEFAULT_THEME.color,
   }
 }
 

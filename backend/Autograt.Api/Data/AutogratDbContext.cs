@@ -14,6 +14,8 @@ public class AutogratDbContext(DbContextOptions<AutogratDbContext> options) : Db
 
     public DbSet<JournalAppend> JournalAppends => Set<JournalAppend>();
 
+    public DbSet<UserSetting> UserSettings => Set<UserSetting>();
+
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
         StampCreatedAtUtc();
@@ -70,6 +72,17 @@ public class AutogratDbContext(DbContextOptions<AutogratDbContext> options) : Db
             append.HasOne(a => a.JournalSubEntry)
                 .WithMany(s => s.Appends)
                 .HasForeignKey(a => a.JournalSubEntryId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<UserSetting>(setting =>
+        {
+            setting.ToTable("UserSetting");
+            setting.Property(s => s.Value).IsRequired();
+            setting.HasIndex(s => new { s.UserId, s.Setting });
+            setting.HasOne(s => s.User)
+                .WithMany()
+                .HasForeignKey(s => s.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
     }

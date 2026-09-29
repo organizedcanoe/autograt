@@ -22,6 +22,17 @@ public class AdminEndpointsTests : IDisposable
     }
 
     [Fact]
+    public async Task ListUsers_AsNonAdmin_Returns403()
+    {
+        await _factory.CreateAuthenticatedClientAsync("admin");
+        var regular = await _factory.CreateAuthenticatedClientAsync("regular");
+
+        var response = await regular.GetAsync("/api/admin/users");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
     public async Task ListUsers_AsAdmin_ReturnsAllUsers()
     {
         var admin = await _factory.CreateAuthenticatedClientAsync("admin");

@@ -6,13 +6,17 @@ import DayPage from './pages/DayPage'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import SearchPage from './pages/SearchPage'
+import SettingsPage from './pages/SettingsPage'
+import { ThemeProvider } from './theme/ThemeContext'
 
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
+      <ThemeProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </ThemeProvider>
     </AuthProvider>
   )
 }
@@ -29,6 +33,7 @@ function AppRoutes() {
         <Route index element={<HomePage />} />
         <Route path="day/:date" element={<DayPage />} />
         <Route path="search" element={<SearchPage />} />
+        <Route path="settings" element={<SettingsPage />} />
         <Route path="admin" element={user.role === 'Admin' ? <AdminPage /> : <Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

@@ -126,6 +126,29 @@ namespace Autograt.Api.Migrations
                     b.ToTable("User", (string)null);
                 });
 
+            modelBuilder.Entity("Autograt.Api.Models.UserSetting", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Setting")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "Setting");
+
+                    b.ToTable("UserSetting", (string)null);
+                });
+
             modelBuilder.Entity("Autograt.Api.Models.JournalAppend", b =>
                 {
                     b.HasOne("Autograt.Api.Models.JournalSubEntry", "JournalSubEntry")
@@ -157,6 +180,17 @@ namespace Autograt.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("JournalEntry");
+                });
+
+            modelBuilder.Entity("Autograt.Api.Models.UserSetting", b =>
+                {
+                    b.HasOne("Autograt.Api.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Autograt.Api.Models.JournalEntry", b =>
