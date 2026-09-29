@@ -35,7 +35,7 @@ export default function AdminUsers() {
   return (
     <>
       <hgroup>
-        <h3>Users</h3>
+        <h2>Users</h2>
         <p>New users can log in once approved. Promoted users get admin rights the next time they log in.</p>
       </hgroup>
       {error && <p role="alert">{error}</p>}

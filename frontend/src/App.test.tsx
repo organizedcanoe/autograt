@@ -1,7 +1,14 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { UserRole } from './api/types'
 import App from './App'
+
+function signInAs(role: UserRole) {
+  vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})))
+  const session = { token: 'token', user: { id: 1, username: 'billy', role } }
+  localStorage.setItem('autograt.session', JSON.stringify(session))
+}
 
 describe('App', () => {
   beforeEach(() => {
@@ -30,7 +37,6 @@ describe('App', () => {
     const header = within(banner)
     expect(banner).not.toHaveTextContent('Hello')
     expect(header.queryByRole('combobox')).not.toBeInTheDocument()
-    expect(header.queryByRole('link', { name: 'Admin' })).not.toBeInTheDocument()
 
     const menu = header.getByText('billy').closest('details')!
     await userEvent.click(header.getByText('billy'))
@@ -41,20 +47,40 @@ describe('App', () => {
     expect(menu).not.toHaveAttribute('open')
   })
 
-  it('hides the search bar on the settings page only', () => {
-    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})))
-    const session = { token: 'token', user: { id: 1, username: 'billy', role: 'Standard' } }
-    localStorage.setItem('autograt.session', JSON.stringify(session))
-    window.history.replaceState(null, '', '/settings')
-    const { unmount } = render(<App />)
+  it.each(['/settings', '/admin'])('hides the search bar on %s', (path) => {
+    signInAs('Admin')
+    window.history.replaceState(null, '', path)
+    render(<App />)
 
     expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
+  })
 
-    unmount()
+  it('shows the search bar on journal pages', () => {
+    signInAs('Standard')
     window.history.replaceState(null, '', '/search?q=dog')
     render(<App />)
 
     expect(screen.getByRole('searchbox')).toBeInTheDocument()
+  })
+
+  it('opens the admin page from the menu for admins', async () => {
+    signInAs('Admin')
+    render(<App />)
+
+    await userEvent.click(within(screen.getByRole('banner')).getByRole('link', { name: 'Admin' }))
+
+    expect(window.location.pathname).toBe('/admin')
+    expect(screen.getByRole('heading', { level: 1, name: 'Admin' })).toBeInTheDocument()
+  })
+
+  it('keeps standard users out of the admin page', () => {
+    signInAs('Standard')
+    window.history.replaceState(null, '', '/admin')
+    render(<App />)
+
+    expect(within(screen.getByRole('banner')).queryByRole('link', { name: 'Admin' })).not.toBeInTheDocument()
+    expect(window.location.pathname).toBe('/')
+    expect(screen.queryByRole('heading', { name: 'Admin' })).not.toBeInTheDocument()
   })
 
   it('resets the URL to the root when logging out', async () => {

@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import Layout from './components/Layout'
+import AdminPage from './pages/AdminPage'
 import DayPage from './pages/DayPage'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
@@ -33,8 +34,7 @@ function AppRoutes() {
         <Route path="day/:date" element={<DayPage />} />
         <Route path="search" element={<SearchPage />} />
         <Route path="settings" element={<SettingsPage />} />
-        {/* Admin controls now live at the bottom of the settings page. */}
-        <Route path="admin" element={<Navigate to="/settings" replace />} />
+        <Route path="admin" element={user.role === 'Admin' ? <AdminPage /> : <Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

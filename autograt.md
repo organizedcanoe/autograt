@@ -188,19 +188,18 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 #### Search Interface
 
-* Header search bar accepting user text queries, shown on every page except settings.
+* Header search bar accepting user text queries, shown on every page except the settings and admin pages.
 
 * Renders matching journal sub-entries and appended notes with date links pointing directly to the corresponding day view.
 
 #### Settings Page
 
-* The header shows the signed-in user's name as a dropdown menu with **Settings** (`/settings`) and **Log out**; it does not show the theme controls itself.
+* The header shows the signed-in user's name as a dropdown menu with **Settings** (`/settings`), **Admin** (`/admin`, admins only) and **Log out**; it does not show the theme controls itself.
 
 * An **Appearance** section offers Mode (System, Light, Dark) and Color selects. A change applies straight away and is saved to the user's settings; a failed save shows an error.
 
 * The theme is cached in the browser so the login page and first paint use it; after login the user's saved theme is loaded from the server and applied.
 
-* Admins see an **Admin** section at the bottom of the page with the user list described below. The old `/admin` URL redirects to the settings page.
 
 #### Registration & Admin Views
 
@@ -210,7 +209,7 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 * After registering, a user who needs approval is not logged in; the form switches to login and shows "Account created. An admin must approve it before you can log in." The first user, who becomes the admin, is logged in straight away.
 
-* The admin section of the settings page lists every user with their role (`Pending approval`, `User`, `Admin`), **Approve** and **Delete** buttons for pending users (deleting asks for confirmation first), and a **Promote** button for standard users.
+* The admin page (`/admin`) is only available to admins; other users visiting it are redirected to the today view. It lists every user with their role (`Pending approval`, `User`, `Admin`), **Approve** and **Delete** buttons for pending users (deleting asks for confirmation first), and a **Promote** button for standard users.
 
 ## 6. Docker & Containerization Specification
 
@@ -238,7 +237,7 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
 * **Authentication Unit Tests:** Verify user creation logic, initial user admin assignment, later users starting as pending, and password hashing logic.
 
-* **Admin Endpoint Tests:** Verify that pending users cannot log in, that admins can approve or delete pending users and promote standard users, and that invalid approvals, deletions and promotions are rejected.
+* **Admin Endpoint Tests:** Verify that pending users cannot log in, that admins can approve or delete pending users and promote standard users, that invalid approvals, deletions and promotions are rejected, and that non-admins are forbidden (403) from every admin endpoint.
 
 * **Journal Service Integration Tests:**
 
@@ -264,7 +263,7 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
 * Validate that the day view allows editing for the current day and is read-only (apart from appends) for past days.
 
-* Validate that the settings page saves theme changes, reports failed saves, and shows the admin section only to admins.
+* Validate that the settings page saves theme changes and reports failed saves, and that only admins can reach the admin page.
 
 * Validate that registering a pending account shows the approval notice without logging in, and that the admin page approves pending users and deletes them only after confirmation.
 
