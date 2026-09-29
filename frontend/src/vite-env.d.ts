@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+/// <reference types="vite-plugin-pwa/react" />
 
 // Build info passed in by the Docker build; empty or missing in local dev.
 interface ImportMetaEnv {

@@ -23,5 +23,7 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  // The service worker runs in a worker scope, not the DOM; tsconfig.sw.json checks it.
+  "exclude": ["src/sw.ts"]
 }
