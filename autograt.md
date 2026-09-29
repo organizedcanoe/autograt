@@ -188,13 +188,13 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 #### Search Interface
 
-* Header search bar accepting user text queries.
+* Header search bar accepting user text queries, shown on every page except settings.
 
 * Renders matching journal sub-entries and appended notes with date links pointing directly to the corresponding day view.
 
 #### Settings Page
 
-* The header links to a **Settings** page (`/settings`) instead of showing the theme controls itself.
+* The header shows the signed-in user's name as a dropdown menu with **Settings** (`/settings`) and **Log out**; it does not show the theme controls itself.
 
 * An **Appearance** section offers Mode (System, Light, Dark) and Color selects. A change applies straight away and is saved to the user's settings; a failed save shows an error.
 
