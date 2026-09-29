@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using WebPush;
 
 namespace Autograt.Tests.Infrastructure;
 
@@ -29,6 +31,12 @@ public class AutogratApiFactory : WebApplicationFactory<Program>
 
     /// <summary>The API's clock; tests move it to write entries on other days.</summary>
     public TestClock Clock { get; } = new();
+
+    /// <summary>Records push notifications instead of sending them.</summary>
+    public FakePushSender Push { get; } = new();
+
+    // Generated once so tests never write a vapid.json into the temp directory.
+    private static readonly VapidDetails VapidKeys = VapidHelper.GenerateVapidKeys();
 
     private readonly string _databasePath =
         Path.Combine(Path.GetTempPath(), $"autograt-test-{Guid.NewGuid():N}.db");
@@ -75,7 +83,17 @@ public class AutogratApiFactory : WebApplicationFactory<Program>
         builder.UseSetting($"{RateLimitingOptions.SectionName}:{nameof(RateLimitingOptions.AuthPermitsPerMinute)}", $"{RateLimits.AuthPermitsPerMinute}");
         builder.UseSetting($"{RateLimitingOptions.SectionName}:{nameof(RateLimitingOptions.AnonymousPermitsPerMinute)}", $"{RateLimits.AnonymousPermitsPerMinute}");
         builder.UseSetting($"{RateLimitingOptions.SectionName}:{nameof(RateLimitingOptions.UserPermitsPerMinute)}", $"{RateLimits.UserPermitsPerMinute}");
-        builder.ConfigureTestServices(services => services.AddSingleton<TimeProvider>(Clock));
+        builder.UseSetting($"{PushOptions.SectionName}:{nameof(PushOptions.VapidPublicKey)}", VapidKeys.PublicKey);
+        builder.UseSetting($"{PushOptions.SectionName}:{nameof(PushOptions.VapidPrivateKey)}", VapidKeys.PrivateKey);
+        builder.ConfigureTestServices(services =>
+        {
+            services.AddSingleton<TimeProvider>(Clock);
+            services.AddSingleton<IPushSender>(Push);
+
+            // Tests run reminders on demand (see ReminderServiceTests) rather than on the background timer.
+            services.Remove(services.Single(d =>
+                d.ServiceType == typeof(IHostedService) && d.ImplementationType == typeof(ReminderService)));
+        });
     }
 
     protected override void Dispose(bool disposing)

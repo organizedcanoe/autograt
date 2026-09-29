@@ -95,6 +95,40 @@ namespace Autograt.Api.Migrations
                     b.ToTable("JournalSubEntry", (string)null);
                 });
 
+            modelBuilder.Entity("Autograt.Api.Models.PushSubscription", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Auth")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Endpoint")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("P256dh")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Endpoint")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("PushSubscription", (string)null);
+                });
+
             modelBuilder.Entity("Autograt.Api.Models.User", b =>
                 {
                     b.Property<int>("Id")
@@ -102,6 +136,9 @@ namespace Autograt.Api.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("LastReminderAtUtc")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("PasswordHash")
@@ -180,6 +217,17 @@ namespace Autograt.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("JournalEntry");
+                });
+
+            modelBuilder.Entity("Autograt.Api.Models.PushSubscription", b =>
+                {
+                    b.HasOne("Autograt.Api.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Autograt.Api.Models.UserSetting", b =>

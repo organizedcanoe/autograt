@@ -10,7 +10,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Any;
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
+using WebPush;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -50,6 +52,25 @@ builder.Services.AddSingleton(services =>
     return new JwtSigningKey(new SymmetricSecurityKey(key));
 });
 
+builder.Services.AddOptions<PushOptions>().BindConfiguration(PushOptions.SectionName);
+builder.Services.AddSingleton(services =>
+{
+    var options = services.GetRequiredService<IOptions<PushOptions>>().Value;
+    var configuration = services.GetRequiredService<IConfiguration>();
+    var contentRoot = services.GetRequiredService<IWebHostEnvironment>().ContentRootPath;
+    var dataDirectory = SqliteConnectionStrings.GetDataDirectory(GetConnectionString(configuration), contentRoot);
+    return VapidKeyProvider.GetOrCreateKeys(options.VapidPublicKey, options.VapidPrivateKey, dataDirectory);
+});
+builder.Services.AddSingleton(services =>
+{
+    var keys = services.GetRequiredService<VapidKeys>();
+    var subject = services.GetRequiredService<IOptions<PushOptions>>().Value.Subject;
+    return new VapidDetails(subject, keys.PublicKey, keys.PrivateKey);
+});
+builder.Services.AddSingleton(_ => new WebPushClient());
+builder.Services.AddSingleton<IPushSender, WebPushSender>();
+builder.Services.AddHostedService<ReminderService>();
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
 builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
     .Configure<JwtSigningKey>((options, signingKey) =>
@@ -80,6 +101,7 @@ builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<JournalService>();
 builder.Services.AddScoped<SearchService>();
 builder.Services.AddScoped<SettingsService>();
+builder.Services.AddScoped<PushService>();
 builder.Services.AddSingleton<TokenService>();
 
 var app = builder.Build();

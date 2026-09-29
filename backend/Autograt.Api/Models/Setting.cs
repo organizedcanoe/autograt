@@ -8,4 +8,13 @@ public enum Setting
 
     /// <summary>The accent colour, e.g. "azure" or "jade".</summary>
     ColourTheme = 2,
+
+    /// <summary>Whether reminder notifications are sent: "on" or "off".</summary>
+    RemindersEnabled = 3,
+
+    /// <summary>The local times reminders are sent at, as 24-hour "HH:mm"; up to four values.</summary>
+    ReminderTime = 4,
+
+    /// <summary>The IANA time zone reminder times are in, e.g. "America/Toronto".</summary>
+    TimeZone = 5,
 }

@@ -38,6 +38,8 @@ The database schema consists of four core journal tables structured in a three-t
 
 * **CreatedAtUtc:** DateTime, Required. Account creation timestamp.
 
+* **LastReminderAtUtc:** DateTime, Optional. The reminder slot most recently handled (sent or skipped), so each slot is handled only once.
+
 ### Table: `UserSetting`
 
 Holds a user's preferences. A setting with no rows uses its default; a setting that allows several values has one row per value.
@@ -46,9 +48,25 @@ Holds a user's preferences. A setting with no rows uses its default; a setting t
 
 * **UserId:** Integer, Foreign Key referencing `User.Id`, Required. Rows are deleted with their user.
 
-* **Setting:** Enumeration, Required. Allowed values: `BrightnessTheme` (1: `system`, `light` or `dark`; default `system`), `ColourTheme` (2: `azure`, `jade`, `violet`, `pumpkin`, `pink` or `slate`; default `azure`). Both currently take a single value. An index on `(UserId, Setting)` speeds up lookups.
+* **Setting:** Enumeration, Required. Allowed values: `BrightnessTheme` (1: `system`, `light` or `dark`; default `system`), `ColourTheme` (2: `azure`, `jade`, `violet`, `pumpkin`, `pink` or `slate`; default `azure`), `RemindersEnabled` (3: `on` or `off`; default `off`), `ReminderTime` (4: 24-hour `HH:mm` times, up to four; default `12:00` and `20:00`), `TimeZone` (5: an IANA time zone such as `America/Toronto`; default `UTC`). Only `ReminderTime` takes several values. An index on `(UserId, Setting)` speeds up lookups.
 
 * **Value:** String, Required. One value of the setting.
+
+### Table: `PushSubscription`
+
+One row per browser or device a user has enabled reminder notifications on.
+
+* **Id:** Unique identifier (Integer, Primary Key, auto-increment).
+
+* **UserId:** Integer, Foreign Key referencing `User.Id`, Required. Rows are deleted with their user.
+
+* **Endpoint:** String, Required, Unique Index. The browser's push service URL; a browser has one endpoint.
+
+* **P256dh:** String, Required. The browser's public encryption key.
+
+* **Auth:** String, Required. The browser's authentication secret.
+
+* **CreatedAtUtc:** DateTime, Required.
 
 ### Table: `JournalEntry` (Parent Record)
 

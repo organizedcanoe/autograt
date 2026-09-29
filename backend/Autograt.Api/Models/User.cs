@@ -12,5 +12,8 @@ public class User : ICreatedAtUtc
 
     public DateTime CreatedAtUtc { get; set; }
 
+    /// <summary>The reminder slot most recently handled (sent or skipped), so each slot is handled once.</summary>
+    public DateTime? LastReminderAtUtc { get; set; }
+
     public List<JournalEntry> JournalEntries { get; } = [];
 }
