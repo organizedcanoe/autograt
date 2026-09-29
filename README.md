@@ -81,7 +81,10 @@ npm run test
 # End-to-end (Playwright; starts its own backend and frontend)
 cd frontend
 npx playwright install chromium   # first run only
-npm run test:e2e
+# any of the following:
+npm run test:e2e                  # runs headless and prints results to the terminal (as CI does)
+npx playwright test --headed      # runs in a visible browser window so you can watch each step
+npx playwright test --ui          # opens Playwright's UI to step through each action with DOM snapshots
 ```
 
 `./verify.ps1` builds and tests the backend, frontend and Docker images in one go.
