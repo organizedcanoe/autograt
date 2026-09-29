@@ -1,9 +1,10 @@
 /* The app's logo: its name in a light handwritten script, like a journal entry.
-   Sacramento's strokes are thin, so it is set larger than the surrounding text to stay legible. */
+   Sacramento's strokes are thin, so it is set larger than the surrounding text to stay legible.
+   Its tails reach well below the baseline, so it keeps the font's own line height to leave room for them. */
 .wordmark {
   font-family: 'Sacramento', cursive;
   font-weight: 400;
   font-size: 2em;
-  line-height: 1;
+  line-height: normal;
   color: var(--pico-primary);
 }
