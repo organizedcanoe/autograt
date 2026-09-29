@@ -16,13 +16,14 @@ test('complete user journey: register, rate, heatmap, append, search', async ({ 
   await page.goto('/')
   await page.getByRole('button', { name: 'Need an account? Register' }).click()
   await page.getByLabel('Username').fill(username)
-  await page.getByLabel('Password').fill('password123')
+  await page.getByLabel('Password', { exact: true }).fill('password123')
+  await page.getByLabel('Confirm password').fill('password123')
   await page.getByRole('button', { name: 'Create account' }).click()
   await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible()
 
   // 2. Save the good and bad nudge boxes one at a time, then rate the day.
-  const todayBlock = page.locator(`a[data-band][href="/day/${today}"]`)
-  await expect(todayBlock).toHaveAttribute('data-band', 'none')
+  const todayBlock = page.locator(`a[href="/day/${today}"]`)
+  await expect(todayBlock).toHaveAccessibleName(/: no entry$/)
   await page.getByLabel('Good thing 1').fill('Walked the dog in the sunshine')
   await page.getByRole('button', { name: 'Save', exact: true }).first().click()
   await expect(page.getByRole('article').filter({ hasText: 'Walked the dog in the sunshine' })).toBeVisible()
@@ -32,9 +33,9 @@ test('complete user journey: register, rate, heatmap, append, search', async ({ 
   await page.getByLabel('How was your day?').selectOption('8')
   await page.getByRole('button', { name: 'Save rating' }).click()
 
-  // 3. The rating is saved and today's heatmap block turns green.
+  // 3. The rating is saved and today's heatmap block reflects it.
   await expect(page.getByLabel('Change rating')).toHaveValue('8')
-  await expect(todayBlock).toHaveAttribute('data-band', 'good')
+  await expect(todayBlock).toHaveAccessibleName(/: rating 8, 2 entries$/)
 
   // 4. Open the day view and append a note to a specific sub-entry.
   await todayBlock.click()
