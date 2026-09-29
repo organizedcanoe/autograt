@@ -1,9 +1,11 @@
 using System.Text.Json.Serialization;
 using Autograt.Api.Data;
 using Autograt.Api.Models;
+using Autograt.Api.RateLimiting;
 using Autograt.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -60,6 +62,17 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
 builder.Services.AddAuthorizationBuilder()
     .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
 
+builder.Services.AddAutogratRateLimiting(builder.Configuration);
+
+// The backend is only reachable through the frontend's nginx proxy (see docker-compose.yml), whose address
+// on the Docker network isn't fixed, so trust the client IP it forwards from any address.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<AuthService>();
@@ -77,6 +90,8 @@ await using (var scope = app.Services.CreateAsyncScope())
     await db.Database.MigrateAsync();
 }
 
+app.UseForwardedHeaders();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -84,6 +99,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseAuthentication();
+// After authentication, so signed-in requests are limited per user rather than per IP.
+app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapControllers();

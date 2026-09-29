@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Autograt.Api.Contracts;
 using Autograt.Api.Models;
+using Autograt.Api.RateLimiting;
 using Autograt.Api.Services;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -17,6 +18,14 @@ namespace Autograt.Tests.Infrastructure;
 public class AutogratApiFactory : WebApplicationFactory<Program>
 {
     public const string DefaultPassword = "correct-horse-battery";
+
+    /// <summary>The API's rate limits; by default high enough that tests never reach them.</summary>
+    public RateLimitingOptions RateLimits { get; init; } = new()
+    {
+        AuthPermitsPerMinute = 10_000,
+        AnonymousPermitsPerMinute = 10_000,
+        UserPermitsPerMinute = 10_000,
+    };
 
     /// <summary>The API's clock; tests move it to write entries on other days.</summary>
     public TestClock Clock { get; } = new();
@@ -63,6 +72,9 @@ public class AutogratApiFactory : WebApplicationFactory<Program>
     {
         builder.UseSetting("ConnectionStrings:Default", $"Data Source={_databasePath}");
         builder.UseSetting("Jwt:Key", "test-signing-key-that-is-at-least-32-bytes-long");
+        builder.UseSetting($"{RateLimitingOptions.SectionName}:{nameof(RateLimitingOptions.AuthPermitsPerMinute)}", $"{RateLimits.AuthPermitsPerMinute}");
+        builder.UseSetting($"{RateLimitingOptions.SectionName}:{nameof(RateLimitingOptions.AnonymousPermitsPerMinute)}", $"{RateLimits.AnonymousPermitsPerMinute}");
+        builder.UseSetting($"{RateLimitingOptions.SectionName}:{nameof(RateLimitingOptions.UserPermitsPerMinute)}", $"{RateLimits.UserPermitsPerMinute}");
         builder.ConfigureTestServices(services => services.AddSingleton<TimeProvider>(Clock));
     }
 
