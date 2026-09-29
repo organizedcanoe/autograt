@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { errorMessage } from '../utils/errors'
+import Wordmark from '../components/Wordmark'
 import './LoginPage.css'
 
 type Mode = 'login' | 'register'
@@ -72,7 +73,9 @@ export default function LoginPage() {
   return (
     <main>
       <hgroup>
-        <h1>Autograt</h1>
+        <h1>
+          <Wordmark />
+        </h1>
         <p>A daily gratitude journal</p>
       </hgroup>
       <article>
