@@ -29,6 +29,9 @@ public class SettingsEndpointsTests : IClassFixture<AutogratApiFactory>
 
         Assert.Equal(["system"], settings[Setting.BrightnessTheme]);
         Assert.Equal(["azure"], settings[Setting.ColourTheme]);
+        Assert.Equal(["off"], settings[Setting.RemindersEnabled]);
+        Assert.Equal(["12:00", "20:00"], settings[Setting.ReminderTime]);
+        Assert.Equal(["UTC"], settings[Setting.TimeZone]);
     }
 
     [Fact]
@@ -75,6 +78,14 @@ public class SettingsEndpointsTests : IClassFixture<AutogratApiFactory>
     [InlineData("ColourTheme", new[] { "rainbow" })]
     [InlineData("ColourTheme", new string[0])]
     [InlineData("ColourTheme", new[] { "jade", "azure" })]
+    [InlineData("RemindersEnabled", new[] { "yes" })]
+    [InlineData("ReminderTime", new[] { "25:00" })]
+    [InlineData("ReminderTime", new[] { "12:5" })]
+    [InlineData("ReminderTime", new[] { "12:00:30" })]
+    [InlineData("ReminderTime", new[] { "12:00", "12:00" })]
+    [InlineData("ReminderTime", new[] { "08:00", "12:00", "16:00", "20:00", "22:00" })]
+    [InlineData("TimeZone", new[] { "Mars/Olympus_Mons" })]
+    [InlineData("TimeZone", new[] { "UTC", "America/Toronto" })]
     public async Task UpdateSetting_InvalidValues_Returns400(string setting, string[] values)
     {
         var client = await _factory.CreateAuthenticatedClientAsync();
@@ -82,6 +93,21 @@ public class SettingsEndpointsTests : IClassFixture<AutogratApiFactory>
         var response = await client.PutAsJsonAsync($"/api/settings/{setting}", new { values });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("ReminderTime", new[] { "07:30", "12:00", "18:45", "23:59" })]
+    [InlineData("TimeZone", new[] { "America/Toronto" })]
+    [InlineData("RemindersEnabled", new[] { "on" })]
+    public async Task UpdateSetting_ValidReminderValues_Persist(string setting, string[] values)
+    {
+        var client = await _factory.CreateAuthenticatedClientAsync();
+
+        var response = await client.PutAsJsonAsync($"/api/settings/{setting}", new { values });
+
+        response.EnsureSuccessStatusCode();
+        var settings = await GetSettingsAsync(client);
+        Assert.Equal(values, settings[Enum.Parse<Setting>(setting)]);
     }
 
     [Theory]

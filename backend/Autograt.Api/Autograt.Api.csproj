@@ -18,6 +18,7 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.31" />
     <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="8.0.31" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+    <PackageReference Include="WebPush" Version="1.0.13" />
   </ItemGroup>
 
 </Project>
