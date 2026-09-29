@@ -24,7 +24,7 @@ The application is structured into two distinct Docker services orchestrated by 
 
 ## 2. Database Schema Specification (EF Core Code-First)
 
-The database schema consists of four core tables structured in a three-tier hierarchy (`JournalEntry` -> `JournalSubEntry` -> `JournalAppend`) enforcing strict data ownership, date uniqueness, and read-only past days (appends excepted).
+The database schema consists of four core journal tables structured in a three-tier hierarchy (`JournalEntry` -> `JournalSubEntry` -> `JournalAppend`) enforcing strict data ownership, date uniqueness, and read-only past days (appends excepted).
 
 ### Table: `User`
 
@@ -37,6 +37,18 @@ The database schema consists of four core tables structured in a three-tier hier
 * **Role:** Enumeration, Required, Default: `Pending`. Allowed values: `Pending` (0), `Standard` (1), `Admin` (2). `Pending` accounts are awaiting admin approval and cannot log in; `Admin` accounts have administrative privileges.
 
 * **CreatedAtUtc:** DateTime, Required. Account creation timestamp.
+
+### Table: `UserSetting`
+
+Holds a user's preferences. A setting with no rows uses its default; a setting that allows several values has one row per value.
+
+* **Id:** Unique identifier (Integer, Primary Key, auto-increment).
+
+* **UserId:** Integer, Foreign Key referencing `User.Id`, Required. Rows are deleted with their user.
+
+* **Setting:** Enumeration, Required. Allowed values: `BrightnessTheme` (1: `system`, `light` or `dark`; default `system`), `ColourTheme` (2: `azure`, `jade`, `violet`, `pumpkin`, `pink` or `slate`; default `azure`). Both currently take a single value. An index on `(UserId, Setting)` speeds up lookups.
+
+* **Value:** String, Required. One value of the setting.
 
 ### Table: `JournalEntry` (Parent Record)
 
@@ -89,6 +101,12 @@ Represents additional immutable notes appended specifically to an existing `Jour
 * **Authentication:** Authenticated via JSON Web Tokens (JWT) provided in the Authorization HTTP header.
 
 * **Admin Capabilities:** Endpoints restricted to admin users that list all users, approve `Pending` users (`POST /api/admin/users/{id}/approve`, making them `Standard`), promote `Standard` users to `Admin` (`POST /api/admin/users/{id}/promote`), and delete `Pending` users such as duplicate sign-ups (`DELETE /api/admin/users/{id}`). Approving or deleting a user who is not pending, or promoting one who is not standard, is rejected with an HTTP 400 Bad Request error; an unknown user returns 404.
+
+### User Settings
+
+* **Reading:** `GET /api/settings` returns every setting for the signed-in user as `{ setting, values }`, using the default for settings the user has not saved.
+
+* **Saving:** `PUT /api/settings/{setting}` with `{ values: [...] }` replaces the user's values for that setting. An unknown setting returns 404; an empty list, a disallowed value, a repeated value, or several values for a single-value setting are rejected with an HTTP 400 Bad Request error.
 
 ### Journal Rules & Operations
 
@@ -174,6 +192,16 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 * Renders matching journal sub-entries and appended notes with date links pointing directly to the corresponding day view.
 
+#### Settings Page
+
+* The header links to a **Settings** page (`/settings`) instead of showing the theme controls itself.
+
+* An **Appearance** section offers Mode (System, Light, Dark) and Color selects. A change applies straight away and is saved to the user's settings; a failed save shows an error.
+
+* The theme is cached in the browser so the login page and first paint use it; after login the user's saved theme is loaded from the server and applied.
+
+* Admins see an **Admin** section at the bottom of the page with the user list described below. The old `/admin` URL redirects to the settings page.
+
 #### Registration & Admin Views
 
 * The register form asks for the password twice ("Password" and "Confirm password"). If they differ, the form shows "Passwords do not match." and does not submit.
@@ -182,7 +210,7 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 * After registering, a user who needs approval is not logged in; the form switches to login and shows "Account created. An admin must approve it before you can log in." The first user, who becomes the admin, is logged in straight away.
 
-* The admin users page lists every user with their role (`Pending approval`, `User`, `Admin`), **Approve** and **Delete** buttons for pending users (deleting asks for confirmation first), and a **Promote** button for standard users.
+* The admin section of the settings page lists every user with their role (`Pending approval`, `User`, `Admin`), **Approve** and **Delete** buttons for pending users (deleting asks for confirmation first), and a **Promote** button for standard users.
 
 ## 6. Docker & Containerization Specification
 
@@ -222,6 +250,8 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
   * Verify that today's rating and sub-entries can be edited, and that creating, adding to, or editing a past day is rejected while appending to it succeeds.
 
+* **Settings Endpoint Tests:** Verify that unsaved settings return their defaults, that saving replaces a setting's value for the signed-in user only, and that unknown settings and invalid values are rejected.
+
 * **Search Parser Tests:** Validate search query parsing logic against exact quoted strings, comma-separated OR lists, and standard strings across both sub-entries and appends.
 
 ### Frontend Component Tests (Vitest + React Testing Library)
@@ -233,6 +263,8 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 * Validate that the append form correctly submits new content targeted at a specific sub-entry ID.
 
 * Validate that the day view allows editing for the current day and is read-only (apart from appends) for past days.
+
+* Validate that the settings page saves theme changes, reports failed saves, and shows the admin section only to admins.
 
 * Validate that registering a pending account shows the approval notice without logging in, and that the admin page approves pending users and deletes them only after confirmation.
 

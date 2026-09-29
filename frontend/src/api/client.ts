@@ -5,8 +5,10 @@ import type {
   HeatmapDay,
   LoginResponse,
   SearchResult,
+  SettingName,
   SubEntry,
   User,
+  UserSetting,
 } from './types'
 
 export class ApiError extends Error {
@@ -102,6 +104,11 @@ export const api = {
   getHeatmap: (today: string) => request<HeatmapDay[]>('GET', `/journal/heatmap?today=${today}`),
 
   search: (query: string) => request<SearchResult[]>('GET', `/journal/search?q=${encodeURIComponent(query)}`),
+
+  getSettings: () => request<UserSetting[]>('GET', '/settings'),
+
+  updateSetting: (setting: SettingName, values: string[]) =>
+    request<UserSetting>('PUT', `/settings/${setting}`, { values }),
 
   listUsers: () => request<User[]>('GET', '/admin/users'),
 

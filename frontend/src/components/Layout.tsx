@@ -1,7 +1,6 @@
 import { Link, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { useAuth } from '../auth/AuthContext'
 import SearchBar from './SearchBar'
-import ThemePicker from './ThemePicker'
 import './Layout.css'
 
 export default function Layout() {
@@ -32,12 +31,9 @@ export default function Layout() {
             <li>Hello, {user?.username}</li>
           </ul>
           <ul>
-            <ThemePicker />
-            {user?.role === 'Admin' && (
-              <li>
-                <Link to="/admin">Admin</Link>
-              </li>
-            )}
+            <li>
+              <Link to="/settings">Settings</Link>
+            </li>
             <li>
               <button type="button" onClick={handleLogout} title={`Signed in as ${user?.username}`}>
                 Log out

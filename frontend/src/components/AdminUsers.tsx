@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { api } from '../api/client'
 import type { User, UserRole } from '../api/types'
-import AsyncView from '../components/AsyncView'
+import AsyncView from './AsyncView'
 import { useAsync } from '../hooks/useAsync'
 import { errorMessage } from '../utils/errors'
-import './AdminPage.css'
+import './AdminUsers.css'
 
 const ROLE_LABELS: Record<UserRole, string> = {
   Pending: 'Pending approval',
@@ -12,7 +12,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
   Admin: 'Admin',
 }
 
-export default function AdminPage() {
+export default function AdminUsers() {
   const users = useAsync(() => api.listUsers(), [])
   const [error, setError] = useState<string | null>(null)
 
@@ -35,7 +35,7 @@ export default function AdminPage() {
   return (
     <>
       <hgroup>
-        <h1>Users</h1>
+        <h3>Users</h3>
         <p>New users can log in once approved. Promoted users get admin rights the next time they log in.</p>
       </hgroup>
       {error && <p role="alert">{error}</p>}

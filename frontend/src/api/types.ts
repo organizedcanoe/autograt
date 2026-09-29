@@ -58,3 +58,12 @@ export interface SearchResult {
   entryDate: string
   createdAtUtc: string
 }
+
+/** A user preference; mirrors the backend Setting enum. */
+export type SettingName = 'BrightnessTheme' | 'ColourTheme'
+
+/** A setting's saved values, or its defaults when the user has not saved any. */
+export interface UserSetting {
+  setting: SettingName
+  values: string[]
+}
