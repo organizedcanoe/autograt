@@ -23,7 +23,7 @@ describe('App', () => {
   it('shows the login screen when signed out', () => {
     render(<App />)
 
-    expect(screen.getByRole('heading', { name: 'autograt' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Autograt' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Log in' })).toBeInTheDocument()
   })
 
