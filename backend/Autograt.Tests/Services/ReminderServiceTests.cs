@@ -32,8 +32,9 @@ public class ReminderServiceTests : IClassFixture<AutogratApiFactory>
 
         await RunAtAsync(12, 0);
 
-        Assert.Equal([ReminderMessages.Daytime], _factory.Push.SentTo(phone.Endpoint));
-        Assert.Equal([ReminderMessages.Daytime], _factory.Push.SentTo(laptop));
+        var expected = ReminderMessages.For(new TimeOnly(12, 0), hasEntries: false, hasRating: false);
+        Assert.Equal([expected!], _factory.Push.SentTo(phone.Endpoint));
+        Assert.Equal([expected!], _factory.Push.SentTo(laptop));
     }
 
     [Fact]
@@ -49,13 +50,14 @@ public class ReminderServiceTests : IClassFixture<AutogratApiFactory>
     }
 
     [Fact]
-    public async Task LastSlotOfTheDay_UsesTheEveningMessage()
+    public async Task EveningSlot_UsesTheEveningMessage()
     {
         var (_, device) = await CreateUserWithRemindersAsync();
 
         await RunAtAsync(20, 3);
 
-        Assert.Equal([ReminderMessages.Evening], _factory.Push.SentTo(device.Endpoint));
+        var expected = ReminderMessages.For(new TimeOnly(20, 0), hasEntries: false, hasRating: false);
+        Assert.Equal([expected!], _factory.Push.SentTo(device.Endpoint));
     }
 
     [Fact]
@@ -114,7 +116,8 @@ public class ReminderServiceTests : IClassFixture<AutogratApiFactory>
 
         await RunAtAsync(12, 0);
 
-        Assert.Single(_factory.Push.SentTo(device.Endpoint));
+        var message = Assert.Single(_factory.Push.SentTo(device.Endpoint));
+        Assert.EndsWith("rate it.", message.Body);
     }
 
     [Fact]
@@ -125,7 +128,8 @@ public class ReminderServiceTests : IClassFixture<AutogratApiFactory>
 
         await RunAtAsync(12, 0);
 
-        Assert.Single(_factory.Push.SentTo(device.Endpoint));
+        var message = Assert.Single(_factory.Push.SentTo(device.Endpoint));
+        Assert.EndsWith("add an entry.", message.Body);
     }
 
     [Fact]

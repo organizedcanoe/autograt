@@ -83,21 +83,21 @@ public class ReminderService(IServiceScopeFactory scopeFactory, TimeProvider tim
             return;
         }
 
-        if (await IsDayCompleteAsync(db, user.Id, slot.LocalDate, cancellationToken) == false)
+        var day = await db.JournalEntries
+            .Where(e => e.UserId == user.Id && e.EntryDate == slot.LocalDate)
+            .Select(e => new { HasEntries = e.SubEntries.Any(), HasRating = e.DayRating != null })
+            .SingleOrDefaultAsync(cancellationToken);
+
+        // No message means the day already has entries and a rating, so the reminder is skipped.
+        var message = ReminderMessages.For(slot.LocalTime, day?.HasEntries ?? false, day?.HasRating ?? false);
+        if (message is not null)
         {
-            var message = slot.IsLastOfDay && times.Count > 1 ? ReminderMessages.Evening : ReminderMessages.Daytime;
             await pushService.SendToUserAsync(user.Id, message, cancellationToken);
         }
 
         user.LastReminderAtUtc = slot.Utc;
         await db.SaveChangesAsync(cancellationToken);
     }
-
-    /// <summary>A day needs no reminder once it has both a rating and at least one entry.</summary>
-    private static Task<bool> IsDayCompleteAsync(AutogratDbContext db, int userId, DateOnly date, CancellationToken cancellationToken) =>
-        db.JournalEntries.AnyAsync(
-            e => e.UserId == userId && e.EntryDate == date && e.DayRating != null && e.SubEntries.Any(),
-            cancellationToken);
 
     private static IReadOnlyList<string> ValuesOf(List<UserSetting> settings, Setting setting)
     {

@@ -3,8 +3,8 @@ namespace Autograt.Api.Services;
 /// <summary>A reminder time on a particular day.</summary>
 /// <param name="Utc">When the reminder is due.</param>
 /// <param name="LocalDate">The user's day the reminder is for.</param>
-/// <param name="IsLastOfDay">Whether this is the user's latest reminder time.</param>
-public sealed record ReminderSlot(DateTime Utc, DateOnly LocalDate, bool IsLastOfDay);
+/// <param name="LocalTime">The reminder time in the user's time zone.</param>
+public sealed record ReminderSlot(DateTime Utc, DateOnly LocalDate, TimeOnly LocalTime);
 
 /// <summary>Works out which reminder, if any, is due for a user right now.</summary>
 public static class ReminderSchedule
@@ -20,11 +20,10 @@ public static class ReminderSchedule
     public static ReminderSlot? GetDueSlot(DateTime nowUtc, TimeZoneInfo timeZone, IReadOnlyList<TimeOnly> times, DateTime? lastSentUtc)
     {
         var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(nowUtc, timeZone));
-        var lastTime = times.Max();
 
         // Yesterday too, so a reminder just before midnight can still be sent just after it.
         var latestDue = new[] { today.AddDays(-1), today }
-            .SelectMany(date => times.Select(time => new ReminderSlot(ToUtc(date, time, timeZone), date, time == lastTime)))
+            .SelectMany(date => times.Select(time => new ReminderSlot(ToUtc(date, time, timeZone), date, time)))
             .Where(slot => slot.Utc <= nowUtc && nowUtc - slot.Utc <= GraceWindow)
             .MaxBy(slot => slot.Utc);
 

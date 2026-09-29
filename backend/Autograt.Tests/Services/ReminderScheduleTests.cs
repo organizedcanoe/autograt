@@ -70,6 +70,7 @@ public class ReminderScheduleTests
 
         Assert.Equal(Utc(2026, 9, 24, 11, 0), evening?.Utc);
         Assert.Equal(new DateOnly(2026, 9, 24), evening?.LocalDate);
+        Assert.Equal(new TimeOnly(20, 0), evening?.LocalTime);
         Assert.Equal(Utc(2026, 9, 24, 3, 0), noon?.Utc);
     }
 
@@ -81,19 +82,7 @@ public class ReminderScheduleTests
         var slot = ReminderSchedule.GetDueSlot(Utc(2026, 9, 23, 12, 12), TimeZoneInfo.Utc, times, null);
 
         Assert.Equal(Utc(2026, 9, 23, 12, 10), slot?.Utc);
-        Assert.False(slot?.IsLastOfDay);
-    }
-
-    [Fact]
-    public void LastSlotOfTheDay_IsMarked_WhateverTheOrderOfTimes()
-    {
-        TimeOnly[] times = [new(20, 0), new(12, 0)];
-
-        var evening = ReminderSchedule.GetDueSlot(Utc(2026, 9, 23, 20, 1), TimeZoneInfo.Utc, times, null);
-        var noon = ReminderSchedule.GetDueSlot(Utc(2026, 9, 23, 12, 1), TimeZoneInfo.Utc, times, null);
-
-        Assert.True(evening?.IsLastOfDay);
-        Assert.False(noon?.IsLastOfDay);
+        Assert.Equal(new TimeOnly(12, 10), slot?.LocalTime);
     }
 
     [Fact]
