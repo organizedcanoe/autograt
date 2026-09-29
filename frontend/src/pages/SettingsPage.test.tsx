@@ -6,6 +6,8 @@ import { useTheme } from '../theme/ThemeContext'
 import SettingsPage from './SettingsPage'
 
 vi.mock('../theme/ThemeContext', () => ({ useTheme: vi.fn() }))
+// Tested on its own; here it only needs to appear below Appearance.
+vi.mock('../components/ReminderSettings', () => ({ default: () => <section>Reminder settings</section> }))
 
 function renderPage(setTheme = vi.fn().mockResolvedValue(undefined)) {
   vi.mocked(useTheme).mockReturnValue({ theme: { scheme: 'system', color: 'azure' }, setTheme })
@@ -25,6 +27,14 @@ describe('SettingsPage', () => {
 
     expect(setTheme).toHaveBeenCalledWith({ scheme: 'system', color: 'jade' })
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('shows the reminder settings after the appearance settings', () => {
+    renderPage()
+
+    const appearance = screen.getByRole('heading', { name: 'Appearance' })
+    const reminders = screen.getByText('Reminder settings')
+    expect(appearance.compareDocumentPosition(reminders) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('reports a theme that could not be saved', async () => {

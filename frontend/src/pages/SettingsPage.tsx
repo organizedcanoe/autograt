@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import ReminderSettings from '../components/ReminderSettings'
 import ThemePicker from '../components/ThemePicker'
 import type { Theme } from '../theme/theme'
 import { useTheme } from '../theme/ThemeContext'
@@ -25,6 +26,7 @@ export default function SettingsPage() {
         {error && <p role="alert">{error}</p>}
         <ThemePicker theme={theme} onChange={(next) => void changeTheme(next)} />
       </section>
+      <ReminderSettings />
     </>
   )
 }
