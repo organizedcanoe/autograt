@@ -12,10 +12,46 @@ permissions:
 
 jobs:
   docker:
+    # Publish only code that passed CI on a push to main, never PRs or failed runs.
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The commit CI tested; github.sha is the tip of main, which may have moved on since.
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Compute build info
+        id: build
+        env:
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          echo "version=0.1.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          echo "commit=${HEAD_SHA::7}" >> "$GITHUB_OUTPUT"
+          echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+      - name: Backend image metadata
+        id: backend-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/autograt-backend
+          tags: &image-tags |
+            type=raw,value=latest
+            type=raw,value=${{ github.event.workflow_run.head_sha }}
+            type=raw,value=${{ steps.build.outputs.version }}
+          labels: &image-labels |
+            org.opencontainers.image.version=${{ steps.build.outputs.version }}
+            org.opencontainers.image.revision=${{ github.event.workflow_run.head_sha }}
+            org.opencontainers.image.created=${{ steps.build.outputs.date }}
+
+      - name: Frontend image metadata
+        id: frontend-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/autograt-frontend
+          tags: *image-tags
+          labels: *image-labels
 
       - name: Login to GHCR
         uses: docker/login-action@v3
@@ -30,16 +66,19 @@ jobs:
           context: ./backend/Autograt.Api
           file: ./backend/Autograt.Api/Dockerfile
           push: true
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/autograt-backend:latest
-            ghcr.io/${{ github.repository_owner }}/autograt-backend:${{ github.sha }}
-      
+          tags: ${{ steps.backend-meta.outputs.tags }}
+          labels: ${{ steps.backend-meta.outputs.labels }}
+          build-args: &build-args |
+            VERSION=${{ steps.build.outputs.version }}
+            COMMIT=${{ steps.build.outputs.commit }}
+            BUILD_DATE=${{ steps.build.outputs.date }}
+
       - name: Build and Push Frontend
         uses: docker/build-push-action@v6
         with:
           context: ./frontend
           file: ./frontend/Dockerfile
           push: true
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/autograt-frontend:latest
-            ghcr.io/${{ github.repository_owner }}/autograt-frontend:${{ github.sha }}
+          tags: ${{ steps.frontend-meta.outputs.tags }}
+          labels: ${{ steps.frontend-meta.outputs.labels }}
+          build-args: *build-args

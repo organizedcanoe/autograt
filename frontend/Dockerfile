@@ -1,9 +1,12 @@
 FROM node:22-alpine AS build
+ARG VERSION=
+ARG COMMIT=
+ARG BUILD_DATE=
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
-RUN npm run build
+RUN VITE_APP_VERSION=$VERSION VITE_APP_COMMIT=$COMMIT VITE_BUILD_DATE=$BUILD_DATE npm run build
 
 FROM nginx:alpine AS runtime
 COPY nginx.conf /etc/nginx/conf.d/default.conf

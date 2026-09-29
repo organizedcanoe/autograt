@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import { Link, Outlet, useLocation, useSearchParams } from 'react-router'
 import { useAuth } from '../auth/AuthContext'
+import BuildInfo from './BuildInfo'
 import SearchBar from './SearchBar'
 import Wordmark from './Wordmark'
 
@@ -66,6 +67,9 @@ export default function Layout() {
       <main>
         <Outlet />
       </main>
+      <footer>
+        <BuildInfo />
+      </footer>
     </>
   )
 }

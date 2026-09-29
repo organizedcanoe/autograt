@@ -67,3 +67,10 @@ export interface UserSetting {
   setting: SettingName
   values: string[]
 }
+
+/** A running build; local dev builds are "0.0.0-dev" / "local" with no build date. */
+export interface BuildVersion {
+  version: string
+  commit: string
+  buildDate: string | null
+}
