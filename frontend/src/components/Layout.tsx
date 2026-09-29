@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { Link, Outlet, useLocation, useSearchParams } from 'react-router'
 import { useAuth } from '../auth/AuthContext'
 import SearchBar from './SearchBar'
+import Wordmark from './Wordmark'
 
 const ACCOUNT_PAGES = ['/settings', '/admin']
 
@@ -25,9 +26,9 @@ export default function Layout() {
         <nav>
           <ul>
             <li>
-              <strong>
-                <Link to="/">Autograt</Link>
-              </strong>
+              <Link to="/">
+                <Wordmark />
+              </Link>
             </li>
           </ul>
           <ul>
