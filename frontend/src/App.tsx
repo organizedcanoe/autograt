@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import Layout from './components/Layout'
+import UpdateBanner from './components/UpdateBanner'
 import AdminPage from './pages/AdminPage'
 import DayPage from './pages/DayPage'
 import HomePage from './pages/HomePage'
@@ -16,6 +17,7 @@ export default function App() {
         <BrowserRouter>
           <AppRoutes />
         </BrowserRouter>
+        <UpdateBanner />
       </ThemeProvider>
     </AuthProvider>
   )
