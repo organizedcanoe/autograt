@@ -8,7 +8,7 @@ const WEB_PORT = 5177
 
 // The backend is built into a temp folder so it never collides with a dev server locking backend/bin.
 // Its database lives there too and is deleted before each run, so the journey's user registers first and
-// becomes the admin instead of waiting for approval.
+// becomes the admin instead of waiting for approval; the other specs log in as that admin.
 const backendDirectory = join(tmpdir(), 'autograt-e2e-backend')
 const databasePath = join(backendDirectory, 'autograt-e2e.db')
 const backendProject = resolve(import.meta.dirname, '../backend/Autograt.Api')
@@ -28,7 +28,16 @@ export default defineConfig({
     baseURL: `http://localhost:${WEB_PORT}`,
     trace: 'retain-on-failure',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  // The journey registers the first user, who becomes the admin, so it runs before the specs that log in as that admin.
+  projects: [
+    { name: 'journey', testMatch: 'journey.spec.ts', use: { ...devices['Desktop Chrome'] } },
+    {
+      name: 'chromium',
+      testIgnore: 'journey.spec.ts',
+      dependencies: ['journey'],
+      use: { ...devices['Desktop Chrome'] },
+    },
+  ],
   webServer: [
     {
       command: `dotnet build "${backendProject}" -o . --nologo -v q && dotnet Autograt.Api.dll`,
@@ -39,6 +48,8 @@ export default defineConfig({
         ASPNETCORE_ENVIRONMENT: 'Development',
         ConnectionStrings__Default: `Data Source=${databasePath}`,
         Jwt__Key: 'e2e-signing-key-that-is-at-least-32-bytes-long',
+        // The specs log in far more often than the production auth limit allows per minute.
+        RateLimiting__AuthPermitsPerMinute: '1000',
       },
       timeout: 180_000,
       reuseExistingServer: false,

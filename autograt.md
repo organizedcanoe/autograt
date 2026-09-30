@@ -378,3 +378,16 @@ The application deployment is governed by a `docker-compose.yml` file defining t
   5. Verify the appended note appears under the targeted sub-entry.
 
   6. Use the search bar to find the appended text and verify navigation back to the detailed day view.
+* The journey runs first, so its user becomes the admin; the specs below run after it and log in as that admin.
+
+* **User Administration:**
+
+  * The admin approves a pending user (who becomes a `User` with a **Promote** button), then promotes them; the promoted user sees the Admin page on their next login.
+
+  * The admin deletes a pending user: cancelling the confirmation keeps them, confirming removes them and their login is rejected.
+
+  * Registering a pending account shows the approval notice, and logging in with it is rejected.
+
+  * A standard user has no Admin menu item and is redirected to the today view from `/admin`.
+
+* **Settings:** Changing the mode, color and reminder time zone applies the theme straight away and is saved to the account, so a fresh browser that logs in gets the same settings.
