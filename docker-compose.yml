@@ -1,3 +1,5 @@
+# Image tags: latest, MAJOR (e.g. 0), MAJOR.MINOR (e.g. 0.1) or an exact version (e.g. 0.1.57).
+# Use the same tag for backend and frontend. See README "Production".
 services:
   backend:
     image: ghcr.io/oversizedcanoe/autograt-backend:latest

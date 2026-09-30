@@ -160,7 +160,7 @@ Represents additional immutable notes appended specifically to an existing `Jour
 
 * **Endpoint:** `GET /api/version` (anonymous) returns the running backend build as `{ version, commit, buildDate }`, e.g. `{ "version": "0.1.42", "commit": "a1b2c3d", "buildDate": "2026-09-28T12:00:00Z" }`. Local builds return `0.0.0-dev` / `local` with a null `buildDate`.
 
-* **Numbering:** Each image published from `main` is versioned `0.1.<CI run number>`, tagged with the short commit SHA, and stamped with its UTC build date.
+* **Numbering:** Each image published from `main` is versioned `MAJOR.MINOR.<CI run number>`, where `MAJOR.MINOR` is read from the repo's `VERSION` file and bumped by hand (minor for features or risky changes, major for big or breaking ones). It is stamped with its UTC build date and tagged with the full version, the floating `MAJOR.MINOR` and `MAJOR` tags, `latest`, and the commit SHA.
 
 ### Journal Rules & Operations
 
