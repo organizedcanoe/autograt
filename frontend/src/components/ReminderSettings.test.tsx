@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api, ApiError } from '../api/client'
@@ -139,7 +139,10 @@ describe('ReminderSettings', () => {
       renderWith({ enabled: true })
 
       expect(await reminderSwitch()).toBeChecked()
-      expect(api.savePushSubscription).toHaveBeenCalledWith(expect.objectContaining({ endpoint: TEST_ENDPOINT }))
+      // The resave runs in an effect after the switch renders, so wait for it.
+      await waitFor(() =>
+        expect(api.savePushSubscription).toHaveBeenCalledWith(expect.objectContaining({ endpoint: TEST_ENDPOINT })),
+      )
       expect(screen.queryByText(/not for this device/)).not.toBeInTheDocument()
     })
 
