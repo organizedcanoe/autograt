@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { ADMIN_USERNAME, PASSWORD, logIn, logOut, openMenuItem, registerUser, submitLogin } from './helpers'
+import { ADMIN_USERNAME, PASSWORD, logIn, logOut, openMenuItem, registerUser, submitLogin } from './helpers.ts'
 
 function userRow(page: Page, username: string) {
   return page.getByRole('row').filter({ has: page.getByRole('cell', { name: username, exact: true }) })

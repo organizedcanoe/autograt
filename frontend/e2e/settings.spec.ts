@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { ADMIN_USERNAME, logIn, openMenuItem } from './helpers'
+import { ADMIN_USERNAME, logIn, openMenuItem } from './helpers.ts'
 
 function settingSaved(page: Page, setting: string) {
   return page.waitForResponse((r) => r.request().method() === 'PUT' && r.url().endsWith(`/api/settings/${setting}`) && r.ok())

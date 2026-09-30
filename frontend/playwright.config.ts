@@ -48,6 +48,8 @@ export default defineConfig({
         ASPNETCORE_ENVIRONMENT: 'Development',
         ConnectionStrings__Default: `Data Source=${databasePath}`,
         Jwt__Key: 'e2e-signing-key-that-is-at-least-32-bytes-long',
+        // The specs log in far more often than the production auth limit allows per minute.
+        RateLimiting__AuthPermitsPerMinute: '1000',
       },
       timeout: 180_000,
       reuseExistingServer: false,

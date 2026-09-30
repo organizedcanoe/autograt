@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { ADMIN_USERNAME, localToday, PASSWORD } from './helpers'
+import { ADMIN_USERNAME, localToday, PASSWORD } from './helpers.ts'
 
 test('complete user journey: register, rate, heatmap, append, search', async ({ page }) => {
   const today = localToday()
