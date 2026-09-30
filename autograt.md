@@ -132,7 +132,29 @@ Represents additional immutable notes appended specifically to an existing `Jour
 
 * **Reading:** `GET /api/settings` returns every setting for the signed-in user as `{ setting, values }`, using the default for settings the user has not saved.
 
-* **Saving:** `PUT /api/settings/{setting}` with `{ values: [...] }` replaces the user's values for that setting. An unknown setting returns 404; an empty list, a disallowed value, a repeated value, or several values for a single-value setting are rejected with an HTTP 400 Bad Request error.
+* **Saving:** `PUT /api/settings/{setting}` with `{ values: [...] }` replaces the user's values for that setting. An unknown setting returns 404; an empty list, a disallowed value, a repeated value, or several values for a single-value setting are rejected with an HTTP 400 Bad Request error. `ReminderTime` values must be 24-hour `HH:mm` times (e.g. `08:30`), at most four; `TimeZone` must be a time zone the server knows.
+
+### Push Notifications & Reminders
+
+* **VAPID Keys:** Push messages are signed with a VAPID key pair from the `Push` configuration section (`VapidPublicKey`, `VapidPrivateKey`, and `Subject`, a `mailto:` or site URL). If neither key is set, a pair is generated once and saved as `vapid.json` in the data directory, so subscriptions stay valid across restarts. Setting only one key stops the backend from starting.
+
+* **Endpoints:** All signed-in only.
+
+  * `GET /api/push/public-key` returns `{ publicKey }` (base64url), which browsers need to subscribe.
+
+  * `POST /api/push/subscriptions` with `{ endpoint, keys: { p256dh, auth } }` (the shape of the browser's `PushSubscription.toJSON()`) saves the browser's subscription and returns 204. An existing subscription with the same endpoint is updated, and moved to the current user if another user enabled reminders on that device before. A missing or non-HTTPS endpoint, or missing keys, is rejected with an HTTP 400 Bad Request error.
+
+  * `DELETE /api/push/subscriptions` with `{ endpoint }` deletes the current user's subscription and returns 204, or 404 if the user has none with that endpoint.
+
+  * `POST /api/push/test` sends a test notification ("Reminders are working on this device.") to every device of the current user and returns 204.
+
+* **Sending:** A message goes to every subscription the user has. A subscription the push service reports as gone (404/410) is deleted; other failures are logged and skipped. The payload is JSON `{ title, body, url }`; `url` is `/`, so clicking the notification opens the today view.
+
+* **Reminder Scheduler:** A background service runs every minute. For each user with `RemindersEnabled` = `on` and at least one subscription, it converts the current time to the user's `TimeZone` and finds the latest `ReminderTime` slot (today's, or yesterday's just after midnight) that has passed within the last 15 minutes. A slot is handled only if it is later than `User.LastReminderAtUtc`, which is then set to it, so each slot is handled once even across restarts, and reminders are never sent hours late. A time skipped when clocks go forward is sent when the clock jumps past it; a time repeated when clocks go back is sent on its first occurrence.
+
+* **Reminder Content:** The reminder asks for whatever the user's day is still missing: before 17:00 local time it asks "How is your day going?", from 17:00 "How has your day been?", followed by "Take a minute to reflect / add an entry / rate it." A day that already has sub-entries and a rating gets no reminder (the slot still counts as handled).
+
+* **Logging Out:** Logging out does not remove the device's subscription; the settings page switch is the only way to stop reminders on a device.
 
 ### Build Version
 
@@ -177,6 +199,16 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 * **Framework:** React with TypeScript managed by Vite.
 
 * **CSS Framework:** Pico CSS for classless, semantic HTML styling.
+
+### Progressive Web App
+
+* **Installable:** The app can be installed from the browser (Add to Home Screen on phones). `vite-plugin-pwa` generates the manifest (`Autograt`, standalone display, Pico azure theme color) and the icons: 64, 192 and 512 px, a maskable 512 px icon, and a 180 px Apple touch icon. Installing and push both need HTTPS; `localhost` counts as secure for development.
+
+* **Service Worker (`src/sw.ts`):** Precaches the built app shell (JS, CSS, HTML, icons) so the app opens instantly and loads offline, and serves `index.html` for client-side routes. `/api` requests are never cached, so journal data always comes from the server; offline entry writing is not supported. The worker also runs in `npm run dev`, but not in Vitest.
+
+* **Updates:** When a new build is deployed, a dialog says "A new version is available." with **Reload** (switches to the new version) and **Later** buttons, so users are never stuck on a stale build.
+
+* **Notifications:** The service worker shows each push message as a notification with the app icon. All reminders share one tag, so a newer one replaces an unread older one. Clicking a notification focuses an open Autograt window and navigates it to the message's URL, or opens a new window. When the push service replaces a subscription, the worker subscribes again; it cannot save the new subscription without the user's token, so the settings page saves it on the next visit.
 
 ### Primary Screen Modules
 
@@ -232,6 +264,20 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 * The theme is cached in the browser so the login page and first paint use it; after login the user's saved theme is loaded from the server and applied.
 
+* A **Reminders** section, below Appearance, controls reminder notifications. Changes save straight away; a failed save shows an error.
+
+  * **Time zone:** A select of IANA time zones (UTC first), showing the saved zone. If it differs from the zone this device detects, a warning and a **Use <zone> (detected)** button are shown, since reminder times follow the saved zone.
+
+  * **Enable reminders:** A switch. Turning it on asks for notification permission, subscribes this browser, saves the subscription and sets `RemindersEnabled` to `on`. If permission is refused, the switch stays off and an alert explains why. Turning it off deletes this browser's subscription, unsubscribes it and sets `RemindersEnabled` to `off`.
+
+  * **This device:** Reminders go to every device they were enabled on. If they are on but this browser is not subscribed, the page says "Reminders are on, but not for this device." with an **Enable on this device** button. On load, a subscribed browser is saved again, in case the server lost it.
+
+  * **Reminder times:** One time input per `ReminderTime` value (default 12:00 and 20:00) with a **Remove** button (disabled for the last one) and an **Add time** button (up to four). A time is saved once it is filled in and the input loses focus.
+
+  * **Send test notification:** Shown while reminders are on; sends a test notification to every device.
+
+  * **Unsupported browsers:** Instead of the switch, a notice explains why reminders are unavailable: the browser has no notification support; on iPhone/iPad, the app must be added to the Home Screen and opened from there (iOS 16.4 or later); or notifications are blocked in the browser settings. The time zone and times can still be changed.
+
 
 #### Registration & Admin Views
 
@@ -263,6 +309,8 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
   * Configured to forward API network requests to the `backend` service container.
 
+  * Serves `sw.js`, `index.html` and `manifest.webmanifest` (as `application/manifest+json`) with `Cache-Control: no-cache`, so a new deploy is picked up promptly, and the content-hashed files under `/assets/` with `Cache-Control: public, max-age=31536000, immutable`.
+
 * **Build info:** Both images take `VERSION`, `COMMIT` and `BUILD_DATE` build args. Every page shows the frontend build in a footer (version, commit linked to GitHub, build date), and warns when `GET /api/version` reports a different backend build, meaning one container is stale.
 
 ## 7. Testing Strategy Specification
@@ -283,7 +331,15 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
   * Verify that today's rating and sub-entries can be edited, and that creating, adding to, or editing a past day is rejected while appending to it succeeds.
 
-* **Settings Endpoint Tests:** Verify that unsaved settings return their defaults, that saving replaces a setting's value for the signed-in user only, and that unknown settings and invalid values are rejected.
+* **Settings Endpoint Tests:** Verify that unsaved settings return their defaults, that saving replaces a setting's value for the signed-in user only, and that unknown settings and invalid values are rejected, including malformed, repeated or more than four reminder times and unknown time zones.
+
+* **Push Endpoint Tests:** Verify that every push endpoint returns 401 without a token; that subscribing creates a subscription, updates an existing endpoint without a duplicate, and moves another user's endpoint to the current user; that invalid bodies are rejected; that unsubscribing removes only the caller's subscription (404 otherwise); and that the test notification reaches only the current user's devices and deletes expired subscriptions.
+
+* **VAPID Key Tests:** Verify that configured keys are used without writing a file, that configuring only one key fails, and that missing keys are generated once and reused afterwards.
+
+* **Reminder Schedule Tests:** Verify that a slot is due only within its 15-minute window and only once; that local time and local date follow time zones behind and ahead of UTC; that the latest of several due slots is picked; that a slot just before midnight is still sent just after it; and that daylight saving changes shift the offset, send a slot in the skipped hour once the clock jumps past it, and send a slot in the repeated hour only once.
+
+* **Reminder Service Tests** (with a fake push sender and `FakeTimeProvider`): Verify that a due reminder reaches every device of the user, is not resent on later ticks, and uses the user's time zone and the evening wording; that users with reminders off or no subscriptions are skipped; that a day with entries and a rating is skipped while a day missing either is still reminded; and that expired subscriptions are deleted.
 
 * **Search Parser Tests:** Validate search query parsing logic against exact quoted strings, comma-separated OR lists, and standard strings across both sub-entries and appends.
 
@@ -300,6 +356,12 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 * Validate that the settings page saves theme changes and reports failed saves, and that only admins can reach the admin page.
 
 * Validate that registering a pending account shows the approval notice without logging in, and that the admin page approves pending users and deletes them only after confirmation.
+
+* Validate that the update dialog appears only when a new version is available, reloads into it, and can be dismissed.
+
+* Validate push support detection (supported, unsupported, blocked, and iOS outside the Home Screen app), base64url key decoding, and subscribing/unsubscribing this device, including reusing an existing subscription and unsubscribing when the server had no record of it.
+
+* Validate that the Reminders section shows each unsupported notice; that turning reminders on asks for permission, subscribes and saves, and that a refused permission reverts the switch with an alert; that turning them off unsubscribes and saves; that it offers to enable an unsubscribed device and resaves a subscribed one; that times are added, edited, removed and limited to four; that the time zone offers the detected zone when it differs; and that the test notification is sent only while reminders are on.
 
 ### End-to-End Tests (Playwright)
 
