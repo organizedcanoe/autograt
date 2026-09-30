@@ -27,7 +27,15 @@ jobs:
         env:
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          echo "version=0.1.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          # VERSION holds MAJOR.MINOR, bumped by hand; the CI run number is the patch.
+          base=$(tr -d '[:space:]' < VERSION)
+          if [[ ! "$base" =~ ^[0-9]+\.[0-9]+$ ]]; then
+            echo "::error file=VERSION::Expected MAJOR.MINOR (e.g. 1.0), got '$base'"
+            exit 1
+          fi
+          echo "version=$base.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          echo "minor=$base" >> "$GITHUB_OUTPUT"
+          echo "major=${base%%.*}" >> "$GITHUB_OUTPUT"
           echo "commit=${HEAD_SHA::7}" >> "$GITHUB_OUTPUT"
           echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
 
@@ -40,6 +48,8 @@ jobs:
             type=raw,value=latest
             type=raw,value=${{ github.event.workflow_run.head_sha }}
             type=raw,value=${{ steps.build.outputs.version }}
+            type=raw,value=${{ steps.build.outputs.minor }}
+            type=raw,value=${{ steps.build.outputs.major }}
           labels: &image-labels |
             org.opencontainers.image.version=${{ steps.build.outputs.version }}
             org.opencontainers.image.revision=${{ github.event.workflow_run.head_sha }}

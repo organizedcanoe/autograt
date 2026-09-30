@@ -104,7 +104,17 @@ Every push to `main` that passes CI publishes images to GitHub Container Registr
 - `ghcr.io/oversizedcanoe/autograt-backend`
 - `ghcr.io/oversizedcanoe/autograt-frontend`
 
-Each image is tagged `latest`, the commit SHA, and a version `0.1.<CI run number>`.
+Each image is versioned `MAJOR.MINOR.<CI run number>`, where `MAJOR.MINOR` comes from the [`VERSION`](VERSION) file. Every publish pushes these tags:
+
+| Tag | Points to |
+|---|---|
+| `0.1.57` | That exact build; never moves |
+| `0.1` | Newest `0.1.x` build (fixes only) |
+| `0` | Newest `0.x.x` build (fixes and features) |
+| `latest` | Newest build |
+| Commit SHA | Build of that commit; never moves |
+
+Pick the tag in `docker-compose.yml` for how much change you want on each `docker compose pull`. Use the same tag for both images.
 
 `docker-compose.yml` runs those images. It does not build from source.
 
@@ -137,6 +147,12 @@ docker compose up -d
 ```
 
 If the footer warns that the backend is on a different build, one container is stale; pulling and restarting fixes it.
+
+### Versioning
+
+Bug fixes and very small features just merge to `main`; the run number goes up on its own. For a feature or anything risky, bump the minor number in `VERSION` (e.g. `0.1` → `0.2`) in that PR. For a big or breaking change, bump the major number (e.g. `0.2` → `1.0`). The run number never resets, so versions go `0.1.57` → `0.2.58`.
+
+Database migrations only go forward, so moving back to an older version after a newer one has migrated the database can fail. Any schema change should bump at least the minor number.
 
 ### Data
 
