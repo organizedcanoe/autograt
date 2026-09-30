@@ -85,3 +85,20 @@ export interface BuildVersion {
   commit: string
   buildDate: string | null
 }
+
+/** "json" can be imported again; "markdown" is for reading only. */
+export type ExportFormat = 'json' | 'markdown'
+
+/** A downloaded export, named as the server suggests. */
+export interface ExportFile {
+  blob: Blob
+  fileName: string
+}
+
+export interface ImportResult {
+  /** Every day in the file, including the replaced ones. */
+  importedDays: number
+  /** Dates (yyyy-MM-dd) the user already had, which the file's version replaced. */
+  replacedDays: string[]
+  settingsImported: number
+}

@@ -3,7 +3,10 @@ import type {
   BuildVersion,
   DayDetail,
   EntryCategory,
+  ExportFile,
+  ExportFormat,
   HeatmapDay,
+  ImportResult,
   LoginResponse,
   PushPublicKey,
   PushSubscriptionRequest,
@@ -16,11 +19,14 @@ import type {
 
 export class ApiError extends Error {
   readonly status: number
+  /** Every validation message, when the server reported several (the first is also the message). */
+  readonly details: string[]
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, details: string[] = [message]) {
     super(message)
     this.name = 'ApiError'
     this.status = status
+    this.details = details
   }
 }
 
@@ -42,17 +48,20 @@ interface ProblemDetails {
   errors?: Record<string, string[]>
 }
 
-async function readErrorMessage(response: Response): Promise<string> {
+async function readError(response: Response): Promise<ApiError> {
+  const fallback = `Request failed (${response.status})`
   try {
     const problem = (await response.json()) as ProblemDetails
-    const firstFieldError = Object.values(problem.errors ?? {}).flat()[0]
-    return firstFieldError ?? problem.title ?? `Request failed (${response.status})`
+    const fieldErrors = Object.values(problem.errors ?? {}).flat()
+    const message = fieldErrors[0] ?? problem.title ?? fallback
+    return new ApiError(response.status, message, fieldErrors.length > 0 ? fieldErrors : [message])
   } catch {
-    return `Request failed (${response.status})`
+    return new ApiError(response.status, fallback)
   }
 }
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+/** Sends a request with the bearer token, throwing ApiError unless it succeeds. */
+async function send(method: string, path: string, body?: unknown): Promise<Response> {
   const headers = new Headers()
   if (body !== undefined) headers.set('Content-Type', 'application/json')
   if (authToken) headers.set('Authorization', `Bearer ${authToken}`)
@@ -67,10 +76,27 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     unauthorizedHandler?.()
   }
   if (!response.ok) {
-    throw new ApiError(response.status, await readErrorMessage(response))
+    throw await readError(response)
   }
 
+  return response
+}
+
+async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const response = await send(method, path, body)
   return (response.status === 204 ? undefined : await response.json()) as T
+}
+
+/** The file name from a Content-Disposition header, preferring the UTF-8 `filename*` form. */
+function fileNameFrom(disposition: string | null): string | null {
+  const encoded = disposition?.match(/filename\*=UTF-8''([^;]+)/i)?.[1]
+  if (encoded) return decodeURIComponent(encoded)
+  return disposition?.match(/filename="?([^";]+)"?/i)?.[1] ?? null
+}
+
+async function downloadFile(path: string, fallbackName: string): Promise<ExportFile> {
+  const response = await send('GET', path)
+  return { blob: await response.blob(), fileName: fileNameFrom(response.headers.get('Content-Disposition')) ?? fallbackName }
 }
 
 export const api = {
@@ -112,6 +138,13 @@ export const api = {
 
   updateSetting: (setting: SettingName, values: string[]) =>
     request<UserSetting>('PUT', `/settings/${setting}`, { values }),
+
+  /** Downloads the user's whole journal and saved settings. */
+  exportJournal: (format: ExportFormat) =>
+    downloadFile(`/export?format=${format}`, `autograt-export.${format === 'json' ? 'json' : 'md'}`),
+
+  /** Imports a JSON export (as parsed from the file); the server validates it. */
+  importJournal: (file: unknown) => request<ImportResult>('POST', '/import', file),
 
   getPushPublicKey: () => request<PushPublicKey>('GET', '/push/public-key'),
 

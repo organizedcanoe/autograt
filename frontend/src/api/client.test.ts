@@ -93,6 +93,48 @@ describe('api client', () => {
     expect(error).toMatchObject({ status: 400, message: 'The Content field is required.' })
   })
 
+  it('keeps every validation message as details', async () => {
+    stubFetch(Response.json(
+      { title: 'One or more validation errors occurred.', errors: { version: ['Bad version.'], 'entries[1].date': ['Repeated.'] } },
+      { status: 400 },
+    ))
+
+    const error = await api.importJournal({}).catch((e: unknown) => e)
+
+    expect(error).toMatchObject({ status: 400, message: 'Bad version.', details: ['Bad version.', 'Repeated.'] })
+  })
+
+  it('exports the journal as a file named by the server', async () => {
+    const fetchMock = stubFetch(new Response('# Journal', {
+      headers: { 'Content-Disposition': "attachment; filename=x.md; filename*=UTF-8''autograt-bil%C3%A9-2026-09-30.md" },
+    }))
+    setAuthToken('abc123')
+
+    const file = await api.exportJournal('markdown')
+
+    expect(file.fileName).toBe('autograt-bilé-2026-09-30.md')
+    expect(await file.blob.text()).toBe('# Journal')
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe('/api/export?format=markdown')
+    expect(new Headers(init.headers).get('Authorization')).toBe('Bearer abc123')
+  })
+
+  it('falls back to a plain file name when the server gives none', async () => {
+    stubFetch(new Response('{}'))
+
+    expect((await api.exportJournal('json')).fileName).toBe('autograt-export.json')
+  })
+
+  it('posts an import file', async () => {
+    const result = { importedDays: 1, replacedDays: [], settingsImported: 0 }
+    const fetchMock = stubFetch(Response.json(result))
+    const file = { format: 'autograt-export', version: 1 }
+
+    expect(await api.importJournal(file)).toEqual(result)
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect([url, init.method, init.body]).toEqual(['/api/import', 'POST', JSON.stringify(file)])
+  })
+
   it('raises ApiError with the problem title when there are no field errors', async () => {
     stubFetch(Response.json({ title: 'That username is already taken.' }, { status: 409 }))
 

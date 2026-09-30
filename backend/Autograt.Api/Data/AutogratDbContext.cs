@@ -105,7 +105,9 @@ public class AutogratDbContext(DbContextOptions<AutogratDbContext> options) : Db
     private void StampCreatedAtUtc()
     {
         var now = DateTime.UtcNow;
-        foreach (var entry in ChangeTracker.Entries<ICreatedAtUtc>().Where(e => e.State == EntityState.Added))
+        // A timestamp that is already set, such as one from an imported file, is kept.
+        foreach (var entry in ChangeTracker.Entries<ICreatedAtUtc>()
+                     .Where(e => e.State == EntityState.Added && e.Entity.CreatedAtUtc == default))
         {
             entry.Entity.CreatedAtUtc = now;
         }

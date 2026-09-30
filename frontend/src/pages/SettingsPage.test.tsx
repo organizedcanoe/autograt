@@ -8,9 +8,16 @@ import SettingsPage from './SettingsPage'
 vi.mock('../theme/ThemeContext', () => ({ useTheme: vi.fn() }))
 // Tested on its own; here it only needs to appear below Appearance.
 vi.mock('../components/ReminderSettings', () => ({ default: () => <section>Reminder settings</section> }))
+vi.mock('../components/DataSettings', () => ({
+  default: ({ onImported }: { onImported: () => void }) => (
+    <button type="button" onClick={onImported}>
+      Fake import
+    </button>
+  ),
+}))
 
-function renderPage(setTheme = vi.fn().mockResolvedValue(undefined)) {
-  vi.mocked(useTheme).mockReturnValue({ theme: { scheme: 'system', color: 'azure' }, setTheme })
+function renderPage(setTheme = vi.fn().mockResolvedValue(undefined), reloadTheme = vi.fn().mockResolvedValue(undefined)) {
+  vi.mocked(useTheme).mockReturnValue({ theme: { scheme: 'system', color: 'azure' }, setTheme, reloadTheme })
   render(<SettingsPage />)
   return setTheme
 }
@@ -43,5 +50,14 @@ describe('SettingsPage', () => {
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Mode' }), 'dark')
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Your theme could not be saved: Server error')
+  })
+
+  it('reloads the theme after an import', async () => {
+    const reloadTheme = vi.fn().mockResolvedValue(undefined)
+    renderPage(undefined, reloadTheme)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Fake import' }))
+
+    expect(reloadTheme).toHaveBeenCalledTimes(1)
   })
 })
