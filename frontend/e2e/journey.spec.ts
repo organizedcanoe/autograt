@@ -1,23 +1,16 @@
 import { expect, test } from '@playwright/test'
-
-// Matches the app's todayIso(): the browser and the test run on the same machine and time zone.
-function localToday(): string {
-  const now = new Date()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  return `${now.getFullYear()}-${month}-${day}`
-}
+import { ADMIN_USERNAME, localToday, PASSWORD } from './helpers'
 
 test('complete user journey: register, rate, heatmap, append, search', async ({ page }) => {
   const today = localToday()
-  const username = `e2e-${Date.now()}`
+  const username = ADMIN_USERNAME
 
   // 1. Register a new user.
   await page.goto('/')
   await page.getByRole('button', { name: 'Need an account? Register' }).click()
   await page.getByLabel('Username').fill(username)
-  await page.getByLabel('Password', { exact: true }).fill('password123')
-  await page.getByLabel('Confirm password').fill('password123')
+  await page.getByLabel('Password', { exact: true }).fill(PASSWORD)
+  await page.getByLabel('Confirm password').fill(PASSWORD)
   await page.getByRole('button', { name: 'Create account' }).click()
   await expect(page.getByRole('banner').getByText(username)).toBeVisible()
 
