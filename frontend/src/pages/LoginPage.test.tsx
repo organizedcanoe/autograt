@@ -1,13 +1,13 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api, ApiError } from '../api/client'
 import { AuthProvider } from '../auth/AuthContext'
 import LoginPage from './LoginPage'
 
 vi.mock('../api/client', async (importOriginal) => {
   const original = await importOriginal<typeof import('../api/client')>()
-  return { ...original, api: { ...original.api, login: vi.fn(), register: vi.fn() } }
+  return { ...original, api: { ...original.api, login: vi.fn(), register: vi.fn(), getRegistrationStatus: vi.fn() } }
 })
 
 function renderLoginPage() {
@@ -19,9 +19,29 @@ function renderLoginPage() {
 }
 
 describe('LoginPage', () => {
+  beforeEach(() => {
+    vi.mocked(api.getRegistrationStatus).mockResolvedValue({ open: true })
+  })
+
   afterEach(() => {
     vi.mocked(api.login).mockReset()
     vi.mocked(api.register).mockReset()
+    vi.mocked(api.getRegistrationStatus).mockReset()
+  })
+
+  it('hides registration when an admin has closed it', async () => {
+    vi.mocked(api.getRegistrationStatus).mockResolvedValue({ open: false })
+    renderLoginPage()
+
+    expect(await screen.findByText('Registration is closed. Ask an admin for an account.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Need an account? Register' })).not.toBeInTheDocument()
+  })
+
+  it('still offers registration when its status cannot be loaded', async () => {
+    vi.mocked(api.getRegistrationStatus).mockRejectedValue(new Error('offline'))
+    renderLoginPage()
+
+    expect(await screen.findByRole('button', { name: 'Need an account? Register' })).toBeInTheDocument()
   })
 
   it('logs in with the entered credentials', async () => {

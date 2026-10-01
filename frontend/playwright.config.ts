@@ -33,8 +33,15 @@ export default defineConfig({
     { name: 'journey', testMatch: 'journey.spec.ts', use: { ...devices['Desktop Chrome'] } },
     {
       name: 'chromium',
-      testIgnore: 'journey.spec.ts',
+      testIgnore: ['journey.spec.ts', 'registration.spec.ts'],
       dependencies: ['journey'],
+      use: { ...devices['Desktop Chrome'] },
+    },
+    // Closing registration would break specs that register users, so it runs after all of them.
+    {
+      name: 'registration',
+      testMatch: 'registration.spec.ts',
+      dependencies: ['chromium'],
       use: { ...devices['Desktop Chrome'] },
     },
   ],
@@ -48,8 +55,9 @@ export default defineConfig({
         ASPNETCORE_ENVIRONMENT: 'Development',
         ConnectionStrings__Default: `Data Source=${databasePath}`,
         Jwt__Key: 'e2e-signing-key-that-is-at-least-32-bytes-long',
-        // The specs log in far more often than the production auth limit allows per minute.
+        // The specs log in (and load the login page) far more often than the production limits allow per minute.
         RateLimiting__AuthPermitsPerMinute: '1000',
+        RateLimiting__AnonymousPermitsPerMinute: '1000',
       },
       timeout: 180_000,
       reuseExistingServer: false,

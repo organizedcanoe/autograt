@@ -4,8 +4,8 @@ export type EntryCategory = 'Good' | 'Neutral' | 'Bad'
 
 export const ENTRY_CATEGORIES: readonly EntryCategory[] = ['Good', 'Neutral', 'Bad']
 
-/** Pending users are awaiting admin approval and cannot log in. */
-export type UserRole = 'Pending' | 'Standard' | 'Admin'
+/** Pending users are awaiting admin approval and Disabled users were blocked by an admin; neither can log in. */
+export type UserRole = 'Pending' | 'Standard' | 'Admin' | 'Disabled'
 
 export interface User {
   id: number
@@ -19,6 +19,16 @@ export interface LoginResponse {
   token: string
   expiresAtUtc: string
   user: User
+}
+
+/** Server-wide settings that admins manage. */
+export interface AppSettings {
+  registrationOpen: boolean
+}
+
+/** Whether the login page should offer registration. */
+export interface RegistrationStatus {
+  open: boolean
 }
 
 /** A temporary password an admin set for a user; the server only ever returns it once. */

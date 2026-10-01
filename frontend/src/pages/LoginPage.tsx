@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from 'react'
+import { api } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
+import { useAsync } from '../hooks/useAsync'
 import { errorMessage } from '../utils/errors'
 import Wordmark from '../components/Wordmark'
 import './LoginPage.css'
@@ -27,6 +29,9 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const isRegister = mode === 'register'
+  const registration = useAsync(() => api.getRegistrationStatus(), [])
+  // If the status can't be loaded, registration stays offered; the server still enforces it.
+  const registrationClosed = registration.data?.open === false
 
   function switchMode() {
     setMode(isRegister ? 'login' : 'register')
@@ -131,9 +136,13 @@ export default function LoginPage() {
           </button>
         </form>
         <footer>
-          <button type="button" onClick={switchMode}>
-            {isRegister ? 'Have an account? Log in' : 'Need an account? Register'}
-          </button>
+          {registrationClosed && !isRegister ? (
+            <p>Registration is closed. Ask an admin for an account.</p>
+          ) : (
+            <button type="button" onClick={switchMode}>
+              {isRegister ? 'Have an account? Log in' : 'Need an account? Register'}
+            </button>
+          )}
         </footer>
       </article>
     </main>

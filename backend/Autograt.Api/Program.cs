@@ -100,6 +100,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<AccountService>();
+builder.Services.AddScoped<AppSettingsService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<JournalService>();
 builder.Services.AddScoped<SearchService>();

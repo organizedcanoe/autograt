@@ -16,6 +16,9 @@ vi.mock('../api/client', async (importOriginal) => {
       approveUser: vi.fn(),
       promoteUser: vi.fn(),
       deleteUser: vi.fn(),
+      demoteUser: vi.fn(),
+      disableUser: vi.fn(),
+      enableUser: vi.fn(),
       resetUserPassword: vi.fn(),
     },
   }
@@ -27,6 +30,7 @@ const users: User[] = [
   { id: 2, username: 'regular', role: 'Standard', mustChangePassword: false },
   { id: 3, username: 'newcomer', role: 'Pending', mustChangePassword: false },
   { id: 4, username: 'other-admin', role: 'Admin', mustChangePassword: false },
+  { id: 5, username: 'blocked', role: 'Disabled', mustChangePassword: false },
 ]
 
 async function findRow(username: string) {
@@ -44,6 +48,9 @@ describe('AdminUsers', () => {
     vi.mocked(api.approveUser).mockReset()
     vi.mocked(api.promoteUser).mockReset()
     vi.mocked(api.deleteUser).mockReset()
+    vi.mocked(api.demoteUser).mockReset()
+    vi.mocked(api.disableUser).mockReset()
+    vi.mocked(api.enableUser).mockReset()
     vi.mocked(api.resetUserPassword).mockReset()
     vi.restoreAllMocks()
   })
@@ -59,13 +66,101 @@ describe('AdminUsers', () => {
     const regularRow = within(await findRow('regular'))
     expect(regularRow.getByRole('cell', { name: 'User' })).toBeInTheDocument()
     expect(regularRow.getByRole('button', { name: 'Promote' })).toBeInTheDocument()
+    expect(regularRow.getByRole('button', { name: 'Disable' })).toBeInTheDocument()
+    expect(regularRow.getByRole('button', { name: 'Delete' })).toBeInTheDocument()
 
     const pendingRow = within(await findRow('newcomer'))
     expect(pendingRow.getByRole('cell', { name: 'Pending approval' })).toBeInTheDocument()
     expect(pendingRow.getByRole('button', { name: 'Approve' })).toBeInTheDocument()
     expect(pendingRow.getByRole('button', { name: 'Delete' })).toBeInTheDocument()
-    expect(regularRow.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
     expect(pendingRow.queryByRole('button', { name: 'Promote' })).not.toBeInTheDocument()
+    expect(pendingRow.queryByRole('button', { name: 'Disable' })).not.toBeInTheDocument()
+
+    const otherAdminRow = within(await findRow('other-admin'))
+    expect(otherAdminRow.getByRole('button', { name: 'Demote' })).toBeInTheDocument()
+    expect(otherAdminRow.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
+    expect(otherAdminRow.queryByRole('button', { name: 'Disable' })).not.toBeInTheDocument()
+
+    const disabledRow = within(await findRow('blocked'))
+    expect(disabledRow.getByRole('cell', { name: 'Disabled' })).toBeInTheDocument()
+    expect(disabledRow.getByRole('button', { name: 'Enable' })).toBeInTheDocument()
+    expect(disabledRow.getByRole('button', { name: 'Delete' })).toBeInTheDocument()
+    expect(disabledRow.queryByRole('button', { name: 'Promote' })).not.toBeInTheDocument()
+  })
+
+  it('demotes another admin and reloads the list', async () => {
+    const user = userEvent.setup()
+    vi.mocked(api.listUsers).mockResolvedValue(users)
+    vi.mocked(api.demoteUser).mockResolvedValue(undefined)
+    render(<AdminUsers />)
+
+    await user.click(within(await findRow('other-admin')).getByRole('button', { name: 'Demote' }))
+
+    expect(api.demoteUser).toHaveBeenCalledWith(4)
+    expect(api.listUsers).toHaveBeenCalledTimes(2)
+  })
+
+  it('disables a user once confirmed', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    vi.mocked(api.listUsers).mockResolvedValue(users)
+    vi.mocked(api.disableUser).mockResolvedValue(undefined)
+    render(<AdminUsers />)
+
+    await user.click(within(await findRow('regular')).getByRole('button', { name: 'Disable' }))
+
+    expect(window.confirm).toHaveBeenCalledWith(
+      "Disable 'regular'? They will be signed out and can't log in until enabled again. Their journal is kept.",
+    )
+    expect(api.disableUser).toHaveBeenCalledWith(2)
+  })
+
+  it('does not disable when the confirmation is cancelled', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
+    vi.mocked(api.listUsers).mockResolvedValue(users)
+    render(<AdminUsers />)
+
+    await user.click(within(await findRow('regular')).getByRole('button', { name: 'Disable' }))
+
+    expect(api.disableUser).not.toHaveBeenCalled()
+  })
+
+  it('enables a disabled user', async () => {
+    const user = userEvent.setup()
+    vi.mocked(api.listUsers).mockResolvedValue(users)
+    vi.mocked(api.enableUser).mockResolvedValue(undefined)
+    render(<AdminUsers />)
+
+    await user.click(within(await findRow('blocked')).getByRole('button', { name: 'Enable' }))
+
+    expect(api.enableUser).toHaveBeenCalledWith(5)
+  })
+
+  it('deletes an approved user and their journal once confirmed', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    vi.mocked(api.listUsers).mockResolvedValue(users)
+    vi.mocked(api.deleteUser).mockResolvedValue(undefined)
+    render(<AdminUsers />)
+
+    await user.click(within(await findRow('regular')).getByRole('button', { name: 'Delete' }))
+
+    expect(window.confirm).toHaveBeenCalledWith(
+      "Delete 'regular' and all their journal entries, ratings and settings? This cannot be undone.",
+    )
+    expect(api.deleteUser).toHaveBeenCalledWith(2)
+  })
+
+  it('shows a server error from an action', async () => {
+    const user = userEvent.setup()
+    vi.mocked(api.listUsers).mockResolvedValue(users)
+    vi.mocked(api.demoteUser).mockRejectedValue(new Error('Only admins can be demoted, and not the last one.'))
+    render(<AdminUsers />)
+
+    await user.click(within(await findRow('other-admin')).getByRole('button', { name: 'Demote' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Only admins can be demoted, and not the last one.')
   })
 
   it('approves a pending user and reloads the list', async () => {

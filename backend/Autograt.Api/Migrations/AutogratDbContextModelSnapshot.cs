@@ -17,6 +17,20 @@ namespace Autograt.Api.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.31");
 
+            modelBuilder.Entity("Autograt.Api.Models.AppSetting", b =>
+                {
+                    b.Property<int>("Key")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Key");
+
+                    b.ToTable("AppSetting", (string)null);
+                });
+
             modelBuilder.Entity("Autograt.Api.Models.JournalAppend", b =>
                 {
                     b.Property<int>("Id")

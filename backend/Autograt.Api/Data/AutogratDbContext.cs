@@ -18,6 +18,8 @@ public class AutogratDbContext(DbContextOptions<AutogratDbContext> options) : Db
 
     public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
 
+    public DbSet<AppSetting> AppSettings => Set<AppSetting>();
+
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
         StampCreatedAtUtc();
@@ -100,6 +102,14 @@ public class AutogratDbContext(DbContextOptions<AutogratDbContext> options) : Db
                 .WithMany()
                 .HasForeignKey(s => s.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AppSetting>(setting =>
+        {
+            setting.ToTable("AppSetting");
+            setting.HasKey(s => s.Key);
+            setting.Property(s => s.Key).ValueGeneratedNever();
+            setting.Property(s => s.Value).IsRequired();
         });
     }
 
