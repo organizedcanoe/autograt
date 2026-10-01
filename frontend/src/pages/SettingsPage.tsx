@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import AccountSettings from '../components/AccountSettings'
 import DataSettings from '../components/DataSettings'
 import ReminderSettings from '../components/ReminderSettings'
 import ThemePicker from '../components/ThemePicker'
@@ -29,6 +30,7 @@ export default function SettingsPage() {
   return (
     <>
       <h1>Settings</h1>
+      <AccountSettings />
       <section>
         <h2>Appearance</h2>
         {error && <p role="alert">{error}</p>}

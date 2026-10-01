@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Autograt.Api.Contracts;
 using Autograt.Api.Models;
@@ -184,6 +185,124 @@ public class AdminEndpointsTests : IDisposable
         var response = await admin.DeleteAsync("/api/admin/users/9999");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ResetPassword_ReturnsTemporaryPassword_ThatLogsInAndMustBeChanged()
+    {
+        var admin = await _factory.CreateAuthenticatedClientAsync("admin");
+        var regularUser = await CreateStandardUserAsync("regular");
+
+        var response = await admin.PostAsync($"/api/admin/users/{regularUser.Id}/reset-password", null);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var reset = await response.Content.ReadFromJsonAsync<ResetPasswordResponse>(TestJson.Options);
+        Assert.False(string.IsNullOrWhiteSpace(reset!.TemporaryPassword));
+        var session = await LogInAsync("regular", reset.TemporaryPassword);
+        Assert.True(session.User.MustChangePassword);
+        var oldLogin = await _factory.CreateClient().PostAsJsonAsync(
+            "/api/auth/login", new { username = "regular", password = AutogratApiFactory.DefaultPassword });
+        Assert.Equal(HttpStatusCode.Unauthorized, oldLogin.StatusCode);
+    }
+
+    [Fact]
+    public async Task ResetPassword_EndsTheUsersSessions()
+    {
+        var admin = await _factory.CreateAuthenticatedClientAsync("admin");
+        var regular = await _factory.CreateAuthenticatedClientAsync("regular");
+        var regularUser = await regular.GetFromJsonAsync<UserResponse>("/api/auth/me", TestJson.Options);
+
+        await admin.PostAsync($"/api/admin/users/{regularUser!.Id}/reset-password", null);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, (await regular.GetAsync("/api/auth/me")).StatusCode);
+    }
+
+    [Fact]
+    public async Task ResetPassword_ThenChangingPassword_ClearsMustChangePassword()
+    {
+        var admin = await _factory.CreateAuthenticatedClientAsync("admin");
+        var regularUser = await CreateStandardUserAsync("regular");
+        var reset = await (await admin.PostAsync($"/api/admin/users/{regularUser.Id}/reset-password", null))
+            .Content.ReadFromJsonAsync<ResetPasswordResponse>(TestJson.Options);
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", (await LogInAsync("regular", reset!.TemporaryPassword)).Token);
+
+        var change = await client.PutAsJsonAsync("/api/account/password",
+            new { currentPassword = reset.TemporaryPassword, newPassword = "my-own-new-password" });
+
+        var session = await change.Content.ReadFromJsonAsync<LoginResponse>(TestJson.Options);
+        Assert.False(session!.User.MustChangePassword);
+        Assert.False((await LogInAsync("regular", "my-own-new-password")).User.MustChangePassword);
+    }
+
+    [Fact]
+    public async Task ResetPassword_AnotherAdmin_Returns200()
+    {
+        var admin = await _factory.CreateAuthenticatedClientAsync("admin");
+        var otherAdmin = await CreateStandardUserAsync("other");
+        await admin.PostAsync($"/api/admin/users/{otherAdmin.Id}/promote", null);
+
+        var response = await admin.PostAsync($"/api/admin/users/{otherAdmin.Id}/reset-password", null);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ResetPassword_PendingUser_Returns400()
+    {
+        var admin = await _factory.CreateAuthenticatedClientAsync("admin");
+        var pending = await RegisterPendingUserAsync("pending");
+
+        var response = await admin.PostAsync($"/api/admin/users/{pending.Id}/reset-password", null);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ResetPassword_Self_Returns400()
+    {
+        var admin = await _factory.CreateAuthenticatedClientAsync("admin");
+        var adminUser = await admin.GetFromJsonAsync<UserResponse>("/api/auth/me", TestJson.Options);
+
+        var response = await admin.PostAsync($"/api/admin/users/{adminUser!.Id}/reset-password", null);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ResetPassword_UnknownUser_Returns404()
+    {
+        var admin = await _factory.CreateAuthenticatedClientAsync("admin");
+
+        var response = await admin.PostAsync("/api/admin/users/9999/reset-password", null);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ResetPassword_AsNonAdmin_Returns403()
+    {
+        await _factory.CreateAuthenticatedClientAsync("admin");
+        var regular = await _factory.CreateAuthenticatedClientAsync("regular");
+        var other = await CreateStandardUserAsync("other");
+
+        var response = await regular.PostAsync($"/api/admin/users/{other.Id}/reset-password", null);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    private async Task<UserResponse> CreateStandardUserAsync(string username)
+    {
+        var client = await _factory.CreateAuthenticatedClientAsync(username);
+        return (await client.GetFromJsonAsync<UserResponse>("/api/auth/me", TestJson.Options))!;
+    }
+
+    private async Task<LoginResponse> LogInAsync(string username, string password)
+    {
+        var response = await _factory.CreateClient().PostAsJsonAsync("/api/auth/login", new { username, password });
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<LoginResponse>(TestJson.Options))!;
     }
 
     private async Task<UserResponse> RegisterPendingUserAsync(string username)

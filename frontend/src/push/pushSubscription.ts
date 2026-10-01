@@ -1,5 +1,6 @@
 import { api, ApiError } from '../api/client'
 import type { PushSubscriptionRequest } from '../api/types'
+import { getPushSupport } from './pushSupport'
 
 /** Decodes a base64url string (as VAPID public keys are sent) into the bytes the Push API expects. */
 export function urlBase64ToUint8Array(base64Url: string): Uint8Array<ArrayBuffer> {
@@ -34,6 +35,17 @@ export async function subscribeThisDevice(): Promise<void> {
     subscription = await pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) })
   }
   await api.savePushSubscription(toRequest(subscription))
+}
+
+/**
+ * Unsubscribes this browser from its push service without telling the server, e.g. after the account (and with it
+ * the server's copy of the subscription) was deleted. Does nothing where push is not available.
+ */
+export async function forgetThisDevice(): Promise<void> {
+  if (getPushSupport() !== 'supported') return
+  // Not serviceWorker.ready: it never settles when no worker is registered (e.g. the dev server).
+  const registration = await navigator.serviceWorker.getRegistration()
+  await (await registration?.pushManager.getSubscription())?.unsubscribe()
 }
 
 /** Deletes this browser's subscription for the signed-in user, then unsubscribes it from its push service. */

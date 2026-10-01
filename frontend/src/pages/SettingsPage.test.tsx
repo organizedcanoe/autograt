@@ -7,6 +7,7 @@ import SettingsPage from './SettingsPage'
 
 vi.mock('../theme/ThemeContext', () => ({ useTheme: vi.fn() }))
 // Tested on its own; here it only needs to appear below Appearance.
+vi.mock('../components/AccountSettings', () => ({ default: () => <section>Account settings</section> }))
 vi.mock('../components/ReminderSettings', () => ({ default: () => <section>Reminder settings</section> }))
 vi.mock('../components/DataSettings', () => ({
   default: ({ onImported }: { onImported: () => void }) => (

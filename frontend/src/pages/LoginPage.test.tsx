@@ -29,7 +29,7 @@ describe('LoginPage', () => {
     vi.mocked(api.login).mockResolvedValue({
       token: 'token',
       expiresAtUtc: '2026-09-30T00:00:00Z',
-      user: { id: 1, username: 'billy', role: 'Admin' },
+      user: { id: 1, username: 'billy', role: 'Admin', mustChangePassword: false },
     })
     renderLoginPage()
 
@@ -69,7 +69,7 @@ describe('LoginPage', () => {
 
   it('does not log in a pending user after registering and explains that approval is needed', async () => {
     const user = userEvent.setup()
-    vi.mocked(api.register).mockResolvedValue({ id: 2, username: 'billy', role: 'Pending' })
+    vi.mocked(api.register).mockResolvedValue({ id: 2, username: 'billy', role: 'Pending', mustChangePassword: false })
     renderLoginPage()
 
     await user.click(screen.getByRole('button', { name: 'Need an account? Register' }))
@@ -87,11 +87,11 @@ describe('LoginPage', () => {
 
   it('logs in straight after registering when the account needs no approval', async () => {
     const user = userEvent.setup()
-    vi.mocked(api.register).mockResolvedValue({ id: 1, username: 'billy', role: 'Admin' })
+    vi.mocked(api.register).mockResolvedValue({ id: 1, username: 'billy', role: 'Admin', mustChangePassword: false })
     vi.mocked(api.login).mockResolvedValue({
       token: 'token',
       expiresAtUtc: '2026-09-30T00:00:00Z',
-      user: { id: 1, username: 'billy', role: 'Admin' },
+      user: { id: 1, username: 'billy', role: 'Admin', mustChangePassword: false },
     })
     renderLoginPage()
 

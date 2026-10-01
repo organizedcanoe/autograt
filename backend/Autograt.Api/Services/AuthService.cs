@@ -39,11 +39,12 @@ public class AuthService(AutogratDbContext db, IPasswordHasher<User> passwordHas
     {
         username = username.Trim();
         var user = await db.Users.SingleOrDefaultAsync(u => u.Username == username);
-        if (user is null)
-        {
-            return null;
-        }
+        return user is not null && await VerifyPasswordAsync(user, password) ? user : null;
+    }
 
+    /// <summary>Checks a tracked user's password, upgrading the stored hash when the hashing settings have changed.</summary>
+    public async Task<bool> VerifyPasswordAsync(User user, string password)
+    {
         var result = passwordHasher.VerifyHashedPassword(user, user.PasswordHash, password);
         if (result == PasswordVerificationResult.SuccessRehashNeeded)
         {
@@ -51,6 +52,6 @@ public class AuthService(AutogratDbContext db, IPasswordHasher<User> passwordHas
             await db.SaveChangesAsync();
         }
 
-        return result == PasswordVerificationResult.Failed ? null : user;
+        return result != PasswordVerificationResult.Failed;
     }
 }

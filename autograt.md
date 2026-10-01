@@ -36,6 +36,10 @@ The database schema consists of four core journal tables structured in a three-t
 
 * **Role:** Enumeration, Required, Default: `Pending`. Allowed values: `Pending` (0), `Standard` (1), `Admin` (2). `Pending` accounts are awaiting admin approval and cannot log in; `Admin` accounts have administrative privileges.
 
+* **SecurityStamp:** String, Required. A random value copied into every token. Replacing it ends every session issued before it.
+
+* **MustChangePassword:** Boolean, Required, Default: `false`. Set when an admin resets the password; cleared when the user changes it.
+
 * **CreatedAtUtc:** DateTime, Required. Account creation timestamp.
 
 * **LastReminderAtUtc:** DateTime, Optional. The reminder slot most recently handled (sent or skipped), so each slot is handled only once.
@@ -117,6 +121,18 @@ Represents additional immutable notes appended specifically to an existing `Jour
 * **Approval:** A `Pending` user cannot log in; login is rejected with an HTTP 403 Forbidden error explaining that the account awaits admin approval. Registration returns no token, so a pending user cannot call authenticated endpoints.
 
 * **Authentication:** Authenticated via JSON Web Tokens (JWT) provided in the Authorization HTTP header.
+
+* **Session Revocation:** Each token carries the user's `SecurityStamp`. Every request checks it against the database, so a token whose user no longer exists, whose stamp has changed, or which has no stamp is rejected with an HTTP 401 Unauthorized error. The stamp is replaced when the user changes their password and when an admin resets it, which signs out every existing session.
+
+* **Account Self-Management:** Endpoints for the signed-in user's own account. A wrong password is rejected with an HTTP 400 Bad Request error ("Current password is incorrect."), not 401, since the frontend treats a 401 as an expired session. The endpoints that check a password share the login and register rate limit.
+
+  * `PUT /api/account/password` with `{ currentPassword, newPassword }` changes the password and returns a new `LoginResponse`, so this session stays signed in while every other session is signed out. A new password under 8 characters, or the same as the current one, is rejected with 400.
+
+  * `PUT /api/account/username` with `{ username }` renames the user (trimmed, at most 50 characters) and returns a new `LoginResponse` carrying the new name; other sessions stay signed in. A name taken by another user, ignoring case, returns 409 Conflict; a user may change the case of their own name.
+
+  * `DELETE /api/account` with `{ password }` deletes the user and all their journal entries, sub-entries, appends, settings and push subscriptions, and returns 204. The last admin cannot delete their account while other users exist (400, "Promote another admin before deleting your account."). If the only user deletes their account, the next user to register becomes the admin.
+
+* **Forgotten Passwords:** `POST /api/admin/users/{id}/reset-password` (admins only) gives an approved user (standard or admin) a random 12-character temporary password, sets `MustChangePassword`, replaces their `SecurityStamp`, and returns `{ temporaryPassword }`. The temporary password is only ever returned in this response. Resetting a pending user or your own password is rejected with 400; an unknown user returns 404. User responses include `mustChangePassword`.
 
 * **Admin Capabilities:** Endpoints restricted to admin users that list all users, approve `Pending` users (`POST /api/admin/users/{id}/approve`, making them `Standard`), promote `Standard` users to `Admin` (`POST /api/admin/users/{id}/promote`), and delete `Pending` users such as duplicate sign-ups (`DELETE /api/admin/users/{id}`). Approving or deleting a user who is not pending, or promoting one who is not standard, is rejected with an HTTP 400 Bad Request error; an unknown user returns 404.
 
@@ -282,6 +298,16 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 #### Settings Page
 
+* An **Account** section, above Appearance, manages the account:
+
+  * **Username:** A text input with the current name and a **Save username** button. A saved name updates the header straight away; an empty name or a taken name shows an error.
+
+  * **Change password:** Current password, new password and confirm new password, with a **Change password** button. A missing field, a new password under 8 characters, or mismatched passwords show an error without calling the server. On success it shows "Password changed. Other devices have been signed out."
+
+  * **Delete account:** A **Delete account…** button opens a confirmation dialog explaining that all entries, ratings and settings are deleted permanently and suggesting an export first. **Delete forever** stays disabled until the password is entered; a wrong password shows an error in the dialog. On success this browser is unsubscribed from reminders and the user is logged out. **Cancel** closes the dialog.
+
+* After an admin resets their password, a signed-in user sees only a **Choose a new password** page (temporary password, new password, confirm) with a **Log out** button, on every URL, until they change it.
+
 * The header shows the signed-in user's name as a dropdown menu with **Settings** (`/settings`), **Admin** (`/admin`, admins only) and **Log out**; it does not show the theme controls itself.
 
 * An **Appearance** section offers Mode (System, Light, Dark) and Color selects. A change applies straight away and is saved to the user's settings; a failed save shows an error.
@@ -319,7 +345,7 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 * After registering, a user who needs approval is not logged in; the form switches to login and shows "Account created. An admin must approve it before you can log in." The first user, who becomes the admin, is logged in straight away.
 
-* The admin page (`/admin`) is only available to admins; other users visiting it are redirected to the today view. It lists every user with their role (`Pending approval`, `User`, `Admin`), **Approve** and **Delete** buttons for pending users (deleting asks for confirmation first), and a **Promote** button for standard users.
+* The admin page (`/admin`) is only available to admins; other users visiting it are redirected to the today view. It lists every user with their role (`Pending approval`, `User`, `Admin`), **Approve** and **Delete** buttons for pending users (deleting asks for confirmation first), and a **Promote** button for standard users. Every approved user other than the signed-in admin has a **Reset password** button; after confirming, a dialog shows the temporary password once with **Copy** and **Done** buttons.
 
 ## 6. Docker & Containerization Specification
 
@@ -352,6 +378,8 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 * **Authentication Unit Tests:** Verify user creation logic, initial user admin assignment, later users starting as pending, and password hashing logic.
 
 * **Admin Endpoint Tests:** Verify that pending users cannot log in, that admins can approve or delete pending users and promote standard users, that invalid approvals, deletions and promotions are rejected, and that non-admins are forbidden (403) from every admin endpoint.
+
+* **Account Endpoint Tests:** Verify that every account endpoint returns 401 without a token; that changing the password returns a working token, signs out other sessions and replaces the login password, and that a wrong current password returns 400 without signing out; that changing the username returns a new token, allows a case-only change of one's own name and rejects taken or invalid names; that deleting the account needs the password, removes all the user's data but no one else's and ends the session, and is rejected for the last admin while other users exist; that an admin password reset returns a temporary password that logs in with `mustChangePassword`, ends the user's sessions, and is cleared by a password change, and is rejected for pending users and yourself; and that a token without a security stamp is rejected.
 
 * **Journal Service Integration Tests:**
 
@@ -391,6 +419,8 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
 * Validate that registering a pending account shows the approval notice without logging in, and that the admin page approves pending users and deletes them only after confirmation.
 
+* Validate that the Account section saves a new username into the session and shows server errors; that the password form checks its fields before calling the server, keeps this session signed in on success and shows a wrong password; that deleting the account can be cancelled, needs the password, shows a wrong password in the dialog, and logs out on success; that a user who must change their password sees only the choose a new password page; and that the admin page offers a password reset only for other approved users, confirms first and shows the temporary password once.
+
 * Validate that the update dialog appears only when a new version is available, reloads into it, and can be dismissed.
 
 * Validate push support detection (supported, unsupported, blocked, and iOS outside the Home Screen app), base64url key decoding, and subscribing/unsubscribing this device, including reusing an existing subscription and unsubscribing when the server had no record of it.
@@ -425,6 +455,8 @@ The application deployment is governed by a `docker-compose.yml` file defining t
   * Registering a pending account shows the approval notice, and logging in with it is rejected.
 
   * A standard user has no Admin menu item and is redirected to the today view from `/admin`.
+
+* **Account:** A user changes their password and logs in with the new one; an admin resets a user's password, and the user logs in with the temporary password, must choose a new one, and then reaches the today view; a user deletes their account (after cancelling once) and can no longer log in.
 
 * **Settings:** Changing the mode, color and reminder time zone applies the theme straight away and is saved to the account, so a fresh browser that logs in gets the same settings.
 

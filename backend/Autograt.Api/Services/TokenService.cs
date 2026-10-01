@@ -20,6 +20,7 @@ public class TokenService(JwtSigningKey signingKey)
         {
             new(AuthClaims.UserId, user.Id.ToString()),
             new(AuthClaims.Username, user.Username),
+            new(AuthClaims.SecurityStamp, user.SecurityStamp),
         };
         if (user.Role == UserRole.Admin)
         {

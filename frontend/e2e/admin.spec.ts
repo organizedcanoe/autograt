@@ -20,7 +20,7 @@ test('admin approves and promotes a pending user, who then gets admin rights', a
   await expect(row.getByRole('button', { name: 'Approve' })).toHaveCount(0)
   await row.getByRole('button', { name: 'Promote' }).click()
   await expect(row.getByRole('cell', { name: 'Admin', exact: true })).toBeVisible()
-  await expect(row.getByRole('button')).toHaveCount(0)
+  await expect(row.getByRole('button', { name: 'Promote' })).toHaveCount(0)
 
   // The promoted user gets the admin page on their next login.
   await logOut(page, ADMIN_USERNAME)

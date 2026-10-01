@@ -1,0 +1,13 @@
+/* Confirm dialog: both buttons on one line, the safe choice wide and the destructive one narrow. */
+footer[data-confirm-actions] {
+  display: flex;
+}
+
+footer[data-confirm-actions] button:first-of-type {
+  flex: 3;
+}
+
+footer[data-confirm-actions] button:last-of-type {
+  flex: 1;
+  white-space: nowrap;
+}

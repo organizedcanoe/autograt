@@ -141,6 +141,9 @@ namespace Autograt.Api.Migrations
                     b.Property<DateTime?>("LastReminderAtUtc")
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("MustChangePassword")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -149,6 +152,10 @@ namespace Autograt.Api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER")
                         .HasDefaultValue(0);
+
+                    b.Property<string>("SecurityStamp")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Username")
                         .IsRequired()

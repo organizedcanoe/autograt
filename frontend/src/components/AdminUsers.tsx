@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { api } from '../api/client'
 import type { User, UserRole } from '../api/types'
+import { useAuth } from '../auth/AuthContext'
 import AsyncView from './AsyncView'
 import { useAsync } from '../hooks/useAsync'
 import { errorMessage } from '../utils/errors'
@@ -13,8 +14,11 @@ const ROLE_LABELS: Record<UserRole, string> = {
 }
 
 export default function AdminUsers() {
+  const { user: currentUser } = useAuth()
   const users = useAsync(() => api.listUsers(), [])
   const [error, setError] = useState<string | null>(null)
+  // Shown once after a reset; the server never returns it again.
+  const [reset, setReset] = useState<{ username: string; temporaryPassword: string } | null>(null)
 
   async function runAction(action: () => Promise<void>) {
     setError(null)
@@ -29,6 +33,16 @@ export default function AdminUsers() {
   function deletePendingUser(user: User) {
     if (window.confirm(`Delete pending user '${user.username}'? This cannot be undone.`)) {
       void runAction(() => api.deleteUser(user.id))
+    }
+  }
+
+  function resetPassword(user: User) {
+    const question = `Reset the password for '${user.username}'? They will be signed out everywhere and must choose a new password when they next log in.`
+    if (window.confirm(question)) {
+      void runAction(async () => {
+        const { temporaryPassword } = await api.resetUserPassword(user.id)
+        setReset({ username: user.username, temporaryPassword })
+      })
     }
   }
 
@@ -73,6 +87,11 @@ export default function AdminUsers() {
                           Promote
                         </button>
                       )}
+                      {user.role !== 'Pending' && user.id !== currentUser?.id && (
+                        <button type="button" className="secondary" onClick={() => resetPassword(user)}>
+                          Reset password
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -81,6 +100,29 @@ export default function AdminUsers() {
           </table>
         )}
       </AsyncView>
+      {reset && (
+        <dialog open>
+          <article>
+            <h3>Temporary password for {reset.username}</h3>
+            <p>
+              <code>{reset.temporaryPassword}</code>
+            </p>
+            <p>Give it to {reset.username}; they will choose a new password when they log in. It won't be shown again.</p>
+            <footer>
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => void navigator.clipboard?.writeText(reset.temporaryPassword).catch(() => {})}
+              >
+                Copy
+              </button>
+              <button type="button" onClick={() => setReset(null)}>
+                Done
+              </button>
+            </footer>
+          </article>
+        </dialog>
+      )}
     </>
   )
 }

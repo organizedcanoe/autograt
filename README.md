@@ -62,6 +62,8 @@ Swagger UI is available at http://localhost:5000/swagger in Development.
 
 - The first user to register becomes an admin.
 - Later users must be approved by an admin before they can sign in.
+- Users change their username or password, or delete their account, under **Settings → Account**.
+- There is no email, so a forgotten password is reset by an admin (**Admin → Reset password**). The admin passes the temporary password on, and the user chooses a new one when they log in.
 
 ### JWT signing key
 

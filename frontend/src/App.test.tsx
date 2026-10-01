@@ -4,9 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { UserRole } from './api/types'
 import App from './App'
 
-function signInAs(role: UserRole) {
+function signInAs(role: UserRole, mustChangePassword = false) {
   vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})))
-  const session = { token: 'token', user: { id: 1, username: 'billy', role } }
+  const session = { token: 'token', user: { id: 1, username: 'billy', role, mustChangePassword } }
   localStorage.setItem('autograt.session', JSON.stringify(session))
 }
 
@@ -29,7 +29,7 @@ describe('App', () => {
 
   it("opens the settings page from the user's menu instead of showing the theme controls in the header", async () => {
     vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})))
-    const session = { token: 'token', user: { id: 1, username: 'billy', role: 'Admin' } }
+    const session = { token: 'token', user: { id: 1, username: 'billy', role: 'Admin', mustChangePassword: false } }
     localStorage.setItem('autograt.session', JSON.stringify(session))
     render(<App />)
 
@@ -94,5 +94,24 @@ describe('App', () => {
 
     expect(screen.getByRole('button', { name: 'Log in' })).toBeInTheDocument()
     expect(window.location.pathname + window.location.search).toBe('/')
+  })
+
+  it.each(['/', '/settings', '/day/2026-09-01'])('asks a user whose password was reset to choose a new one on %s', (path) => {
+    signInAs('Standard', true)
+    window.history.replaceState(null, '', path)
+    render(<App />)
+
+    expect(screen.getByRole('heading', { name: 'Choose a new password' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Log out' })).toBeInTheDocument()
+    expect(screen.queryByRole('banner')).not.toBeInTheDocument()
+  })
+
+  it('logs out from the choose a new password page', async () => {
+    signInAs('Standard', true)
+    render(<App />)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Log out' }))
+
+    expect(screen.getByRole('button', { name: 'Log in' })).toBeInTheDocument()
   })
 })
