@@ -30,7 +30,7 @@ function renderSettings() {
 }
 
 async function chooseAndImport(file: File) {
-  await userEvent.upload(screen.getByLabelText('Journal export (JSON)'), file)
+  await userEvent.upload(screen.getByLabelText('Journal import (JSON)'), file)
   await userEvent.click(screen.getByRole('button', { name: 'Import' }))
 }
 
@@ -76,7 +76,7 @@ describe('DataSettings', () => {
 
     await chooseAndImport(jsonFile(exportFile))
 
-    expect(screen.getByRole('dialog')).toHaveTextContent(/replace any days you already have on the same dates/)
+    expect(screen.getByRole('dialog')).toHaveTextContent(/overwrite your entries and ratings on any dates that are also in this file/)
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(api.importJournal).not.toHaveBeenCalled()
@@ -108,7 +108,7 @@ describe('DataSettings', () => {
     await chooseAndImport(jsonFile({ ...exportFile, settings: [{ setting: 'RemindersEnabled', values: ['on'] }] }))
     await userEvent.click(screen.getByRole('button', { name: 'Replace and import' }))
 
-    expect(await screen.findByRole('status')).toHaveTextContent(/enable them on this device/)
+    expect(await screen.findByRole('status')).toHaveTextContent(/enable them on this device in the Reminders section above/)
   })
 
   it('lists every problem the server found in the file, without reporting it as imported', async () => {

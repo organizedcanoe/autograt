@@ -104,7 +104,7 @@ export default function DataSettings({ onImported }: Props) {
 
       <form ref={form} onSubmit={(e) => void confirmImport(e)}>
         <label>
-          Journal export (JSON)
+          Journal import (JSON)
           <input
             type="file"
             accept="application/json,.json"
@@ -132,7 +132,7 @@ export default function DataSettings({ onImported }: Props) {
           <p>
             {plural(outcome.result.importedDays, 'day')} imported ({outcome.result.replacedDays.length} replaced) and{' '}
             {plural(outcome.result.settingsImported, 'setting')}.
-            {outcome.remindersOn && ' Reminders are on in the imported settings; enable them on this device below.'}
+            {outcome.remindersOn && ' Reminders are on in the imported settings; enable them on this device in the Reminders section above.'}
           </p>
           {outcome.result.replacedDays.length > 0 && (
             <details>
@@ -150,10 +150,11 @@ export default function DataSettings({ onImported }: Props) {
       {pending !== undefined && (
         <dialog open>
           <article>
-            <h3>Replace your days?</h3>
+            <h3>Overwrite matching dates?</h3>
             <p>
-              Days in this file will replace any days you already have on the same dates, and its settings will replace
-              yours. Days that are not in the file are kept. This cannot be undone.
+              Importing will overwrite your entries and ratings on any dates that are also in this file. Entries and
+              ratings on dates not in the file will be kept. Settings in the file will replace yours. This cannot be
+              undone.
             </p>
             <footer>
               <button type="button" className="secondary" onClick={() => setPending(undefined)}>

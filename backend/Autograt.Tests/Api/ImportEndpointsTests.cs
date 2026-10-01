@@ -144,6 +144,23 @@ public class ImportEndpointsTests : IClassFixture<AutogratApiFactory>
     }
 
     [Fact]
+    public async Task Import_FileNamingAnotherUser_GoesIntoTheSignedInAccountOnly()
+    {
+        var aliceName = $"alice-{Guid.NewGuid():N}"[..16];
+        var alice = await _factory.CreateAuthenticatedClientAsync(aliceName);
+        var bob = await _factory.CreateAuthenticatedClientAsync();
+        var file = ValidFile();
+        file["username"] = aliceName;
+
+        await ImportAsync(bob, file);
+
+        Assert.Equal("Walked the dog", Assert.Single((await GetDayAsync(bob, LastYear)).SubEntries).Content);
+        var aliceExport = await alice.GetFromJsonAsync<JournalExport>("/api/export?format=json", TestJson.Options);
+        Assert.Empty(aliceExport!.Entries);
+        Assert.Empty(aliceExport.Settings);
+    }
+
+    [Fact]
     public async Task Import_RatingOnlyDayWithNoSubEntries_IsAllowed()
     {
         var client = await _factory.CreateAuthenticatedClientAsync();

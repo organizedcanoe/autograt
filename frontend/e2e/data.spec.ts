@@ -27,9 +27,9 @@ test("a JSON export imported into another account shows up on that account's hea
   const todayBlock = page.locator(`a[href="/day/${today}"]`)
   await expect(todayBlock).toHaveAccessibleName(/: no entry$/)
   await openMenuItem(page, username, 'Settings')
-  await page.getByLabel('Journal export (JSON)').setInputFiles(exportPath)
-  await page.getByRole('button', { name: 'Import' }).click()
-  await expect(page.getByRole('dialog')).toContainText('replace any days you already have')
+  await page.getByLabel('Journal import (JSON)').setInputFiles(exportPath)
+  await page.getByRole('button', { name: 'Import', exact: true }).click()
+  await expect(page.getByRole('dialog')).toContainText('overwrite your entries and ratings')
   await page.getByRole('button', { name: 'Replace and import' }).click()
   await expect(page.getByRole('status')).toContainText('1 day imported (0 replaced)')
 

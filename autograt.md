@@ -306,9 +306,9 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
   * **Export as JSON** and **Export as Markdown** download the export; a failed export shows an error.
 
-  * **Import:** A file input (JSON only) and an **Import** button. A file that is not JSON is rejected with an error. Otherwise a confirmation dialog warns that days in the file replace any days the user already has on the same dates, and its settings replace theirs; **Replace and import** imports it and **Cancel** does nothing.
+  * **Import:** A file input (JSON only) and an **Import** button. A file that is not JSON is rejected with an error. Otherwise a confirmation dialog warns that importing overwrites the user's entries and ratings on any dates also in the file, keeps those on other dates, and replaces their settings with the file's; **Replace and import** imports it and **Cancel** does nothing.
 
-  * **Result:** "N days imported (M replaced) and K settings.", with the replaced dates in a collapsible list. If the imported settings turn reminders on, it adds that they must be enabled on this device. The theme and reminder settings reload with the imported values. Every problem the server found in a rejected file is listed in an alert.
+  * **Result:** "N days imported (M replaced) and K settings.", with the replaced dates in a collapsible list. If the imported settings turn reminders on, it adds that they must be enabled on this device in the Reminders section above. The theme and reminder settings reload with the imported values. Every problem the server found in a rejected file is listed in an alert.
 
 
 #### Registration & Admin Views
@@ -428,4 +428,4 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
 * **Settings:** Changing the mode, color and reminder time zone applies the theme straight away and is saved to the account, so a fresh browser that logs in gets the same settings.
 
-* **Export & Import:** The admin exports their journal as JSON; a second, approved user imports it (confirming the replace warning) and sees the admin's rated day on their heatmap.
+* **Export & Import:** The admin exports their journal as JSON; a second, approved user imports it (confirming the overwrite warning) and sees the admin's rated day on their heatmap.
