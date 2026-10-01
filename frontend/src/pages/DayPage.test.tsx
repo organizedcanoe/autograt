@@ -84,8 +84,8 @@ describe('DayPage', () => {
     vi.mocked(api.getDay).mockResolvedValue(dayDetail(YESTERDAY))
     renderDay(YESTERDAY)
 
-    expect(await screen.findByText('Past days are read-only. You can still append notes.')).toBeInTheDocument()
-    expect(screen.getByText('Walked the dog')).toBeInTheDocument()
+    expect(await screen.findByText('Walked the dog')).toBeInTheDocument()
+    expect(screen.queryByText(/read-only/)).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Append' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Save rating' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
@@ -101,11 +101,21 @@ describe('DayPage', () => {
     expect(screen.getByLabelText('How was your day?')).toHaveValue('')
   })
 
+  it('says when a rated past day has no entries, without offering notes', async () => {
+    vi.mocked(api.getDay).mockResolvedValue({ entryDate: YESTERDAY, dayRating: 6, subEntries: [] })
+    renderDay(YESTERDAY)
+
+    expect(await screen.findByText('No entries were written.')).toBeInTheDocument()
+    expect(screen.queryByText(/append/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+  })
+
   it('does not offer to write entries for a past day without one', async () => {
     vi.mocked(api.getDay).mockResolvedValue(null)
     renderDay(YESTERDAY)
 
-    expect(await screen.findByText('No entry was written for this day.')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(`${formatLongDate(YESTERDAY)}: unrated`)
+    expect(screen.getByText('No entries were written.')).toBeInTheDocument()
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Save rating' })).not.toBeInTheDocument()
   })
@@ -166,5 +176,32 @@ describe('DayPage', () => {
 
     expect(api.addSubEntry).toHaveBeenCalledWith(TODAY, 'Neutral', 'Quiet evening')
     expect(screen.getByLabelText('Category')).toHaveValue('Good')
+  })
+
+  it('links to the previous and next days', async () => {
+    vi.mocked(api.getDay).mockResolvedValue(dayDetail('2026-09-01'))
+    renderDay('2026-09-01')
+
+    expect(await screen.findByRole('link', { name: '← Previous day' })).toHaveAttribute('href', '/day/2026-08-31')
+    expect(screen.getByRole('link', { name: 'Next day →' })).toHaveAttribute('href', '/day/2026-09-02')
+  })
+
+  it('has no next day link on today', async () => {
+    vi.mocked(api.getDay).mockResolvedValue(dayDetail(TODAY))
+    renderDay(TODAY)
+
+    expect(await screen.findByRole('link', { name: '← Previous day' })).toHaveAttribute('href', `/day/${YESTERDAY}`)
+    expect(screen.queryByRole('link', { name: 'Next day →' })).not.toBeInTheDocument()
+  })
+
+  it('loads the previous day when its link is followed', async () => {
+    const user = userEvent.setup()
+    vi.mocked(api.getDay).mockImplementation((date) => Promise.resolve(dayDetail(date)))
+    renderDay(TODAY)
+
+    await user.click(await screen.findByRole('link', { name: '← Previous day' }))
+
+    expect(api.getDay).toHaveBeenLastCalledWith(YESTERDAY)
+    expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(formatLongDate(YESTERDAY))
   })
 })

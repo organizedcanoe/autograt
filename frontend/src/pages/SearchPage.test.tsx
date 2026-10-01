@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../api/client'
@@ -43,7 +44,7 @@ function renderAt(url: string) {
 
 describe('SearchPage', () => {
   afterEach(() => {
-    vi.mocked(api.search).mockReset()
+    vi.resetAllMocks()
   })
 
   it('searches for the query in the URL and links each match to its day', async () => {
@@ -70,10 +71,47 @@ describe('SearchPage', () => {
     expect(await screen.findByText(/no matches/i)).toBeInTheDocument()
   })
 
+  it('shows the search bar with the current query', async () => {
+    vi.mocked(api.search).mockResolvedValue([])
+
+    renderAt('/search?q=dog')
+
+    expect(screen.getByRole('searchbox', { name: 'Search journal' })).toHaveValue('dog')
+    await screen.findByText(/no matches/i)
+  })
+
   it('asks for a query instead of searching when it is empty', () => {
     renderAt('/search')
 
     expect(api.search).not.toHaveBeenCalled()
     expect(screen.getByText(/type something/i)).toBeInTheDocument()
+    expect(screen.getByRole('searchbox', { name: 'Search journal' })).toHaveValue('')
+  })
+
+  it('shows matches a page at a time', async () => {
+    const user = userEvent.setup()
+    const many = Array.from({ length: 25 }, (_, index) => ({ ...results[0], subEntryId: index + 1 }))
+    vi.mocked(api.search).mockResolvedValue(many)
+
+    renderAt('/search?q=e')
+
+    expect(await screen.findAllByRole('article')).toHaveLength(10)
+    expect(screen.getByText('25 matches')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Show more' }))
+    expect(screen.getAllByRole('article')).toHaveLength(20)
+
+    await user.click(screen.getByRole('button', { name: 'Show more' }))
+    expect(screen.getAllByRole('article')).toHaveLength(25)
+    expect(screen.queryByRole('button', { name: 'Show more' })).not.toBeInTheDocument()
+  })
+
+  it('names a single match in the singular', async () => {
+    vi.mocked(api.search).mockResolvedValue([results[0]])
+
+    renderAt('/search?q=walked')
+
+    const article = await screen.findByRole('article')
+    expect(within(article).getByText('Walked the dog')).toBeInTheDocument()
+    expect(screen.getByText('1 match')).toBeInTheDocument()
   })
 })

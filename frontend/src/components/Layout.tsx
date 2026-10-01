@@ -1,20 +1,12 @@
 import { useRef } from 'react'
-import { Link, Outlet, useLocation, useSearchParams } from 'react-router'
+import { Link, Outlet } from 'react-router'
 import { useAuth } from '../auth/AuthContext'
 import BuildInfo from './BuildInfo'
-import SearchBar from './SearchBar'
 import Wordmark from './Wordmark'
-
-const ACCOUNT_PAGES = ['/settings', '/admin']
 
 export default function Layout() {
   const { user, logout } = useAuth()
-  const { pathname } = useLocation()
-  const [searchParams] = useSearchParams()
-  const currentQuery = pathname === '/search' ? (searchParams.get('q') ?? '') : ''
   const menuRef = useRef<HTMLDetailsElement>(null)
-  // Account pages hold no journal content, so searching from them is left out.
-  const showSearch = !ACCOUNT_PAGES.includes(pathname)
 
   // The header stays mounted across pages, so the menu has to be closed after choosing an item.
   function closeMenu() {
@@ -39,6 +31,16 @@ export default function Layout() {
                 {/* rtl opens the menu leftwards, so it stays on screen at the right edge of the nav. */}
                 <ul dir="rtl">
                   <li>
+                    <Link to="/history" onClick={closeMenu}>
+                      History
+                    </Link>
+                  </li>
+                  <li>
+                    <Link to="/search" onClick={closeMenu}>
+                      Search
+                    </Link>
+                  </li>
+                  <li>
                     <Link to="/settings" onClick={closeMenu}>
                       Settings
                     </Link>
@@ -61,8 +63,6 @@ export default function Layout() {
             </li>
           </ul>
         </nav>
-        {/* Keyed by the query so the box shows the current search after navigating. */}
-        {showSearch && <SearchBar key={currentQuery} initialQuery={currentQuery} />}
       </header>
       <main>
         <Outlet />

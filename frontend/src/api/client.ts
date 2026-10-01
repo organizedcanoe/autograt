@@ -145,7 +145,7 @@ export const api = {
   addAppend: (subEntryId: number, content: string) =>
     request<Append>('POST', `/journal/sub-entries/${subEntryId}/appends`, { content }),
 
-  getHeatmap: (today: string) => request<HeatmapDay[]>('GET', `/journal/heatmap?today=${today}`),
+  getHeatmap: (from: string, to: string) => request<HeatmapDay[]>('GET', `/journal/heatmap?from=${from}&to=${to}`),
 
   search: (query: string) => request<SearchResult[]>('GET', `/journal/search?q=${encodeURIComponent(query)}`),
 

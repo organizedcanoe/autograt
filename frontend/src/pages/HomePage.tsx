@@ -3,11 +3,11 @@ import AsyncView from '../components/AsyncView'
 import Heatmap from '../components/Heatmap'
 import TodayJournal from '../components/TodayJournal'
 import { useAsync } from '../hooks/useAsync'
-import { formatLongDate, todayIso } from '../utils/dates'
+import { addDays, formatLongDate, todayIso } from '../utils/dates'
 
 export default function HomePage() {
   const today = todayIso()
-  const heatmap = useAsync(() => api.getHeatmap(today), [today])
+  const heatmap = useAsync(() => api.getHeatmap(addDays(today, -29), today), [today])
   const todayEntry = useAsync(() => api.getDay(today), [today])
 
   function reload() {

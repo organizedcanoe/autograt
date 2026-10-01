@@ -47,7 +47,7 @@ describe('App', () => {
     expect(menu).not.toHaveAttribute('open')
   })
 
-  it.each(['/settings', '/admin'])('hides the search bar on %s', (path) => {
+  it.each(['/', '/day/2026-09-01', '/settings', '/admin', '/history'])('has no search bar on %s', (path) => {
     signInAs('Admin')
     window.history.replaceState(null, '', path)
     render(<App />)
@@ -55,12 +55,37 @@ describe('App', () => {
     expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
   })
 
-  it('shows the search bar on journal pages', () => {
+  it('opens the history page from the menu', async () => {
     signInAs('Standard')
-    window.history.replaceState(null, '', '/search?q=dog')
     render(<App />)
 
-    expect(screen.getByRole('searchbox')).toBeInTheDocument()
+    const header = within(screen.getByRole('banner'))
+    const menu = header.getByText('billy').closest('details')!
+    // Search and History are only in the menu, not in the header's nav.
+    const navLinks = header.getAllByRole('link').filter((link) => !menu.contains(link))
+    expect(navLinks.map((link) => link.textContent)).not.toContain('Search')
+    expect(navLinks.map((link) => link.textContent)).not.toContain('History')
+    await userEvent.click(header.getByText('billy'))
+    await userEvent.click(within(menu).getByRole('link', { name: 'History' }))
+
+    expect(window.location.pathname).toBe('/history')
+    expect(screen.getByRole('heading', { level: 1, name: 'History' })).toBeInTheDocument()
+    expect(menu).not.toHaveAttribute('open')
+  })
+
+  it('opens the search page from the menu, listed under History', async () => {
+    signInAs('Standard')
+    render(<App />)
+
+    const header = within(screen.getByRole('banner'))
+    const menu = header.getByText('billy').closest('details')!
+    const items = within(menu).getAllByRole('link').map((link) => link.textContent)
+    expect(items.indexOf('Search')).toBe(items.indexOf('History') + 1)
+
+    await userEvent.click(header.getByText('billy'))
+    await userEvent.click(within(menu).getByRole('link', { name: 'Search' }))
+    expect(window.location.pathname).toBe('/search')
+    expect(menu).not.toHaveAttribute('open')
   })
 
   it('opens the admin page from the menu for admins', async () => {

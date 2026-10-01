@@ -18,11 +18,11 @@ describe('api client', () => {
     const fetchMock = stubFetch(Response.json([{ date: '2026-09-23', dayRating: 8, entryCount: 2 }]))
     setAuthToken('abc123')
 
-    const days = await api.getHeatmap('2026-09-23')
+    const days = await api.getHeatmap('2026-08-25', '2026-09-23')
 
     expect(days[0].dayRating).toBe(8)
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
-    expect(url).toBe('/api/journal/heatmap?today=2026-09-23')
+    expect(url).toBe('/api/journal/heatmap?from=2026-08-25&to=2026-09-23')
     expect(new Headers(init.headers).get('Authorization')).toBe('Bearer abc123')
   })
 

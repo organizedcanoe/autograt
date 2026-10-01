@@ -49,7 +49,7 @@ export async function logOut(page: Page, username: string): Promise<void> {
 }
 
 /** Opens an item from the header's user menu. */
-export async function openMenuItem(page: Page, username: string, item: 'Settings' | 'Admin'): Promise<void> {
+export async function openMenuItem(page: Page, username: string, item: 'Settings' | 'Admin' | 'History' | 'Search'): Promise<void> {
   await page.getByRole('banner').getByText(username).click()
   await page.getByRole('link', { name: item }).click()
   await expect(page.getByRole('heading', { level: 1, name: item })).toBeVisible()

@@ -1,31 +1,41 @@
+import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { api } from '../api/client'
 import type { SearchResult } from '../api/types'
 import AsyncView from '../components/AsyncView'
+import SearchBar from '../components/SearchBar'
 import { useAsync } from '../hooks/useAsync'
 import { formatLongDate } from '../utils/dates'
+
+/** Matches shown at a time, so a broad search stays a manageable list. */
+const PAGE_SIZE = 10
 
 export default function SearchPage() {
   const [searchParams] = useSearchParams()
   const query = (searchParams.get('q') ?? '').trim()
 
-  if (!query) {
-    return (
-      <>
-        <h1>Search</h1>
-        <p>
-          Type something in the search box. Separate words with commas to match any of them, or wrap text in
-          "quotes" for an exact match.
-        </p>
-      </>
-    )
-  }
-
-  return <SearchResults key={query} query={query} />
+  return (
+    <>
+      {/* Both are keyed by the query, so the box shows the current search and the results start from page one. */}
+      <SearchBar key={`bar-${query}`} initialQuery={query} />
+      {query ? (
+        <SearchResults key={`results-${query}`} query={query} />
+      ) : (
+        <>
+          <h1>Search</h1>
+          <p>
+            Type something in the search box. Separate words with commas to match any of them, or wrap text in
+            "quotes" for an exact match.
+          </p>
+        </>
+      )}
+    </>
+  )
 }
 
 function SearchResults({ query }: { query: string }) {
   const results = useAsync(() => api.search(query), [query])
+  const [shownCount, setShownCount] = useState(PAGE_SIZE)
 
   return (
     <>
@@ -35,7 +45,17 @@ function SearchResults({ query }: { query: string }) {
           matches.length === 0 ? (
             <p>No matches.</p>
           ) : (
-            matches.map((match) => <SearchResultCard key={`${match.type}-${match.appendId ?? match.subEntryId}`} match={match} />)
+            <>
+              <p>{matches.length === 1 ? '1 match' : `${matches.length} matches`}</p>
+              {matches.slice(0, shownCount).map((match) => (
+                <SearchResultCard key={`${match.type}-${match.appendId ?? match.subEntryId}`} match={match} />
+              ))}
+              {shownCount < matches.length && (
+                <button type="button" className="secondary" onClick={() => setShownCount(shownCount + PAGE_SIZE)}>
+                  Show more
+                </button>
+              )}
+            </>
           )
         }
       </AsyncView>
