@@ -11,7 +11,15 @@ vi.mock('../api/client', async (importOriginal) => {
   const original = await importOriginal<typeof import('../api/client')>()
   return {
     ...original,
-    api: { ...original.api, getDay: vi.fn(), updateRating: vi.fn(), updateSubEntry: vi.fn(), addSubEntry: vi.fn() },
+    api: {
+      ...original.api,
+      getDay: vi.fn(),
+      updateRating: vi.fn(),
+      updateSubEntry: vi.fn(),
+      addSubEntry: vi.fn(),
+      deleteSubEntry: vi.fn(),
+      deleteAppend: vi.fn(),
+    },
   }
 })
 
@@ -48,6 +56,7 @@ describe('DayPage', () => {
   afterEach(() => {
     vi.useRealTimers()
     vi.resetAllMocks()
+    vi.restoreAllMocks()
   })
 
   it('shows the day rating after the date in the heading', async () => {
@@ -89,7 +98,27 @@ describe('DayPage', () => {
     expect(screen.getByRole('button', { name: 'Append' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Save rating' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Add entry' })).not.toBeInTheDocument()
+  })
+
+  it("deletes today's entry and its note, then reloads the day", async () => {
+    const user = userEvent.setup()
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const append = { id: 4, subEntryId: 1, content: 'Long walk', createdAtUtc: `${TODAY}T19:00:00Z` }
+    const detail = dayDetail(TODAY)
+    vi.mocked(api.getDay).mockResolvedValue({ ...detail, subEntries: [{ ...detail.subEntries[0], appends: [append] }] })
+    renderDay(TODAY)
+
+    await user.click(await screen.findByRole('button', { name: 'Delete note' }))
+    expect(api.deleteAppend).toHaveBeenCalledWith(4)
+
+    vi.mocked(api.getDay).mockResolvedValue({ ...detail, subEntries: [] })
+    await user.click(screen.getByRole('button', { name: 'Delete' }))
+
+    expect(api.deleteSubEntry).toHaveBeenCalledWith(1)
+    // The emptied nudge slot offers its box again.
+    expect(await screen.findByLabelText('Good thing 1')).toBeInTheDocument()
   })
 
   it('marks a day with entries but no rating as unrated', async () => {

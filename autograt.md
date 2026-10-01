@@ -110,7 +110,7 @@ Holds individual categorized log entries for the day, each added on its own as a
 
 ### Table: `JournalAppend` (Append Notes)
 
-Represents additional immutable notes appended specifically to an existing `JournalSubEntry`. Appends are never edited, on any day.
+Represents additional notes appended specifically to an existing `JournalSubEntry`. Appends are never edited, on any day, and can be deleted only while their sub-entry's day is the current day.
 
 * **Id:** Unique identifier (Integer, Primary Key, auto-increment).
 
@@ -236,13 +236,15 @@ Represents additional immutable notes appended specifically to an existing `Jour
 
 * **Editing Today:** For the current day, the user may change the `DayRating` (`PUT /api/journal/entries/{date}/rating`) and the category and text content of existing `JournalSubEntry` records (`PUT /api/journal/sub-entries/{id}`), as well as add new sub-entries. Adding a sub-entry or setting the rating creates the day's `JournalEntry` if it does not exist yet. Editing a sub-entry keeps its appends and original `CreatedAtUtc`.
 
-* **Read-Only Past Days:** For days before the current day, adding or editing `JournalSubEntry` records, and changing the `DayRating` are rejected with an HTTP 400 Bad Request error. Appending notes remains allowed on any day.
+* **Deleting Mistakes:** For the current day, a `JournalSubEntry` can be deleted (`DELETE /api/journal/sub-entries/{id}`), which also deletes its appends, and a single `JournalAppend` on one of the day's sub-entries can be deleted (`DELETE /api/journal/appends/{id}`). Both return `204`, or `404` if the record does not exist or belongs to another user. The day's `JournalEntry` and its rating are kept, even when its last sub-entry is deleted.
+
+* **Read-Only Past Days:** For days before the current day, adding, editing or deleting `JournalSubEntry` records, deleting `JournalAppend` records (even one written today), and changing the `DayRating` are rejected with an HTTP 400 Bad Request error. Appending notes remains allowed on any day.
 
 * **Determining "Today":** The client applies the rule using the user's local date. The server does not know the user's time zone, so it treats a date as past only once that date has ended in the latest time zone (UTC−12).
 
-* **Append Immutability:** `JournalAppend` records cannot be edited; there are no `PUT` or `PATCH` endpoints for them.
+* **Append Immutability:** `JournalAppend` records cannot be edited; there are no `PUT` or `PATCH` endpoints for them. They can only be deleted on the current day (see Deleting Mistakes).
 
-* **Appending:** Appending content requires a target `JournalSubEntryId` and non-empty text content. This creates a new immutable record in `JournalAppend` linked directly to that specific `JournalSubEntry`.
+* **Appending:** Appending content requires a target `JournalSubEntryId` and non-empty text content. This creates a new record in `JournalAppend` linked directly to that specific `JournalSubEntry`.
 
 * **Heatmap Data:** `GET /api/journal/heatmap?from=yyyy-MM-dd&to=yyyy-MM-dd` returns a contiguous array with one item per day from `from` to `to`, both inclusive, oldest first. For each day, it returns the calendar date, the `DayRating` (or null if no entry exists or the day is unrated), and the aggregate count of all sub-entries and appends for that date. Both dates are required; a `from` after `to`, or a range longer than 366 days, is rejected with `400`. The today view asks for the 30 days ending on the client's current date.
 
@@ -312,9 +314,9 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 * Provides an append interface attached to each `JournalSubEntry` containing a text input field to submit new append notes directly to `JournalAppend`.
 
-* For the current day, each `JournalSubEntry` can be edited (category and text) and new entries can be added.
+* For the current day, each `JournalSubEntry` can be edited (category and text) or deleted, each of its appends can be deleted, and new entries can be added. Each delete asks for confirmation first; deleting an entry that filled a nudge box shows that box again.
 
-* Past days are read-only: the rating, entry editing, and add-entry controls are hidden, and only the append interface remains. A past day with no sub-entries, whether or not it has an entry or a rating, shows its heading (e.g. "…: unrated") followed by "No entries were written.", and offers no submission form.
+* Past days are read-only: the rating, entry editing, delete, and add-entry controls are hidden, and only the append interface remains. A past day with no sub-entries, whether or not it has an entry or a rating, shows its heading (e.g. "…: unrated") followed by "No entries were written.", and offers no submission form.
 
 * Above the heading, a **← Previous day** link opens the day before, and on past days a **Next day →** link opens the day after. There is no next day link on the current day.
 
@@ -435,6 +437,8 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
   * Verify that today's rating and sub-entries can be edited, and that creating, adding to, or editing a past day is rejected while appending to it succeeds.
 
+  * Verify that deleting one of today's sub-entries removes its appends but keeps the day and its rating, that deleting one of today's appends removes only that append, that deleting a past day's sub-entry or append (even one written today) is rejected with `400`, and that deleting another user's sub-entry or append returns `404`.
+
 * **Settings Endpoint Tests:** Verify that unsaved settings return their defaults, that saving replaces a setting's value for the signed-in user only, and that unknown settings and invalid values are rejected, including malformed, repeated or more than four reminder times and unknown time zones.
 
 * **Push Endpoint Tests:** Verify that every push endpoint returns 401 without a token; that subscribing creates a subscription, updates an existing endpoint without a duplicate, and moves another user's endpoint to the current user; that invalid bodies are rejected; that unsubscribing removes only the caller's subscription (404 otherwise); and that the test notification reaches only the current user's devices and deletes expired subscriptions.
@@ -457,7 +461,7 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
 * Validate that the append form correctly submits new content targeted at a specific sub-entry ID.
 
-* Validate that the day view allows editing for the current day and is read-only (apart from appends) for past days, and that it links to the previous day and, except on the current day, the next day.
+* Validate that the day view allows editing and deleting (after confirmation) for the current day and is read-only (apart from appends) for past days, and that it links to the previous day and, except on the current day, the next day.
 
 * Validate that the search page pages its results 10 at a time; that the history page shows the month calendar, jump to a date and heatmap in that order and loads only the current month on open; that jumping to a date starts on today and opens the chosen day; that the month calendar starts on the current month, starts each month on its weekday, colors and links each day up to today, and pages between months but not past the current one; and that the heatmap range loads each range ending today only when shown.
 

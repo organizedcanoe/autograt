@@ -6,8 +6,9 @@ using Microsoft.EntityFrameworkCore;
 namespace Autograt.Api.Services;
 
 /// <summary>
-/// Journal operations for a single user. Today's rating and sub-entries can be edited, and the day's entry is
-/// created by whichever comes first; past days are read-only apart from appends, and appends are never edited.
+/// Journal operations for a single user. Today's rating and sub-entries can be edited, and today's sub-entries and
+/// appends deleted; the day's entry is created by whichever comes first. Past days are read-only apart from new
+/// appends, and appends are never edited.
 /// </summary>
 public class JournalService(AutogratDbContext db, TimeProvider timeProvider)
 {
@@ -93,6 +94,53 @@ public class JournalService(AutogratDbContext db, TimeProvider timeProvider)
         subEntry.Content = request.Content.Trim();
         await db.SaveChangesAsync();
         return ServiceResult<SubEntryResponse>.Success(ToResponse(subEntry));
+    }
+
+    /// <summary>Deletes one of today's sub-entries with its appends. The day's entry and rating are kept.</summary>
+    /// <returns>The deleted sub-entry, or a failure if it is not the user's or belongs to a past day.</returns>
+    public async Task<ServiceResult<JournalSubEntry>> DeleteSubEntryAsync(int userId, int subEntryId)
+    {
+        var subEntry = await db.JournalSubEntries
+            .Include(s => s.JournalEntry)
+            .Include(s => s.Appends)
+            .SingleOrDefaultAsync(s => s.Id == subEntryId && s.JournalEntry!.UserId == userId);
+
+        if (subEntry is null)
+        {
+            return ServiceResult<JournalSubEntry>.Failure(ServiceError.NotFound);
+        }
+
+        if (IsPastDay(subEntry.JournalEntry!.EntryDate))
+        {
+            return ServiceResult<JournalSubEntry>.Failure(ServiceError.ReadOnly);
+        }
+
+        db.JournalSubEntries.Remove(subEntry);
+        await db.SaveChangesAsync();
+        return ServiceResult<JournalSubEntry>.Success(subEntry);
+    }
+
+    /// <summary>Deletes an append on one of today's sub-entries. Appends on past days are never deleted.</summary>
+    /// <returns>The deleted append, or a failure if it is not the user's or belongs to a past day.</returns>
+    public async Task<ServiceResult<JournalAppend>> DeleteAppendAsync(int userId, int appendId)
+    {
+        var append = await db.JournalAppends
+            .Include(a => a.JournalSubEntry!.JournalEntry)
+            .SingleOrDefaultAsync(a => a.Id == appendId && a.JournalSubEntry!.JournalEntry!.UserId == userId);
+
+        if (append is null)
+        {
+            return ServiceResult<JournalAppend>.Failure(ServiceError.NotFound);
+        }
+
+        if (IsPastDay(append.JournalSubEntry!.JournalEntry!.EntryDate))
+        {
+            return ServiceResult<JournalAppend>.Failure(ServiceError.ReadOnly);
+        }
+
+        db.JournalAppends.Remove(append);
+        await db.SaveChangesAsync();
+        return ServiceResult<JournalAppend>.Success(append);
     }
 
     /// <summary>Appends a note to a sub-entry. Unlike other changes, this is allowed on past days.</summary>
