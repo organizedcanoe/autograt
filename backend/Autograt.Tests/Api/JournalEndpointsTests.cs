@@ -315,6 +315,103 @@ public class JournalEndpointsTests(AutogratApiFactory factory) : IClassFixture<A
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    [Fact]
+    public async Task DeleteSubEntry_ForToday_RemovesItAndItsAppends_KeepingTheDay()
+    {
+        var client = await factory.CreateAuthenticatedClientAsync();
+        var subEntry = (await CreateEntryAsync(client)).SubEntries[0];
+        var kept = await client.AddSubEntryAsync(DateOnly.Parse(Today), "Bad", "Missed the bus");
+        await client.PostAsJsonAsync($"/api/journal/sub-entries/{subEntry.Id}/appends", new { content = "A note" });
+
+        var response = await client.DeleteAsync($"/api/journal/sub-entries/{subEntry.Id}");
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        var day = await client.GetFromJsonAsync<DayDetailResponse>($"/api/journal/entries/{Today}", TestJson.Options);
+        Assert.Equal(7, day!.DayRating);
+        Assert.Equal(kept.Id, day.SubEntries.Single().Id);
+        var heatmap = await client.GetFromJsonAsync<List<HeatmapDayResponse>>(
+            $"/api/journal/heatmap?from={Today}&to={Today}", TestJson.Options);
+        Assert.Equal(1, heatmap!.Single().EntryCount);
+    }
+
+    [Fact]
+    public async Task DeleteSubEntry_LastOneOfToday_KeepsTheRatedDay()
+    {
+        var client = await factory.CreateAuthenticatedClientAsync();
+        var subEntry = (await CreateEntryAsync(client)).SubEntries[0];
+
+        await client.DeleteAsync($"/api/journal/sub-entries/{subEntry.Id}");
+
+        var day = await client.GetFromJsonAsync<DayDetailResponse>($"/api/journal/entries/{Today}", TestJson.Options);
+        Assert.Equal(7, day!.DayRating);
+        Assert.Empty(day.SubEntries);
+    }
+
+    [Fact]
+    public async Task DeleteSubEntry_OnPastDay_Returns400AndKeepsIt()
+    {
+        var client = await factory.CreateAuthenticatedClientAsync();
+        var subEntry = (await CreatePastEntryAsync(client)).SubEntries[0];
+
+        var response = await client.DeleteAsync($"/api/journal/sub-entries/{subEntry.Id}");
+
+        await AssertReadOnlyAsync(response);
+        var day = await client.GetFromJsonAsync<DayDetailResponse>($"/api/journal/entries/{Yesterday}", TestJson.Options);
+        Assert.Single(day!.SubEntries);
+    }
+
+    [Fact]
+    public async Task DeleteSubEntry_OtherUsersSubEntry_Returns404()
+    {
+        var owner = await factory.CreateAuthenticatedClientAsync();
+        var stranger = await factory.CreateAuthenticatedClientAsync();
+        var subEntry = (await CreateEntryAsync(owner)).SubEntries[0];
+
+        var response = await stranger.DeleteAsync($"/api/journal/sub-entries/{subEntry.Id}");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteAppend_ForToday_RemovesOnlyThatAppend()
+    {
+        var client = await factory.CreateAuthenticatedClientAsync();
+        var subEntry = (await CreateEntryAsync(client)).SubEntries[0];
+        var first = await AppendAsync(client, subEntry.Id, "First note");
+        await AppendAsync(client, subEntry.Id, "Second note");
+
+        var response = await client.DeleteAsync($"/api/journal/appends/{first.Id}");
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        var day = await client.GetFromJsonAsync<DayDetailResponse>($"/api/journal/entries/{Today}", TestJson.Options);
+        Assert.Equal(["Second note"], day!.SubEntries.Single().Appends.Select(a => a.Content));
+    }
+
+    [Fact]
+    public async Task DeleteAppend_OnPastDay_Returns400EvenIfWrittenToday()
+    {
+        var client = await factory.CreateAuthenticatedClientAsync();
+        var subEntry = (await CreatePastEntryAsync(client)).SubEntries[0];
+        var append = await AppendAsync(client, subEntry.Id, "Looking back");
+
+        var response = await client.DeleteAsync($"/api/journal/appends/{append.Id}");
+
+        await AssertReadOnlyAsync(response);
+    }
+
+    [Fact]
+    public async Task DeleteAppend_OtherUsersAppend_Returns404()
+    {
+        var owner = await factory.CreateAuthenticatedClientAsync();
+        var stranger = await factory.CreateAuthenticatedClientAsync();
+        var subEntry = (await CreateEntryAsync(owner)).SubEntries[0];
+        var append = await AppendAsync(owner, subEntry.Id, "Mine");
+
+        var response = await stranger.DeleteAsync($"/api/journal/appends/{append.Id}");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
     [Theory]
     [InlineData("PUT")]
     [InlineData("PATCH")]
@@ -351,6 +448,13 @@ public class JournalEndpointsTests(AutogratApiFactory factory) : IClassFixture<A
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>(TestJson.Options);
         Assert.Equal(ReadOnlyTitle, problem!.Title);
+    }
+
+    private static async Task<AppendResponse> AppendAsync(HttpClient client, int subEntryId, string content)
+    {
+        var response = await client.PostAsJsonAsync($"/api/journal/sub-entries/{subEntryId}/appends", new { content });
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<AppendResponse>(TestJson.Options))!;
     }
 
     /// <summary>Creates a rated day with one Good sub-entry, as the today page would.</summary>

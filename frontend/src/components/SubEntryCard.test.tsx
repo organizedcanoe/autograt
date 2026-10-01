@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SubEntry } from '../api/types'
 import { formatDateTime } from '../utils/dates'
 import SubEntryCard from './SubEntryCard'
@@ -14,7 +14,13 @@ const subEntry: SubEntry = {
   appends: [],
 }
 
+const append = { id: 9, subEntryId: 5, content: 'Still tired', createdAtUtc: '2026-09-25T08:30:00Z' }
+
 describe('SubEntryCard', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   it('tints the card by its category', () => {
     render(<SubEntryCard subEntry={{ ...subEntry, category: 'Bad' }} onAppend={vi.fn()} />)
 
@@ -22,7 +28,6 @@ describe('SubEntryCard', () => {
   })
 
   it("shows each append's content followed by its full date and time", () => {
-    const append = { id: 9, subEntryId: 5, content: 'Still tired', createdAtUtc: '2026-09-25T08:30:00Z' }
     render(<SubEntryCard subEntry={{ ...subEntry, appends: [append] }} onAppend={vi.fn()} />)
 
     const timestamp = formatDateTime(append.createdAtUtc)
@@ -78,5 +83,58 @@ describe('SubEntryCard', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Past days are read-only.')
     expect(screen.getByLabelText('Entry')).toBeInTheDocument()
+  })
+
+  it('has no delete buttons when deleting is not allowed', () => {
+    render(<SubEntryCard subEntry={{ ...subEntry, appends: [append] }} onAppend={vi.fn()} />)
+
+    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Delete note' })).not.toBeInTheDocument()
+  })
+
+  it('deletes the entry once confirmed', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const onDelete = vi.fn().mockResolvedValue(undefined)
+    render(<SubEntryCard subEntry={subEntry} onAppend={vi.fn()} onDelete={onDelete} />)
+
+    await user.click(screen.getByRole('button', { name: 'Delete' }))
+
+    expect(window.confirm).toHaveBeenCalledWith('Delete this entry and its notes? This cannot be undone.')
+    expect(onDelete).toHaveBeenCalledWith(5)
+  })
+
+  it('keeps the entry when the confirmation is cancelled', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
+    const onDelete = vi.fn()
+    render(<SubEntryCard subEntry={subEntry} onAppend={vi.fn()} onDelete={onDelete} />)
+
+    await user.click(screen.getByRole('button', { name: 'Delete' }))
+
+    expect(onDelete).not.toHaveBeenCalled()
+  })
+
+  it('deletes a note once confirmed', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const onDeleteAppend = vi.fn().mockResolvedValue(undefined)
+    render(<SubEntryCard subEntry={{ ...subEntry, appends: [append] }} onAppend={vi.fn()} onDeleteAppend={onDeleteAppend} />)
+
+    await user.click(screen.getByRole('button', { name: 'Delete note' }))
+
+    expect(window.confirm).toHaveBeenCalledWith('Delete this note? This cannot be undone.')
+    expect(onDeleteAppend).toHaveBeenCalledWith(9)
+  })
+
+  it('shows the error when deleting fails', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const onDelete = vi.fn().mockRejectedValue(new Error('Past days are read-only.'))
+    render(<SubEntryCard subEntry={subEntry} onAppend={vi.fn()} onDelete={onDelete} />)
+
+    await user.click(screen.getByRole('button', { name: 'Delete' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Past days are read-only.')
   })
 })

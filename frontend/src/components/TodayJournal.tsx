@@ -1,5 +1,5 @@
 import { api } from '../api/client'
-import type { DayDetail, EntryCategory } from '../api/types'
+import type { DayDetail, EntryCategory, SubEntry } from '../api/types'
 import { assignNudgeSlots, NUDGE_SLOTS } from './nudgeSlots'
 import RatingForm from './RatingForm'
 import SubEntryCard from './SubEntryCard'
@@ -15,7 +15,7 @@ interface TodayJournalProps {
   date: string
   /** The day so far, or null before anything has been saved for it. */
   day: DayDetail | null
-  /** Called after each save so the caller can reload the day. */
+  /** Called after each save or delete so the caller can reload the day. */
   onChange: () => void
 }
 
@@ -42,9 +42,32 @@ export default function TodayJournal({ date, day, onChange }: TodayJournalProps)
     onChange()
   }
 
+  async function deleteSubEntry(subEntryId: number) {
+    await api.deleteSubEntry(subEntryId)
+    onChange()
+  }
+
   async function addAppend(subEntryId: number, content: string) {
     await api.addAppend(subEntryId, content)
     onChange()
+  }
+
+  async function deleteAppend(appendId: number) {
+    await api.deleteAppend(appendId)
+    onChange()
+  }
+
+  function renderSubEntry(subEntry: SubEntry, key: string | number) {
+    return (
+      <SubEntryCard
+        key={key}
+        subEntry={subEntry}
+        onAppend={addAppend}
+        onEdit={editSubEntry}
+        onDelete={deleteSubEntry}
+        onDeleteAppend={deleteAppend}
+      />
+    )
   }
 
   return (
@@ -54,7 +77,7 @@ export default function TodayJournal({ date, day, onChange }: TodayJournalProps)
       {NUDGE_SLOTS.map((slot, index) => {
         const subEntry = slotted[index]
         return subEntry ? (
-          <SubEntryCard key={slot.label} subEntry={subEntry} onAppend={addAppend} onEdit={editSubEntry} />
+          renderSubEntry(subEntry, slot.label)
         ) : (
           <SubEntryForm
             key={slot.label}
@@ -68,9 +91,7 @@ export default function TodayJournal({ date, day, onChange }: TodayJournalProps)
         )
       })}
 
-      {custom.map((subEntry) => (
-        <SubEntryCard key={subEntry.id} subEntry={subEntry} onAppend={addAppend} onEdit={editSubEntry} />
-      ))}
+      {custom.map((subEntry) => renderSubEntry(subEntry, subEntry.id))}
 
       <hr />
       <h3>Custom Entry</h3>

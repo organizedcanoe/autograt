@@ -1,7 +1,7 @@
 namespace Autograt.Api.Models;
 
 /// <summary>
-/// An immutable note appended to an existing <see cref="JournalSubEntry"/>.
+/// A note appended to an existing <see cref="JournalSubEntry"/>. It is never edited, and can be deleted only while its day is today.
 /// </summary>
 public class JournalAppend : ICreatedAtUtc
 {

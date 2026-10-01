@@ -7,8 +7,8 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 namespace Autograt.Api.Controllers;
 
 /// <summary>
-/// Journal endpoints for the signed-in user. Only today's rating and sub-entries can be edited:
-/// past days are read-only apart from new appends, and appends are immutable once written.
+/// Journal endpoints for the signed-in user. Only today's rating and sub-entries can be edited, and only today's
+/// sub-entries and appends deleted: past days are read-only apart from new appends, and appends are never edited.
 /// </summary>
 [ApiController]
 [Route("api/journal")]
@@ -42,11 +42,25 @@ public class JournalController(JournalService journalService, SearchService sear
         return result.IsSuccess ? result.Value : Failure(result.Error.Value);
     }
 
+    [HttpDelete("sub-entries/{subEntryId:int}")]
+    public async Task<ActionResult> DeleteSubEntry(int subEntryId)
+    {
+        var result = await journalService.DeleteSubEntryAsync(User.GetUserId(), subEntryId);
+        return result.IsSuccess ? NoContent() : Failure(result.Error.Value);
+    }
+
     [HttpPost("sub-entries/{subEntryId:int}/appends")]
     public async Task<ActionResult<AppendResponse>> AddAppend(int subEntryId, CreateAppendRequest request)
     {
         var append = await journalService.AddAppendAsync(User.GetUserId(), subEntryId, request);
         return append is null ? NotFound() : StatusCode(StatusCodes.Status201Created, append);
+    }
+
+    [HttpDelete("appends/{appendId:int}")]
+    public async Task<ActionResult> DeleteAppend(int appendId)
+    {
+        var result = await journalService.DeleteAppendAsync(User.GetUserId(), appendId);
+        return result.IsSuccess ? NoContent() : Failure(result.Error.Value);
     }
 
     /// <summary>Returns one item per day from <paramref name="from"/> to <paramref name="to"/>, both inclusive.</summary>

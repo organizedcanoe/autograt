@@ -142,8 +142,14 @@ export const api = {
   updateSubEntry: (subEntryId: number, category: EntryCategory, content: string) =>
     request<SubEntry>('PUT', `/journal/sub-entries/${subEntryId}`, { category, content }),
 
+  /** Deletes one of today's sub-entries along with its appends. */
+  deleteSubEntry: (subEntryId: number) => request<void>('DELETE', `/journal/sub-entries/${subEntryId}`),
+
   addAppend: (subEntryId: number, content: string) =>
     request<Append>('POST', `/journal/sub-entries/${subEntryId}/appends`, { content }),
+
+  /** Deletes an append on one of today's sub-entries. */
+  deleteAppend: (appendId: number) => request<void>('DELETE', `/journal/appends/${appendId}`),
 
   getHeatmap: (from: string, to: string) => request<HeatmapDay[]>('GET', `/journal/heatmap?from=${from}&to=${to}`),
 
