@@ -157,3 +157,5 @@ Database migrations only go forward, so moving back to an older version after a 
 ### Data
 
 The `./data` folder is mounted into the backend container and holds the database, JWT key and VAPID keys. Back it up; deleting `jwt.key` signs everyone out, and deleting `vapid.json` stops reminders until each user turns them off and on again on every device.
+
+Each user can also export their own journal from the Settings page (**Your data**): JSON, which can be imported again (for example to move to a new server), or Markdown for reading. Importing a JSON export replaces the user's days on the dates it contains and keeps the rest.

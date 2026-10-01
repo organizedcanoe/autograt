@@ -156,6 +156,30 @@ Represents additional immutable notes appended specifically to an existing `Jour
 
 * **Logging Out:** Logging out does not remove the device's subscription; the settings page switch is the only way to stop reminders on a device.
 
+### Export & Import
+
+* **Endpoints:** All signed-in only, and always scoped to the signed-in user.
+
+  * `GET /api/export?format=json` returns the user's journal and saved settings as a JSON attachment named `autograt-<username>-<yyyy-MM-dd>.json`; `format=markdown` returns a readable `text/markdown` file (`.md`). Any other or missing format is rejected with an HTTP 400 Bad Request error.
+
+  * `POST /api/import` with a JSON export (up to 25 MB) returns `{ importedDays, replacedDays: ["yyyy-MM-dd", ...], settingsImported }`.
+
+* **JSON Format (version 1):** `{ format: "autograt-export", version: 1, exportedAtUtc, username, settings: [{ setting, values }], entries: [{ date, rating, createdAtUtc, subEntries: [{ category, content, createdAtUtc, appends: [{ content, createdAtUtc }] }] }] }`. Database ids are left out, so a file can be imported into any server. `settings` holds only settings the user has saved (defaults are left out). `category` is the enum name (`Neutral`/`Good`/`Bad`) and `rating` is null for an unrated day. Days are ordered by date; sub-entries and appends by `CreatedAtUtc`. Push subscriptions, password hashes and `LastReminderAtUtc` are never exported.
+
+* **Markdown Format:** A `# Autograt journal: <username>` heading and export date, then one `## <date> (rating N/10)` (or `(unrated)`) section per day, newest first, listing `- **<Category>:** <content>` with appends indented beneath as `- _Added <date>:_ <content>`. It is for reading only and cannot be imported.
+
+* **Import Rules:**
+
+  * **Validation first:** The whole file is checked before anything is written, and every problem is returned in one HTTP 400 Bad Request response: a wrong `format` or unknown `version`, a missing or invalid date, a date repeated or in the future (not yet started in the earliest time zone, UTC+14), a rating outside 0–10, an unknown category, empty `content`, a missing `createdAtUtc`, or a setting that is unknown, repeated or fails the same checks as `PUT /api/settings/{setting}`.
+
+  * **The file wins:** A day in the file replaces the user's day on that date, including its rating, sub-entries and appends, and is listed in `replacedDays`. A day only in the file is created. A day only in the database is left untouched. Importing the same file again leaves the same data, without duplicates.
+
+  * **Restoring the past:** Import bypasses the read-only past days rule, and keeps the file's `CreatedAtUtc` timestamps rather than setting them to now.
+
+  * **Settings:** Each setting in the file replaces the user's saved values for it; settings not in the file are untouched. Reminder subscriptions belong to each device, so imported reminders that are `on` still have to be enabled on each device.
+
+  * **All or nothing:** The import runs in one transaction. `username` in the file is informational only; data always goes into the signed-in user's account.
+
 ### Build Version
 
 * **Endpoint:** `GET /api/version` (anonymous) returns the running backend build as `{ version, commit, buildDate }`, e.g. `{ "version": "0.1.42", "commit": "a1b2c3d", "buildDate": "2026-09-28T12:00:00Z" }`. Local builds return `0.0.0-dev` / `local` with a null `buildDate`.
@@ -278,6 +302,14 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
   * **Unsupported browsers:** Instead of the switch, a notice explains why reminders are unavailable: the browser has no notification support; on iPhone/iPad, the app must be added to the Home Screen and opened from there (iOS 16.4 or later); or notifications are blocked in the browser settings. The time zone and times can still be changed.
 
+* A **Your data** section, below Reminders, exports and imports the journal.
+
+  * **Export as JSON** and **Export as Markdown** download the export; a failed export shows an error.
+
+  * **Import:** A file input (JSON only) and an **Import** button. A file that is not JSON is rejected with an error. Otherwise a confirmation dialog warns that importing overwrites the user's entries and ratings on any dates also in the file, keeps those on other dates, and replaces their settings with the file's; **Replace and import** imports it and **Cancel** does nothing.
+
+  * **Result:** "N days imported (M replaced) and K settings.", with the replaced dates in a collapsible list. If the imported settings turn reminders on, it adds that they must be enabled on this device in the Reminders section above. The theme and reminder settings reload with the imported values. Every problem the server found in a rejected file is listed in an alert.
+
 
 #### Registration & Admin Views
 
@@ -341,6 +373,8 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
 * **Reminder Service Tests** (with a fake push sender and `FakeTimeProvider`): Verify that a due reminder reaches every device of the user, is not resent on later ticks, and uses the user's time zone and the evening wording; that users with reminders off or no subscriptions are skipped; that a day with entries and a rating is skipped while a day missing either is still reminded; and that expired subscriptions are deleted.
 
+* **Export & Import Endpoint Tests:** Verify that both endpoints return 401 without a token and an unknown format returns 400; that the JSON export holds only the user's data, nested and ordered, with category names, no ids and only saved settings; that the Markdown export renders days newest first with ratings (or unrated), categories and appends; that an import creates days with the file's timestamps, replaces days the user already has (reporting them), leaves days not in the file untouched, is idempotent, overwrites only the settings in the file, and round-trips another user's export; and that each invalid file is rejected with 400 and writes nothing.
+
 * **Search Parser Tests:** Validate search query parsing logic against exact quoted strings, comma-separated OR lists, and standard strings across both sub-entries and appends.
 
 ### Frontend Component Tests (Vitest + React Testing Library)
@@ -360,6 +394,8 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 * Validate that the update dialog appears only when a new version is available, reloads into it, and can be dismissed.
 
 * Validate push support detection (supported, unsupported, blocked, and iOS outside the Home Screen app), base64url key decoding, and subscribing/unsubscribing this device, including reusing an existing subscription and unsubscribing when the server had no record of it.
+
+* Validate that the Your data section exports in each format and saves the file, reports a failed export, confirms before importing (and can be cancelled), shows the import result and replaced days, reminds the user to enable reminders on this device when the import turned them on, lists every server validation problem, and rejects a non-JSON file without calling the server.
 
 * Validate that the Reminders section shows each unsupported notice; that turning reminders on asks for permission, subscribes and saves, and that a refused permission reverts the switch with an alert; that turning them off unsubscribes and saves; that it offers to enable an unsubscribed device and resaves a subscribed one; that times are added, edited, removed and limited to four; that the time zone offers the detected zone when it differs; and that the test notification is sent only while reminders are on.
 
@@ -391,3 +427,5 @@ The application deployment is governed by a `docker-compose.yml` file defining t
   * A standard user has no Admin menu item and is redirected to the today view from `/admin`.
 
 * **Settings:** Changing the mode, color and reminder time zone applies the theme straight away and is saved to the account, so a fresh browser that logs in gets the same settings.
+
+* **Export & Import:** The admin exports their journal as JSON; a second, approved user imports it (confirming the overwrite warning) and sees the admin's rated day on their heatmap.

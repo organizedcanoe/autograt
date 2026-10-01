@@ -7,6 +7,8 @@ interface ThemeContextValue {
   theme: Theme
   /** Applies the theme straight away, then saves the parts that changed to the user's settings. */
   setTheme: (next: Theme) => Promise<void>
+  /** Fetches and applies the saved theme again, e.g. after an import changed it. */
+  reloadTheme: () => Promise<void>
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null)
@@ -56,7 +58,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     [theme, showTheme],
   )
 
-  const value = useMemo(() => ({ theme, setTheme }), [theme, setTheme])
+  const reloadTheme = useCallback(async () => {
+    showTheme(themeFromSettings(await api.getSettings()))
+  }, [showTheme])
+
+  const value = useMemo(() => ({ theme, setTheme, reloadTheme }), [theme, setTheme, reloadTheme])
 
   return <ThemeContext value={value}>{children}</ThemeContext>
 }

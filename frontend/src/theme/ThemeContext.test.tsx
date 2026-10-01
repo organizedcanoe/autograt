@@ -72,4 +72,17 @@ describe('ThemeProvider', () => {
     expect(api.updateSetting).toHaveBeenCalledTimes(1)
     expect(api.updateSetting).toHaveBeenCalledWith('ColourTheme', ['slate'])
   })
+
+  it('reloads the saved theme on request, e.g. after an import changed it', async () => {
+    signIn()
+    vi.mocked(api.getSettings).mockResolvedValue([])
+    const { result } = renderHook(() => useTheme(), { wrapper })
+    await waitFor(() => expect(api.getSettings).toHaveBeenCalled())
+    vi.mocked(api.getSettings).mockResolvedValue([{ setting: 'ColourTheme', values: ['jade'] }])
+
+    await act(() => result.current.reloadTheme())
+
+    expect(result.current.theme).toEqual({ scheme: 'system', color: 'jade' })
+    expect(loadTheme()).toEqual({ scheme: 'system', color: 'jade' })
+  })
 })

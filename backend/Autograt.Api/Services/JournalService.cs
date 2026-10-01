@@ -13,9 +13,6 @@ public class JournalService(AutogratDbContext db, TimeProvider timeProvider)
 {
     public const int HeatmapDays = 30;
 
-    // The latest time zone, so a date stays writable until it has ended everywhere on Earth.
-    private static readonly TimeSpan LatestUtcOffset = TimeSpan.FromHours(-12);
-
     /// <returns>The day's rating, sub-entries and appends in chronological order, or null if there is no entry.</returns>
     public async Task<DayDetailResponse?> GetDayAsync(int userId, DateOnly entryDate)
     {
@@ -153,12 +150,7 @@ public class JournalService(AutogratDbContext db, TimeProvider timeProvider)
         return entry;
     }
 
-    /// <summary>
-    /// The server doesn't know the user's time zone, so a date only counts as past once it has ended in the
-    /// latest time zone. Clients should apply the stricter rule for their own local date.
-    /// </summary>
-    private bool IsPastDay(DateOnly date) =>
-        date < DateOnly.FromDateTime(timeProvider.GetUtcNow().ToOffset(LatestUtcOffset).DateTime);
+    private bool IsPastDay(DateOnly date) => JournalDates.IsPast(date, timeProvider.GetUtcNow());
 
     private static SubEntryResponse ToResponse(JournalSubEntry subEntry) => new(
         subEntry.Id,
