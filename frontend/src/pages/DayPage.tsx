@@ -52,15 +52,6 @@ function DayView({ date }: { date: string }) {
   return (
     <AsyncView state={day}>
       {(detail) => {
-        if (readOnly && detail === null) {
-          return (
-            <hgroup>
-              <h1>{formatLongDate(date)}</h1>
-              <p>No entry was written for this day.</p>
-            </hgroup>
-          )
-        }
-
         const rating = detail?.dayRating ?? null
         return (
           <>
@@ -69,7 +60,8 @@ function DayView({ date }: { date: string }) {
             </h1>
             {readOnly ? (
               <>
-                {detail?.subEntries.length === 0 && <p>No entries were written.</p>}
+                {/* A past day without an entry looks the same as one with a rating but no entries. */}
+                {!detail?.subEntries.length && <p>No entries were written.</p>}
                 {detail?.subEntries.map((subEntry) => (
                   <SubEntryCard key={subEntry.id} subEntry={subEntry} onAppend={addAppend} />
                 ))}

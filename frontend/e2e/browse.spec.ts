@@ -10,7 +10,7 @@ test('browses past days from the day view and the history page', async ({ page }
   await page.goto(`/day/${today}`)
   await expect(page.getByRole('link', { name: 'Next day →' })).toHaveCount(0)
   await page.getByRole('link', { name: '← Previous day' }).click()
-  await expect(page.getByText('No entry was written for this day.')).toBeVisible()
+  await expect(page.getByText('No entries were written.')).toBeVisible()
   await page.getByRole('link', { name: 'Next day →' }).click()
   await expect(page).toHaveURL(`/day/${today}`)
   await expect(page.getByRole('heading', { level: 1 })).toContainText(': 8/10')

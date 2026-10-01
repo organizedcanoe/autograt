@@ -314,7 +314,7 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 * For the current day, each `JournalSubEntry` can be edited (category and text) and new entries can be added.
 
-* Past days are read-only: the rating, entry editing, and add-entry controls are hidden, and only the append interface remains. A past day whose entry has no sub-entries says "No entries were written."; a past day with no entry offers no submission form.
+* Past days are read-only: the rating, entry editing, and add-entry controls are hidden, and only the append interface remains. A past day with no sub-entries, whether or not it has an entry or a rating, shows its heading (e.g. "…: unrated") followed by "No entries were written.", and offers no submission form.
 
 * Above the heading, a **← Previous day** link opens the day before, and on past days a **Next day →** link opens the day after. There is no next day link on the current day.
 
@@ -326,7 +326,7 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 #### History Page
 
-* The page for browsing past days (`/history`), opened from the user's menu. It has no search bar.
+* The page for browsing past days (`/history`), opened from the user's menu. It has no search bar. The menu lists **History** and then **Search**, which opens the search page.
 
 * **Month calendar:** Shown first, on the current month, which loads when the page opens. A month input (no later than the current month) and a **Show** button load another month. The month is laid out as a Sunday-to-Saturday calendar table; each day up to today is colored by its rating like the heatmap and opens its day view, while later days are shown without a link. **← Previous month** and **Next month →** buttons move the shown month; the next month button is disabled on the current month.
 

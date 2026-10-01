@@ -44,6 +44,11 @@ export default function Layout() {
                     </Link>
                   </li>
                   <li>
+                    <Link to="/search" onClick={closeMenu}>
+                      Search
+                    </Link>
+                  </li>
+                  <li>
                     <Link to="/settings" onClick={closeMenu}>
                       Settings
                     </Link>

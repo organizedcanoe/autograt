@@ -114,7 +114,8 @@ describe('DayPage', () => {
     vi.mocked(api.getDay).mockResolvedValue(null)
     renderDay(YESTERDAY)
 
-    expect(await screen.findByText('No entry was written for this day.')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(`${formatLongDate(YESTERDAY)}: unrated`)
+    expect(screen.getByText('No entries were written.')).toBeInTheDocument()
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Save rating' })).not.toBeInTheDocument()
   })

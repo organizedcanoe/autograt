@@ -72,18 +72,36 @@ describe('App', () => {
     expect(screen.getByRole('searchbox')).toHaveValue('dog')
   })
 
-  it('opens the history page from the menu only', async () => {
+  it('opens the history page from the menu', async () => {
     signInAs('Standard')
     render(<App />)
 
     const header = within(screen.getByRole('banner'))
-    expect(header.queryByRole('link', { name: 'Search' })).not.toBeInTheDocument()
     const menu = header.getByText('billy').closest('details')!
+    // Search and History are only in the menu, not in the header's nav.
+    const navLinks = header.getAllByRole('link').filter((link) => !menu.contains(link))
+    expect(navLinks.map((link) => link.textContent)).not.toContain('Search')
+    expect(navLinks.map((link) => link.textContent)).not.toContain('History')
     await userEvent.click(header.getByText('billy'))
     await userEvent.click(within(menu).getByRole('link', { name: 'History' }))
 
     expect(window.location.pathname).toBe('/history')
     expect(screen.getByRole('heading', { level: 1, name: 'History' })).toBeInTheDocument()
+    expect(menu).not.toHaveAttribute('open')
+  })
+
+  it('opens the search page from the menu, listed under History', async () => {
+    signInAs('Standard')
+    render(<App />)
+
+    const header = within(screen.getByRole('banner'))
+    const menu = header.getByText('billy').closest('details')!
+    const items = within(menu).getAllByRole('link').map((link) => link.textContent)
+    expect(items.indexOf('Search')).toBe(items.indexOf('History') + 1)
+
+    await userEvent.click(header.getByText('billy'))
+    await userEvent.click(within(menu).getByRole('link', { name: 'Search' }))
+    expect(window.location.pathname).toBe('/search')
     expect(menu).not.toHaveAttribute('open')
   })
 
