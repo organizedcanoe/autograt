@@ -11,7 +11,8 @@ See [autograt.md](autograt.md) for feature specifications and the database schem
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
 - [Node.js 22](https://nodejs.org/)
 - [Docker](https://docs.docker.com/get-docker/) (production only)
-- PowerShell (optional, for `verify.ps1`)
+- PowerShell (optional, for `scripts/verify.ps1`)
+- Python 3.11+ (optional, for `scripts/lorem.py`)
 
 ## Local development
 
@@ -57,6 +58,13 @@ Swagger UI is available at http://localhost:5000/swagger in Development.
 
   Install the EF tool first if needed: `dotnet tool install --global dotnet-ef`.
 - To start fresh, stop the backend and delete `./data`.
+- To fill an existing user's journal with random test data:
+
+  ```sh
+  python scripts/lorem.py <username> <days> [--db path/to/autograt.db]
+  ```
+
+  Adds entries for each of the last `<days>` days, skipping days that already have one. Defaults to `./data/autograt.db`.
 
 ### Users
 
@@ -98,7 +106,7 @@ npx playwright test --headed      # runs in a visible browser window so you can 
 npx playwright test --ui          # opens Playwright's UI to step through each action with DOM snapshots
 ```
 
-`./verify.ps1` builds and tests the backend, frontend and Docker images in one go.
+`./scripts/verify.ps1` builds and tests the backend, frontend and Docker images in one go.
 
 ## Production (Docker Compose)
 

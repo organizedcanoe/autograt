@@ -1,6 +1,6 @@
 # Builds and tests the backend, frontend and Docker images. Exits non-zero on the first failure.
 $ErrorActionPreference = 'Stop'
-$root = $PSScriptRoot
+$root = Split-Path $PSScriptRoot -Parent
 
 function Invoke-Step {
     param(
