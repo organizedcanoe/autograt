@@ -15,7 +15,7 @@ export default function JumpToDate() {
   return (
     <form onSubmit={handleSubmit}>
       <fieldset role="group">
-        <input type="date" name="date" aria-label="Date" max={todayIso()} required />
+        <input type="date" name="date" aria-label="Date" defaultValue={todayIso()} max={todayIso()} required />
         <button type="submit">Go</button>
       </fieldset>
     </form>

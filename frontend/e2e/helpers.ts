@@ -49,9 +49,8 @@ export async function logOut(page: Page, username: string): Promise<void> {
 }
 
 /** Opens an item from the header's user menu. */
-export async function openMenuItem(page: Page, username: string, item: 'Settings' | 'Admin' | 'Search'): Promise<void> {
+export async function openMenuItem(page: Page, username: string, item: 'Settings' | 'Admin' | 'History'): Promise<void> {
   await page.getByRole('banner').getByText(username).click()
-  // Scoped to the menu, since the header also has its own Search link.
-  await page.getByRole('banner').locator('details').getByRole('link', { name: item }).click()
+  await page.getByRole('link', { name: item }).click()
   await expect(page.getByRole('heading', { level: 1, name: item })).toBeVisible()
 }

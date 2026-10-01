@@ -53,10 +53,11 @@ describe('MonthCalendar', () => {
     vi.resetAllMocks()
   })
 
-  it('loads nothing until a month is chosen, defaulting to this month', () => {
+  it('shows this month straight away', async () => {
     renderCalendar()
 
-    expect(api.getHeatmap).not.toHaveBeenCalled()
+    expect(await screen.findByRole('table', { name: 'September 2026' })).toBeInTheDocument()
+    expect(api.getHeatmap).toHaveBeenCalledWith('2026-09-01', '2026-09-30')
     expect(screen.getByLabelText('Month')).toHaveValue('2026-09')
     expect(screen.getByLabelText('Month')).toHaveAttribute('max', '2026-09')
   })

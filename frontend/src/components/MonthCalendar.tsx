@@ -19,11 +19,11 @@ const dayStyle: CSSProperties = {
 
 const DAYS_PER_WEEK = 7
 
-/** A month at a time, each day colored by its rating. Nothing is loaded until the user picks a month. */
+/** A month at a time, each day colored by its rating, starting on the current month. */
 export default function MonthCalendar() {
   const thisMonth = todayIso().slice(0, 7)
   const [pickedMonth, setPickedMonth] = useState(thisMonth)
-  const [shownMonth, setShownMonth] = useState<string | null>(null)
+  const [shownMonth, setShownMonth] = useState(thisMonth)
 
   function show(month: string) {
     setPickedMonth(month)
@@ -50,32 +50,28 @@ export default function MonthCalendar() {
           <button type="submit">Show</button>
         </fieldset>
       </form>
-      {shownMonth && (
-        <>
-          <MonthGrid key={shownMonth} month={shownMonth} />
-          <nav>
-            <ul>
-              <li>
-                <button type="button" className="secondary outline" onClick={() => show(addMonths(shownMonth, -1))}>
-                  ← Previous month
-                </button>
-              </li>
-            </ul>
-            <ul>
-              <li>
-                <button
-                  type="button"
-                  className="secondary outline"
-                  onClick={() => show(addMonths(shownMonth, 1))}
-                  disabled={shownMonth >= thisMonth}
-                >
-                  Next month →
-                </button>
-              </li>
-            </ul>
-          </nav>
-        </>
-      )}
+      <MonthGrid key={shownMonth} month={shownMonth} />
+      <nav>
+        <ul>
+          <li>
+            <button type="button" className="secondary outline" onClick={() => show(addMonths(shownMonth, -1))}>
+              ← Previous month
+            </button>
+          </li>
+        </ul>
+        <ul>
+          <li>
+            <button
+              type="button"
+              className="secondary outline"
+              onClick={() => show(addMonths(shownMonth, 1))}
+              disabled={shownMonth >= thisMonth}
+            >
+              Next month →
+            </button>
+          </li>
+        </ul>
+      </nav>
     </>
   )
 }

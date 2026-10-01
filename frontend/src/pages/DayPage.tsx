@@ -69,7 +69,6 @@ function DayView({ date }: { date: string }) {
             </h1>
             {readOnly ? (
               <>
-                <p>Past days are read-only. You can still append notes.</p>
                 {detail?.subEntries.length === 0 && <p>No entries were written.</p>}
                 {detail?.subEntries.map((subEntry) => (
                   <SubEntryCard key={subEntry.id} subEntry={subEntry} onAppend={addAppend} />

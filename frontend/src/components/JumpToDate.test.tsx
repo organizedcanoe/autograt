@@ -10,9 +10,9 @@ function DayStub() {
 
 function renderJump() {
   render(
-    <MemoryRouter initialEntries={['/search']}>
+    <MemoryRouter initialEntries={['/history']}>
       <Routes>
-        <Route path="/search" element={<JumpToDate />} />
+        <Route path="/history" element={<JumpToDate />} />
         <Route path="/day/:date" element={<DayStub />} />
       </Routes>
     </MemoryRouter>,
@@ -29,9 +29,10 @@ describe('JumpToDate', () => {
     vi.useRealTimers()
   })
 
-  it('does not allow picking a future date', () => {
+  it('starts on today and does not allow picking a future date', () => {
     renderJump()
 
+    expect(screen.getByLabelText('Date')).toHaveValue('2026-09-23')
     expect(screen.getByLabelText('Date')).toHaveAttribute('max', '2026-09-23')
   })
 
@@ -39,6 +40,7 @@ describe('JumpToDate', () => {
     const user = userEvent.setup()
     renderJump()
 
+    await user.clear(screen.getByLabelText('Date'))
     await user.type(screen.getByLabelText('Date'), '2025-03-14')
     await user.click(screen.getByRole('button', { name: 'Go' }))
 

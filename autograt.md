@@ -314,29 +314,25 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 * For the current day, each `JournalSubEntry` can be edited (category and text) and new entries can be added.
 
-* Past days are read-only: the rating, entry editing, and add-entry controls are hidden, a read-only notice is shown, and only the append interface remains. A past day with no entry offers no submission form.
+* Past days are read-only: the rating, entry editing, and add-entry controls are hidden, and only the append interface remains. A past day whose entry has no sub-entries says "No entries were written."; a past day with no entry offers no submission form.
 
 * Above the heading, a **← Previous day** link opens the day before, and on past days a **Next day →** link opens the day after. There is no next day link on the current day.
 
 #### Search Interface
 
-* Header search bar accepting user text queries, shown on every page except the settings, admin and search pages.
+* Header search bar accepting user text queries, shown on every page except the settings, admin and history pages. Searching opens the search page (`/search?q=…`), whose search bar shows the current query.
 
-* The header has a **Search** link to the search page (`/search`), and the user's menu has one too.
+* Renders matching journal sub-entries and appended notes, newest first, with date links pointing directly to the corresponding day view. The number of matches is shown, and the matches are shown 10 at a time, with a **Show more** button for the next 10.
 
-#### Search Page
+#### History Page
 
-* The page for searching and browsing the journal. It makes no server requests when it opens: only a search, or the user choosing to show a month or heatmap, loads anything.
+* The page for browsing past days (`/history`), opened from the user's menu. It has no search bar.
 
-* **Search bar:** At the top, showing the current query. Without a query, the page explains the query syntax instead of searching.
+* **Month calendar:** Shown first, on the current month, which loads when the page opens. A month input (no later than the current month) and a **Show** button load another month. The month is laid out as a Sunday-to-Saturday calendar table; each day up to today is colored by its rating like the heatmap and opens its day view, while later days are shown without a link. **← Previous month** and **Next month →** buttons move the shown month; the next month button is disabled on the current month.
 
-* **Results:** Matching journal sub-entries and appended notes, newest first, with date links pointing directly to the corresponding day view. The number of matches is shown, and the matches are shown 10 at a time, with a **Show more** button for the next 10, so a broad search doesn't push the browse tools far down the page.
+* **Jump to a date:** A date input (starting on, and no later than, today) and a **Go** button that opens that day's view.
 
-* **Jump to a date:** A date input (no later than today) and a **Go** button that opens that day's view.
-
-* **Month calendar:** A month input (defaulting to, and no later than, the current month) and a **Show** button. Showing a month loads its days and lays them out as a Sunday-to-Saturday calendar table; each day up to today is colored by its rating like the heatmap and opens its day view, while later days are shown without a link. **← Previous month** and **Next month →** buttons move the shown month; the next month button is disabled on the current month.
-
-* **Heatmap:** A range picker (`Last 30 days`, `Last 60 days`, `Last 90 days`, `Last 365 days`, `Year to date`) and a **Show** button. Showing a range loads a heatmap of it ending today, with the same blocks, colors and links as the today view's heatmap, wrapping into rows of 30.
+* **Heatmap:** A range picker (`Last 30 days`, `Last 60 days`, `Last 90 days`, `Last 365 days`, `Year to date`) and a **Show** button. Nothing loads until a range is shown; it then shows a heatmap of the range ending today, with the same blocks, colors and links as the today view's heatmap, wrapping into rows of 30.
 
 #### Settings Page
 
@@ -463,7 +459,7 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
 * Validate that the day view allows editing for the current day and is read-only (apart from appends) for past days, and that it links to the previous day and, except on the current day, the next day.
 
-* Validate that the search page shows its own search bar, pages its results 10 at a time above the browse tools, and loads nothing on open; that jumping to a date opens that day; that the month calendar loads only when shown, starts the month on its weekday, colors and links each day up to today, and pages between months but not past the current one; and that the heatmap range loads each range ending today only when shown.
+* Validate that the search page pages its results 10 at a time; that the history page shows the month calendar, jump to a date and heatmap in that order and loads only the current month on open; that jumping to a date starts on today and opens the chosen day; that the month calendar starts on the current month, starts each month on its weekday, colors and links each day up to today, and pages between months but not past the current one; and that the heatmap range loads each range ending today only when shown.
 
 * Validate that the settings page saves theme changes and reports failed saves, and that only admins can reach the admin page.
 
@@ -516,6 +512,6 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
 * **Settings:** Changing the mode, color and reminder time zone applies the theme straight away and is saved to the account, so a fresh browser that logs in gets the same settings.
 
-* **Browsing:** On a day view, the previous and next day links move between days; on the search page, jumping to a date opens it, showing the current month links today colored by its rating, and showing a heatmap range includes today.
+* **Browsing:** On a day view, the previous and next day links move between days; the history page has no search bar, opens on the current month with today colored by its rating, shows a heatmap range including today only when asked, and jumping to a date opens it.
 
 * **Export & Import:** The admin exports their journal as JSON; a second, approved user imports it (confirming the overwrite warning) and sees the admin's rated day on their heatmap.

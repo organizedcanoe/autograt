@@ -47,7 +47,7 @@ describe('App', () => {
     expect(menu).not.toHaveAttribute('open')
   })
 
-  it.each(['/settings', '/admin'])('hides the search bar on %s', (path) => {
+  it.each(['/settings', '/admin', '/history'])('hides the search bar on %s', (path) => {
     signInAs('Admin')
     window.history.replaceState(null, '', path)
     render(<App />)
@@ -55,36 +55,35 @@ describe('App', () => {
     expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
   })
 
-  it('shows the search bar on journal pages', () => {
+  it.each(['/day/2026-09-01', '/search?q=dog'])('shows the search bar on %s', (path) => {
     signInAs('Standard')
-    window.history.replaceState(null, '', '/day/2026-09-01')
+    window.history.replaceState(null, '', path)
     render(<App />)
 
+    expect(screen.getAllByRole('searchbox')).toHaveLength(1)
     expect(within(screen.getByRole('banner')).getByRole('searchbox')).toBeInTheDocument()
   })
 
-  it("shows only the search page's own search bar on the search page", () => {
+  it('shows the current query in the search bar on the search page', () => {
     signInAs('Standard')
     window.history.replaceState(null, '', '/search?q=dog')
     render(<App />)
 
-    expect(screen.getAllByRole('searchbox')).toHaveLength(1)
-    expect(within(screen.getByRole('banner')).queryByRole('searchbox')).not.toBeInTheDocument()
+    expect(screen.getByRole('searchbox')).toHaveValue('dog')
   })
 
-  it('links to the search page from the header and from the menu', async () => {
+  it('opens the history page from the menu only', async () => {
     signInAs('Standard')
     render(<App />)
 
     const header = within(screen.getByRole('banner'))
-    const links = header.getAllByRole('link', { name: 'Search' })
-    expect(links).toHaveLength(2)
-    expect(links.every((link) => link.getAttribute('href') === '/search')).toBe(true)
-
+    expect(header.queryByRole('link', { name: 'Search' })).not.toBeInTheDocument()
     const menu = header.getByText('billy').closest('details')!
     await userEvent.click(header.getByText('billy'))
-    await userEvent.click(within(menu).getByRole('link', { name: 'Search' }))
-    expect(window.location.pathname).toBe('/search')
+    await userEvent.click(within(menu).getByRole('link', { name: 'History' }))
+
+    expect(window.location.pathname).toBe('/history')
+    expect(screen.getByRole('heading', { level: 1, name: 'History' })).toBeInTheDocument()
     expect(menu).not.toHaveAttribute('open')
   })
 

@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import { ADMIN_USERNAME, localToday, logIn, openMenuItem } from './helpers.ts'
 
 // The admin's journal has today's day rated 8 from the journey spec.
-test('browses past days from the day view and the search page', async ({ page }) => {
+test('browses past days from the day view and the history page', async ({ page }) => {
   const today = localToday()
   await logIn(page, ADMIN_USERNAME)
 
@@ -15,24 +15,23 @@ test('browses past days from the day view and the search page', async ({ page })
   await expect(page).toHaveURL(`/day/${today}`)
   await expect(page.getByRole('heading', { level: 1 })).toContainText(': 8/10')
 
-  // Jump to a date from the search page.
-  await openMenuItem(page, ADMIN_USERNAME, 'Search')
+  // The history page has no search bar and opens on this month's calendar, which shows today's rating.
+  await openMenuItem(page, ADMIN_USERNAME, 'History')
+  await expect(page.getByRole('searchbox')).toHaveCount(0)
+  const calendar = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Month calendar' }) })
+  await expect(calendar.locator(`a[href="/day/${today}"]`)).toHaveAccessibleName(/: rating 8, \d+ entries$/)
+
+  // The heatmap loads only when asked.
+  const heatmap = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Heatmap' }) })
+  await expect(heatmap.getByRole('link')).toHaveCount(0)
+  await heatmap.getByLabel('Range').selectOption('Last 365 days')
+  await heatmap.getByRole('button', { name: 'Show' }).click()
+  await expect(heatmap.getByRole('link')).toHaveCount(365)
+  await expect(heatmap.locator(`a[href="/day/${today}"]`)).toHaveAccessibleName(/: rating 8, \d+ entries$/)
+
+  // Jump to a date starts on today.
+  await expect(page.getByLabel('Date')).toHaveValue(today)
   await page.getByLabel('Date').fill('2020-02-29')
   await page.getByRole('button', { name: 'Go' }).click()
   await expect(page).toHaveURL('/day/2020-02-29')
-
-  // The month calendar and heatmap load only when asked, and both show today's rating.
-  await page.getByRole('banner').getByRole('link', { name: 'Search', exact: true }).first().click()
-  const todayLinks = page.locator(`main a[href="/day/${today}"]`)
-  await expect(todayLinks).toHaveCount(0)
-
-  const calendarSection = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Month calendar' }) })
-  await calendarSection.getByRole('button', { name: 'Show' }).click()
-  await expect(calendarSection.locator(`a[href="/day/${today}"]`)).toHaveAccessibleName(/: rating 8, \d+ entries$/)
-
-  const heatmapSection = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Heatmap' }) })
-  await heatmapSection.getByLabel('Range').selectOption('Last 365 days')
-  await heatmapSection.getByRole('button', { name: 'Show' }).click()
-  await expect(heatmapSection.getByRole('link')).toHaveCount(365)
-  await expect(heatmapSection.locator(`a[href="/day/${today}"]`)).toHaveAccessibleName(/: rating 8, \d+ entries$/)
 })

@@ -84,8 +84,8 @@ describe('DayPage', () => {
     vi.mocked(api.getDay).mockResolvedValue(dayDetail(YESTERDAY))
     renderDay(YESTERDAY)
 
-    expect(await screen.findByText('Past days are read-only. You can still append notes.')).toBeInTheDocument()
-    expect(screen.getByText('Walked the dog')).toBeInTheDocument()
+    expect(await screen.findByText('Walked the dog')).toBeInTheDocument()
+    expect(screen.queryByText(/read-only/)).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Append' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Save rating' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
@@ -99,6 +99,15 @@ describe('DayPage', () => {
     const heading = await screen.findByRole('heading', { level: 1 })
     expect(heading).toHaveTextContent(`${formatLongDate(TODAY)}: unrated`)
     expect(screen.getByLabelText('How was your day?')).toHaveValue('')
+  })
+
+  it('says when a rated past day has no entries, without offering notes', async () => {
+    vi.mocked(api.getDay).mockResolvedValue({ entryDate: YESTERDAY, dayRating: 6, subEntries: [] })
+    renderDay(YESTERDAY)
+
+    expect(await screen.findByText('No entries were written.')).toBeInTheDocument()
+    expect(screen.queryByText(/append/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
   })
 
   it('does not offer to write entries for a past day without one', async () => {
