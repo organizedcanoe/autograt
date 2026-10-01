@@ -167,4 +167,31 @@ describe('DayPage', () => {
     expect(api.addSubEntry).toHaveBeenCalledWith(TODAY, 'Neutral', 'Quiet evening')
     expect(screen.getByLabelText('Category')).toHaveValue('Good')
   })
+
+  it('links to the previous and next days', async () => {
+    vi.mocked(api.getDay).mockResolvedValue(dayDetail('2026-09-01'))
+    renderDay('2026-09-01')
+
+    expect(await screen.findByRole('link', { name: '← Previous day' })).toHaveAttribute('href', '/day/2026-08-31')
+    expect(screen.getByRole('link', { name: 'Next day →' })).toHaveAttribute('href', '/day/2026-09-02')
+  })
+
+  it('has no next day link on today', async () => {
+    vi.mocked(api.getDay).mockResolvedValue(dayDetail(TODAY))
+    renderDay(TODAY)
+
+    expect(await screen.findByRole('link', { name: '← Previous day' })).toHaveAttribute('href', `/day/${YESTERDAY}`)
+    expect(screen.queryByRole('link', { name: 'Next day →' })).not.toBeInTheDocument()
+  })
+
+  it('loads the previous day when its link is followed', async () => {
+    const user = userEvent.setup()
+    vi.mocked(api.getDay).mockImplementation((date) => Promise.resolve(dayDetail(date)))
+    renderDay(TODAY)
+
+    await user.click(await screen.findByRole('link', { name: '← Previous day' }))
+
+    expect(api.getDay).toHaveBeenLastCalledWith(YESTERDAY)
+    expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(formatLongDate(YESTERDAY))
+  })
 })

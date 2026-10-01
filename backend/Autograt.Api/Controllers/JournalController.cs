@@ -49,10 +49,25 @@ public class JournalController(JournalService journalService, SearchService sear
         return append is null ? NotFound() : StatusCode(StatusCodes.Status201Created, append);
     }
 
-    /// <param name="today">The client's local date; the heatmap covers the 30 days ending on it.</param>
+    /// <summary>Returns one item per day from <paramref name="from"/> to <paramref name="to"/>, both inclusive.</summary>
     [HttpGet("heatmap")]
-    public Task<List<HeatmapDayResponse>> GetHeatmap([FromQuery, BindRequired] DateOnly today) =>
-        journalService.GetHeatmapAsync(User.GetUserId(), today);
+    public async Task<ActionResult<List<HeatmapDayResponse>>> GetHeatmap(
+        [FromQuery, BindRequired] DateOnly from, [FromQuery, BindRequired] DateOnly to)
+    {
+        if (from > to)
+        {
+            ModelState.AddModelError(nameof(from), "The start date must not be after the end date.");
+            return ValidationProblem(ModelState);
+        }
+
+        if (to.DayNumber - from.DayNumber + 1 > JournalService.MaxHeatmapDays)
+        {
+            ModelState.AddModelError(nameof(to), $"The heatmap covers at most {JournalService.MaxHeatmapDays} days.");
+            return ValidationProblem(ModelState);
+        }
+
+        return await journalService.GetHeatmapAsync(User.GetUserId(), from, to);
+    }
 
     [HttpGet("search")]
     public async Task<ActionResult<List<SearchResultResponse>>> Search([FromQuery] string? q)

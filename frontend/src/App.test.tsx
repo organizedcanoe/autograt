@@ -57,10 +57,35 @@ describe('App', () => {
 
   it('shows the search bar on journal pages', () => {
     signInAs('Standard')
+    window.history.replaceState(null, '', '/day/2026-09-01')
+    render(<App />)
+
+    expect(within(screen.getByRole('banner')).getByRole('searchbox')).toBeInTheDocument()
+  })
+
+  it("shows only the search page's own search bar on the search page", () => {
+    signInAs('Standard')
     window.history.replaceState(null, '', '/search?q=dog')
     render(<App />)
 
-    expect(screen.getByRole('searchbox')).toBeInTheDocument()
+    expect(screen.getAllByRole('searchbox')).toHaveLength(1)
+    expect(within(screen.getByRole('banner')).queryByRole('searchbox')).not.toBeInTheDocument()
+  })
+
+  it('links to the search page from the header and from the menu', async () => {
+    signInAs('Standard')
+    render(<App />)
+
+    const header = within(screen.getByRole('banner'))
+    const links = header.getAllByRole('link', { name: 'Search' })
+    expect(links).toHaveLength(2)
+    expect(links.every((link) => link.getAttribute('href') === '/search')).toBe(true)
+
+    const menu = header.getByText('billy').closest('details')!
+    await userEvent.click(header.getByText('billy'))
+    await userEvent.click(within(menu).getByRole('link', { name: 'Search' }))
+    expect(window.location.pathname).toBe('/search')
+    expect(menu).not.toHaveAttribute('open')
   })
 
   it('opens the admin page from the menu for admins', async () => {

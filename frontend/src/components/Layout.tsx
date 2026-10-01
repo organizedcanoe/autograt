@@ -1,20 +1,18 @@
 import { useRef } from 'react'
-import { Link, Outlet, useLocation, useSearchParams } from 'react-router'
+import { Link, Outlet, useLocation } from 'react-router'
 import { useAuth } from '../auth/AuthContext'
 import BuildInfo from './BuildInfo'
 import SearchBar from './SearchBar'
 import Wordmark from './Wordmark'
 
-const ACCOUNT_PAGES = ['/settings', '/admin']
+// Account pages hold no journal content, and the search page has its own search bar.
+const PAGES_WITHOUT_HEADER_SEARCH = ['/settings', '/admin', '/search']
 
 export default function Layout() {
   const { user, logout } = useAuth()
   const { pathname } = useLocation()
-  const [searchParams] = useSearchParams()
-  const currentQuery = pathname === '/search' ? (searchParams.get('q') ?? '') : ''
   const menuRef = useRef<HTMLDetailsElement>(null)
-  // Account pages hold no journal content, so searching from them is left out.
-  const showSearch = !ACCOUNT_PAGES.includes(pathname)
+  const showSearch = !PAGES_WITHOUT_HEADER_SEARCH.includes(pathname)
 
   // The header stays mounted across pages, so the menu has to be closed after choosing an item.
   function closeMenu() {
@@ -34,10 +32,18 @@ export default function Layout() {
           </ul>
           <ul>
             <li>
+              <Link to="/search">Search</Link>
+            </li>
+            <li>
               <details className="dropdown" ref={menuRef}>
                 <summary>{user?.username}</summary>
                 {/* rtl opens the menu leftwards, so it stays on screen at the right edge of the nav. */}
                 <ul dir="rtl">
+                  <li>
+                    <Link to="/search" onClick={closeMenu}>
+                      Search
+                    </Link>
+                  </li>
                   <li>
                     <Link to="/settings" onClick={closeMenu}>
                       Settings
@@ -61,8 +67,7 @@ export default function Layout() {
             </li>
           </ul>
         </nav>
-        {/* Keyed by the query so the box shows the current search after navigating. */}
-        {showSearch && <SearchBar key={currentQuery} initialQuery={currentQuery} />}
+        {showSearch && <SearchBar initialQuery="" />}
       </header>
       <main>
         <Outlet />

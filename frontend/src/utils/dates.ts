@@ -21,6 +21,27 @@ function parseIsoDate(isoDate: string): Date {
   return new Date(year, month - 1, day)
 }
 
+/** The "yyyy-MM-dd" date `days` days after (or, if negative, before) `isoDate`. */
+export function addDays(isoDate: string, days: number): string {
+  const date = parseIsoDate(isoDate)
+  date.setDate(date.getDate() + days)
+  return toIsoDate(date)
+}
+
+/** The "yyyy-MM" month `months` months after (or, if negative, before) `isoMonth`. */
+export function addMonths(isoMonth: string, months: number): string {
+  const [year, month] = isoMonth.split('-').map(Number)
+  return toIsoDate(new Date(year, month - 1 + months, 1)).slice(0, 7)
+}
+
+/** Every "yyyy-MM-dd" date in a "yyyy-MM" month, in order. */
+export function monthDates(isoMonth: string): string[] {
+  const [year, month] = isoMonth.split('-').map(Number)
+  // Day 0 of the next month is the last day of this one.
+  const daysInMonth = new Date(year, month, 0).getDate()
+  return Array.from({ length: daysInMonth }, (_, index) => addDays(`${isoMonth}-01`, index))
+}
+
 export function isIsoDate(value: string | undefined): value is string {
   return value !== undefined && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(parseIsoDate(value).getTime())
 }
@@ -38,6 +59,24 @@ export function formatLongDate(isoDate: string): string {
 /** e.g. "Wed, Sep 23" */
 export function formatShortDate(isoDate: string): string {
   return parseIsoDate(isoDate).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
+}
+
+/** e.g. "September 2026" for "2026-09" */
+export function formatMonth(isoMonth: string): string {
+  return parseIsoDate(`${isoMonth}-01`).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+}
+
+/** The weekday of a "yyyy-MM-dd" date, from 0 (Sunday) to 6 (Saturday). */
+export function weekdayOf(isoDate: string): number {
+  return parseIsoDate(isoDate).getDay()
+}
+
+/** Short weekday names from Sunday to Saturday, e.g. "Sun". */
+export function weekdayNames(): string[] {
+  // February 1, 2026 is a Sunday.
+  return Array.from({ length: 7 }, (_, index) =>
+    parseIsoDate(addDays('2026-02-01', index)).toLocaleDateString(undefined, { weekday: 'short' }),
+  )
 }
 
 /** Local time of a UTC timestamp, e.g. "6:05 PM" */

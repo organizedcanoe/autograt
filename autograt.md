@@ -244,7 +244,7 @@ Represents additional immutable notes appended specifically to an existing `Jour
 
 * **Appending:** Appending content requires a target `JournalSubEntryId` and non-empty text content. This creates a new immutable record in `JournalAppend` linked directly to that specific `JournalSubEntry`.
 
-* **30-Day Heatmap Data:** An endpoint generates a contiguous 30-day array ending on the current date. For each day, it returns the calendar date, the `DayRating` (or null if no entry exists or the day is unrated), and the aggregate count of all sub-entries and appends for that date.
+* **Heatmap Data:** `GET /api/journal/heatmap?from=yyyy-MM-dd&to=yyyy-MM-dd` returns a contiguous array with one item per day from `from` to `to`, both inclusive, oldest first. For each day, it returns the calendar date, the `DayRating` (or null if no entry exists or the day is unrated), and the aggregate count of all sub-entries and appends for that date. Both dates are required; a `from` after `to`, or a range longer than 366 days, is rejected with `400`. The today view asks for the 30 days ending on the client's current date.
 
 ## 4. Search Query Engine Specification
 
@@ -316,11 +316,27 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 * Past days are read-only: the rating, entry editing, and add-entry controls are hidden, a read-only notice is shown, and only the append interface remains. A past day with no entry offers no submission form.
 
+* Above the heading, a **← Previous day** link opens the day before, and on past days a **Next day →** link opens the day after. There is no next day link on the current day.
+
 #### Search Interface
 
-* Header search bar accepting user text queries, shown on every page except the settings and admin pages.
+* Header search bar accepting user text queries, shown on every page except the settings, admin and search pages.
 
-* Renders matching journal sub-entries and appended notes with date links pointing directly to the corresponding day view.
+* The header has a **Search** link to the search page (`/search`), and the user's menu has one too.
+
+#### Search Page
+
+* The page for searching and browsing the journal. It makes no server requests when it opens: only a search, or the user choosing to show a month or heatmap, loads anything.
+
+* **Search bar:** At the top, showing the current query. Without a query, the page explains the query syntax instead of searching.
+
+* **Results:** Matching journal sub-entries and appended notes, newest first, with date links pointing directly to the corresponding day view. The number of matches is shown, and the matches are shown 10 at a time, with a **Show more** button for the next 10, so a broad search doesn't push the browse tools far down the page.
+
+* **Jump to a date:** A date input (no later than today) and a **Go** button that opens that day's view.
+
+* **Month calendar:** A month input (defaulting to, and no later than, the current month) and a **Show** button. Showing a month loads its days and lays them out as a Sunday-to-Saturday calendar table; each day up to today is colored by its rating like the heatmap and opens its day view, while later days are shown without a link. **← Previous month** and **Next month →** buttons move the shown month; the next month button is disabled on the current month.
+
+* **Heatmap:** A range picker (`Last 30 days`, `Last 60 days`, `Last 90 days`, `Last 365 days`, `Year to date`) and a **Show** button. Showing a range loads a heatmap of it ending today, with the same blocks, colors and links as the today view's heatmap, wrapping into rows of 30.
 
 #### Settings Page
 
@@ -445,7 +461,9 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
 * Validate that the append form correctly submits new content targeted at a specific sub-entry ID.
 
-* Validate that the day view allows editing for the current day and is read-only (apart from appends) for past days.
+* Validate that the day view allows editing for the current day and is read-only (apart from appends) for past days, and that it links to the previous day and, except on the current day, the next day.
+
+* Validate that the search page shows its own search bar, pages its results 10 at a time above the browse tools, and loads nothing on open; that jumping to a date opens that day; that the month calendar loads only when shown, starts the month on its weekday, colors and links each day up to today, and pages between months but not past the current one; and that the heatmap range loads each range ending today only when shown.
 
 * Validate that the settings page saves theme changes and reports failed saves, and that only admins can reach the admin page.
 
@@ -497,5 +515,7 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 * **Account:** A user changes their password and logs in with the new one; an admin resets a user's password, and the user logs in with the temporary password, must choose a new one, and then reaches the today view; a user deletes their account (after cancelling once) and can no longer log in.
 
 * **Settings:** Changing the mode, color and reminder time zone applies the theme straight away and is saved to the account, so a fresh browser that logs in gets the same settings.
+
+* **Browsing:** On a day view, the previous and next day links move between days; on the search page, jumping to a date opens it, showing the current month links today colored by its rating, and showing a heatmap range includes today.
 
 * **Export & Import:** The admin exports their journal as JSON; a second, approved user imports it (confirming the overwrite warning) and sees the admin's rated day on their heatmap.

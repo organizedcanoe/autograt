@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react'
 import { Link } from 'react-router'
 import type { HeatmapDay } from '../api/types'
-import { formatShortDate } from '../utils/dates'
+import { describeDay } from './describeDay'
 import { ratingColor } from './heatmapColors'
 
 // Inline styles (CLAUDE.md exception): Pico has no grid-of-colored-blocks primitive.
@@ -16,14 +16,6 @@ const blockStyle: CSSProperties = {
   display: 'block',
   height: '2.5rem',
   borderRadius: '3px',
-}
-
-function describeDay(day: HeatmapDay): string {
-  const date = formatShortDate(day.date)
-  if (day.dayRating === null && day.entryCount === 0) return `${date}: no entry`
-  const entries = day.entryCount === 1 ? '1 entry' : `${day.entryCount} entries`
-  const rating = day.dayRating === null ? 'unrated' : `rating ${day.dayRating}`
-  return `${date}: ${rating}, ${entries}`
 }
 
 /** One colored block per day, oldest on the left; each opens that day's detail view. */

@@ -11,7 +11,8 @@ namespace Autograt.Api.Services;
 /// </summary>
 public class JournalService(AutogratDbContext db, TimeProvider timeProvider)
 {
-    public const int HeatmapDays = 30;
+    /// <summary>The longest heatmap range, enough for a full leap year.</summary>
+    public const int MaxHeatmapDays = 366;
 
     /// <returns>The day's rating, sub-entries and appends in chronological order, or null if there is no entry.</returns>
     public async Task<DayDetailResponse?> GetDayAsync(int userId, DateOnly entryDate)
@@ -113,14 +114,13 @@ public class JournalService(AutogratDbContext db, TimeProvider timeProvider)
     }
 
     /// <summary>
-    /// Returns one item per day for the <see cref="HeatmapDays"/> days ending on <paramref name="today"/>,
+    /// Returns one item per day from <paramref name="from"/> to <paramref name="to"/> (both inclusive),
     /// oldest first. Days without an entry have a null rating and a count of zero.
     /// </summary>
-    public async Task<List<HeatmapDayResponse>> GetHeatmapAsync(int userId, DateOnly today)
+    public async Task<List<HeatmapDayResponse>> GetHeatmapAsync(int userId, DateOnly from, DateOnly to)
     {
-        var firstDay = today.AddDays(-(HeatmapDays - 1));
         var entriesByDate = await db.JournalEntries
-            .Where(e => e.UserId == userId && e.EntryDate >= firstDay && e.EntryDate <= today)
+            .Where(e => e.UserId == userId && e.EntryDate >= from && e.EntryDate <= to)
             .Select(e => new
             {
                 e.EntryDate,
@@ -129,8 +129,8 @@ public class JournalService(AutogratDbContext db, TimeProvider timeProvider)
             })
             .ToDictionaryAsync(e => e.EntryDate);
 
-        return Enumerable.Range(0, HeatmapDays)
-            .Select(offset => firstDay.AddDays(offset))
+        return Enumerable.Range(0, to.DayNumber - from.DayNumber + 1)
+            .Select(offset => from.AddDays(offset))
             .Select(date => entriesByDate.TryGetValue(date, out var entry)
                 ? new HeatmapDayResponse(date, entry.DayRating, entry.EntryCount)
                 : new HeatmapDayResponse(date, null, 0))

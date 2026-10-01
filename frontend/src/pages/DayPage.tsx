@@ -1,17 +1,42 @@
-import { useParams } from 'react-router'
+import { Link, useParams } from 'react-router'
 import { api } from '../api/client'
 import AsyncView from '../components/AsyncView'
 import SubEntryCard from '../components/SubEntryCard'
 import TodayJournal from '../components/TodayJournal'
 import { useAsync } from '../hooks/useAsync'
-import { formatLongDate, isIsoDate, isPastDate } from '../utils/dates'
+import { addDays, formatLongDate, isIsoDate, isPastDate } from '../utils/dates'
 
 export default function DayPage() {
   const { date } = useParams()
   if (!isIsoDate(date)) return <p>That isn't a valid date.</p>
 
-  // Keyed so switching days starts from a clean state.
-  return <DayView key={date} date={date} />
+  return (
+    <>
+      <DayNavigation date={date} />
+      {/* Keyed so switching days starts from a clean state. */}
+      <DayView key={date} date={date} />
+    </>
+  )
+}
+
+/** Links to the previous day and, before today, the next one. */
+function DayNavigation({ date }: { date: string }) {
+  return (
+    <nav>
+      <ul>
+        <li>
+          <Link to={`/day/${addDays(date, -1)}`}>← Previous day</Link>
+        </li>
+      </ul>
+      {isPastDate(date) && (
+        <ul>
+          <li>
+            <Link to={`/day/${addDays(date, 1)}`}>Next day →</Link>
+          </li>
+        </ul>
+      )}
+    </nav>
+  )
 }
 
 function DayView({ date }: { date: string }) {

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using Autograt.Api.Contracts;
+using Autograt.Api.Services;
 using Autograt.Tests.Infrastructure;
 
 namespace Autograt.Tests.Api;
@@ -8,16 +9,17 @@ namespace Autograt.Tests.Api;
 public class HeatmapEndpointTests(AutogratApiFactory factory) : IClassFixture<AutogratApiFactory>
 {
     private static readonly DateOnly Today = new(2026, 9, 23);
+    private static readonly DateOnly From = Today.AddDays(-29);
 
     [Fact]
-    public async Task Heatmap_Returns30ContiguousDaysEndingToday()
+    public async Task Heatmap_ReturnsOneContiguousDayPerDateFromFromToTo()
     {
         var client = await factory.CreateAuthenticatedClientAsync();
 
         var days = await GetHeatmapAsync(client);
 
         Assert.Equal(30, days.Count);
-        Assert.Equal(Today.AddDays(-29), days[0].Date);
+        Assert.Equal(From, days[0].Date);
         Assert.Equal(Today, days[^1].Date);
         Assert.All(days.Zip(days.Skip(1)), pair => Assert.Equal(pair.First.Date.AddDays(1), pair.Second.Date));
         Assert.All(days, day => Assert.Equal((null, 0), (day.DayRating, day.EntryCount)));
@@ -50,10 +52,10 @@ public class HeatmapEndpointTests(AutogratApiFactory factory) : IClassFixture<Au
     }
 
     [Fact]
-    public async Task Heatmap_ExcludesEntriesOutsideTheWindow()
+    public async Task Heatmap_ExcludesEntriesOutsideTheRange()
     {
         var client = await factory.CreateAuthenticatedClientAsync();
-        await CreateEntryAsync(client, Today.AddDays(-30), dayRating: 4, subEntryCount: 1);
+        await CreateEntryAsync(client, From.AddDays(-1), dayRating: 4, subEntryCount: 1);
         await CreateEntryAsync(client, Today.AddDays(1), dayRating: 4, subEntryCount: 1);
 
         var days = await GetHeatmapAsync(client);
@@ -73,10 +75,35 @@ public class HeatmapEndpointTests(AutogratApiFactory factory) : IClassFixture<Au
         Assert.Null(days[^1].DayRating);
     }
 
+    [Fact]
+    public async Task Heatmap_SingleDayRange_ReturnsThatDay()
+    {
+        var client = await factory.CreateAuthenticatedClientAsync();
+
+        var days = await GetHeatmapAsync(client, Today, Today);
+
+        Assert.Equal(Today, Assert.Single(days).Date);
+    }
+
+    [Fact]
+    public async Task Heatmap_MaximumRange_IsAllowed()
+    {
+        var client = await factory.CreateAuthenticatedClientAsync();
+        var from = Today.AddDays(-(JournalService.MaxHeatmapDays - 1));
+
+        var days = await GetHeatmapAsync(client, from, Today);
+
+        Assert.Equal(JournalService.MaxHeatmapDays, days.Count);
+    }
+
     [Theory]
     [InlineData("/api/journal/heatmap")]
-    [InlineData("/api/journal/heatmap?today=not-a-date")]
-    public async Task Heatmap_MissingOrInvalidToday_Returns400(string url)
+    [InlineData("/api/journal/heatmap?from=2026-09-01")]
+    [InlineData("/api/journal/heatmap?to=2026-09-01")]
+    [InlineData("/api/journal/heatmap?from=not-a-date&to=2026-09-01")]
+    [InlineData("/api/journal/heatmap?from=2026-09-02&to=2026-09-01")]
+    [InlineData("/api/journal/heatmap?from=2025-09-01&to=2026-09-02")]
+    public async Task Heatmap_MissingInvalidReversedOrTooLongRange_Returns400(string url)
     {
         var client = await factory.CreateAuthenticatedClientAsync();
 
@@ -85,8 +112,11 @@ public class HeatmapEndpointTests(AutogratApiFactory factory) : IClassFixture<Au
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
-    private static async Task<List<HeatmapDayResponse>> GetHeatmapAsync(HttpClient client) =>
-        (await client.GetFromJsonAsync<List<HeatmapDayResponse>>($"/api/journal/heatmap?today={Today:yyyy-MM-dd}", TestJson.Options))!;
+    private static Task<List<HeatmapDayResponse>> GetHeatmapAsync(HttpClient client) => GetHeatmapAsync(client, From, Today);
+
+    private static async Task<List<HeatmapDayResponse>> GetHeatmapAsync(HttpClient client, DateOnly from, DateOnly to) =>
+        (await client.GetFromJsonAsync<List<HeatmapDayResponse>>(
+            $"/api/journal/heatmap?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}", TestJson.Options))!;
 
     /// <summary>Creates the entry on its own day, since past days are read-only.</summary>
     /// <returns>The ID of the first sub-entry created.</returns>
