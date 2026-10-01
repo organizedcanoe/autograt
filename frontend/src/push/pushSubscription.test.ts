@@ -1,7 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { api, ApiError } from '../api/client'
 import { restorePushBrowser, stubPushBrowser, TEST_ENDPOINT } from '../test/pushBrowserStub'
-import { getThisDeviceSubscription, subscribeThisDevice, unsubscribeThisDevice, urlBase64ToUint8Array } from './pushSubscription'
+import {
+  forgetThisDevice,
+  getThisDeviceSubscription,
+  subscribeThisDevice,
+  unsubscribeThisDevice,
+  urlBase64ToUint8Array,
+} from './pushSubscription'
 
 vi.mock('../api/client', async (importOriginal) => {
   const original = await importOriginal<typeof import('../api/client')>()
@@ -77,5 +83,25 @@ describe('push subscription', () => {
     await unsubscribeThisDevice()
 
     expect(api.deletePushSubscription).not.toHaveBeenCalled()
+  })
+
+  it('forgets this device by unsubscribing the browser without telling the server', async () => {
+    const { subscription } = stubPushBrowser({ subscribed: true })
+
+    await forgetThisDevice()
+
+    expect(subscription.unsubscribe).toHaveBeenCalled()
+    expect(api.deletePushSubscription).not.toHaveBeenCalled()
+  })
+
+  it('forgets this device without waiting for a service worker that was never registered', async () => {
+    stubPushBrowser()
+    // serviceWorker.ready never settles when no worker is registered, e.g. in the dev server.
+    Object.defineProperty(navigator, 'serviceWorker', {
+      configurable: true,
+      value: { ready: new Promise(() => {}), getRegistration: () => Promise.resolve(undefined) },
+    })
+
+    await expect(forgetThisDevice()).resolves.toBeUndefined()
   })
 })

@@ -43,7 +43,9 @@ export async function subscribeThisDevice(): Promise<void> {
  */
 export async function forgetThisDevice(): Promise<void> {
   if (getPushSupport() !== 'supported') return
-  await (await getThisDeviceSubscription())?.unsubscribe()
+  // Not serviceWorker.ready: it never settles when no worker is registered (e.g. the dev server).
+  const registration = await navigator.serviceWorker.getRegistration()
+  await (await registration?.pushManager.getSubscription())?.unsubscribe()
 }
 
 /** Deletes this browser's subscription for the signed-in user, then unsubscribes it from its push service. */

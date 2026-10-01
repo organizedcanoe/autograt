@@ -56,8 +56,8 @@ function UsernameForm() {
       </label>
       {error && <p role="alert">{error}</p>}
       {saved && <p role="status">Username saved.</p>}
-      <button type="submit" disabled={saving} aria-busy={saving}>
-        Save username
+      <button type="submit" disabled={saving || username.trim() === user?.username} aria-busy={saving}>
+        Update username
       </button>
     </form>
   )
@@ -87,10 +87,10 @@ function DeleteAccount() {
       setDeleting(false)
       return
     }
-    // The server already dropped this device's subscription with the account; stop the browser receiving pushes too.
-    // Best effort: a failure here must not keep a deleted user signed in.
-    await forgetThisDevice().catch(() => {})
     logout()
+    // The server already dropped this device's subscription with the account; stop the browser receiving pushes too.
+    // Best effort and not awaited: it must never keep a deleted user signed in.
+    void forgetThisDevice().catch(() => {})
   }
 
   return (

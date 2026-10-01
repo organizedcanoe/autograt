@@ -39,7 +39,7 @@ export function stubPushBrowser({ permission = 'default', permissionAnswer = 'gr
   vi.stubGlobal('PushManager', function PushManager() {})
   Object.defineProperty(navigator, 'serviceWorker', {
     configurable: true,
-    value: { ready: Promise.resolve({ pushManager }) },
+    value: { ready: Promise.resolve({ pushManager }), getRegistration: () => Promise.resolve({ pushManager }) },
   })
 
   return { notification, pushManager, subscription }

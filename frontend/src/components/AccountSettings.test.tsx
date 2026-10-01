@@ -39,7 +39,7 @@ describe('AccountSettings', () => {
     expect(input).toHaveValue('billy')
     await userEvent.clear(input)
     await userEvent.type(input, 'william')
-    await userEvent.click(screen.getByRole('button', { name: 'Save username' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Update username' }))
 
     expect(api.changeUsername).toHaveBeenCalledWith('william')
     expect(startSession).toHaveBeenCalledWith(session)
@@ -52,16 +52,27 @@ describe('AccountSettings', () => {
 
     await userEvent.clear(screen.getByLabelText('Username'))
     await userEvent.type(screen.getByLabelText('Username'), 'admin')
-    await userEvent.click(screen.getByRole('button', { name: 'Save username' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Update username' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('That username is already taken.')
+  })
+
+  it('cannot update the username until it changes', async () => {
+    renderSettings()
+
+    const button = screen.getByRole('button', { name: 'Update username' })
+    expect(button).toBeDisabled()
+    await userEvent.type(screen.getByLabelText('Username'), 'x')
+    expect(button).toBeEnabled()
+    await userEvent.type(screen.getByLabelText('Username'), '{Backspace}')
+    expect(button).toBeDisabled()
   })
 
   it('does not save an empty username', async () => {
     renderSettings()
 
     await userEvent.clear(screen.getByLabelText('Username'))
-    await userEvent.click(screen.getByRole('button', { name: 'Save username' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Update username' }))
 
     expect(screen.getByRole('alert')).toHaveTextContent('Enter a username.')
     expect(api.changeUsername).not.toHaveBeenCalled()
@@ -97,6 +108,18 @@ describe('AccountSettings', () => {
 
     expect(api.deleteAccount).toHaveBeenCalledWith('my-password')
     expect(forgetThisDevice).toHaveBeenCalled()
+    expect(logout).toHaveBeenCalled()
+  })
+
+  it('logs out after deleting even if forgetting this device never finishes', async () => {
+    vi.mocked(api.deleteAccount).mockResolvedValue(undefined)
+    vi.mocked(forgetThisDevice).mockReturnValue(new Promise(() => {}))
+    const { logout } = renderSettings()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Delete account…' }))
+    await userEvent.type(screen.getByLabelText('Password'), 'my-password')
+    await userEvent.click(screen.getByRole('button', { name: 'Delete forever' }))
+
     expect(logout).toHaveBeenCalled()
   })
 
