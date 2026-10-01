@@ -1,21 +1,12 @@
 import { useRef } from 'react'
-import { Link, Outlet, useLocation, useSearchParams } from 'react-router'
+import { Link, Outlet } from 'react-router'
 import { useAuth } from '../auth/AuthContext'
 import BuildInfo from './BuildInfo'
-import SearchBar from './SearchBar'
 import Wordmark from './Wordmark'
-
-// The home page is for writing today's entry, account pages hold no journal content,
-// and the history page is for browsing by date.
-const PAGES_WITHOUT_SEARCH = ['/', '/settings', '/admin', '/history']
 
 export default function Layout() {
   const { user, logout } = useAuth()
-  const { pathname } = useLocation()
-  const [searchParams] = useSearchParams()
-  const currentQuery = pathname === '/search' ? (searchParams.get('q') ?? '') : ''
   const menuRef = useRef<HTMLDetailsElement>(null)
-  const showSearch = !PAGES_WITHOUT_SEARCH.includes(pathname)
 
   // The header stays mounted across pages, so the menu has to be closed after choosing an item.
   function closeMenu() {
@@ -72,8 +63,6 @@ export default function Layout() {
             </li>
           </ul>
         </nav>
-        {/* Keyed by the query so the box shows the current search after navigating. */}
-        {showSearch && <SearchBar key={currentQuery} initialQuery={currentQuery} />}
       </header>
       <main>
         <Outlet />

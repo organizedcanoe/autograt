@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { ADMIN_USERNAME, localToday, PASSWORD } from './helpers.ts'
+import { ADMIN_USERNAME, localToday, openMenuItem, PASSWORD } from './helpers.ts'
 
 test('complete user journey: register, rate, heatmap, append, search', async ({ page }) => {
   const today = localToday()
@@ -42,7 +42,8 @@ test('complete user journey: register, rate, heatmap, append, search', async ({ 
   const badEntry = page.getByRole('article').filter({ hasText: 'Missed the morning bus' })
   await expect(badEntry.getByText('The dog napped all afternoon')).toHaveCount(0)
 
-  // 6. Search for the appended text and navigate back to the day view.
+  // 6. Open the search page from the menu, search for the appended text and navigate back to the day view.
+  await openMenuItem(page, username, 'Search')
   await page.getByRole('searchbox', { name: 'Search journal' }).fill('napped')
   await page.getByRole('searchbox', { name: 'Search journal' }).press('Enter')
   await expect(page).toHaveURL(/\/search\?q=napped/)

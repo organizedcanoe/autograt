@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router'
 import { api } from '../api/client'
 import type { SearchResult } from '../api/types'
 import AsyncView from '../components/AsyncView'
+import SearchBar from '../components/SearchBar'
 import { useAsync } from '../hooks/useAsync'
 import { formatLongDate } from '../utils/dates'
 
@@ -13,19 +14,23 @@ export default function SearchPage() {
   const [searchParams] = useSearchParams()
   const query = (searchParams.get('q') ?? '').trim()
 
-  if (!query) {
-    return (
-      <>
-        <h1>Search</h1>
-        <p>
-          Type something in the search box. Separate words with commas to match any of them, or wrap text in
-          "quotes" for an exact match.
-        </p>
-      </>
-    )
-  }
-
-  return <SearchResults key={query} query={query} />
+  return (
+    <>
+      {/* Both are keyed by the query, so the box shows the current search and the results start from page one. */}
+      <SearchBar key={`bar-${query}`} initialQuery={query} />
+      {query ? (
+        <SearchResults key={`results-${query}`} query={query} />
+      ) : (
+        <>
+          <h1>Search</h1>
+          <p>
+            Type something in the search box. Separate words with commas to match any of them, or wrap text in
+            "quotes" for an exact match.
+          </p>
+        </>
+      )}
+    </>
+  )
 }
 
 function SearchResults({ query }: { query: string }) {

@@ -47,29 +47,12 @@ describe('App', () => {
     expect(menu).not.toHaveAttribute('open')
   })
 
-  it.each(['/', '/settings', '/admin', '/history'])('hides the search bar on %s', (path) => {
+  it.each(['/', '/day/2026-09-01', '/settings', '/admin', '/history'])('has no search bar on %s', (path) => {
     signInAs('Admin')
     window.history.replaceState(null, '', path)
     render(<App />)
 
     expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
-  })
-
-  it.each(['/day/2026-09-01', '/search?q=dog'])('shows the search bar on %s', (path) => {
-    signInAs('Standard')
-    window.history.replaceState(null, '', path)
-    render(<App />)
-
-    expect(screen.getAllByRole('searchbox')).toHaveLength(1)
-    expect(within(screen.getByRole('banner')).getByRole('searchbox')).toBeInTheDocument()
-  })
-
-  it('shows the current query in the search bar on the search page', () => {
-    signInAs('Standard')
-    window.history.replaceState(null, '', '/search?q=dog')
-    render(<App />)
-
-    expect(screen.getByRole('searchbox')).toHaveValue('dog')
   })
 
   it('opens the history page from the menu', async () => {

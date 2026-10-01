@@ -71,11 +71,21 @@ describe('SearchPage', () => {
     expect(await screen.findByText(/no matches/i)).toBeInTheDocument()
   })
 
+  it('shows the search bar with the current query', async () => {
+    vi.mocked(api.search).mockResolvedValue([])
+
+    renderAt('/search?q=dog')
+
+    expect(screen.getByRole('searchbox', { name: 'Search journal' })).toHaveValue('dog')
+    await screen.findByText(/no matches/i)
+  })
+
   it('asks for a query instead of searching when it is empty', () => {
     renderAt('/search')
 
     expect(api.search).not.toHaveBeenCalled()
     expect(screen.getByText(/type something/i)).toBeInTheDocument()
+    expect(screen.getByRole('searchbox', { name: 'Search journal' })).toHaveValue('')
   })
 
   it('shows matches a page at a time', async () => {

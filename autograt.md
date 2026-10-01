@@ -320,13 +320,13 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 #### Search Interface
 
-* Header search bar accepting user text queries, shown on every page except the home (today view), settings, admin and history pages. Searching opens the search page (`/search?q=…`), whose search bar shows the current query.
+* The search page (`/search`), opened from the user's menu, is the only page with a search bar. Searching shows the results on the same page (`/search?q=…`), with the current query in the search bar.
 
 * Renders matching journal sub-entries and appended notes, newest first, with date links pointing directly to the corresponding day view. The number of matches is shown, and the matches are shown 10 at a time, with a **Show more** button for the next 10.
 
 #### History Page
 
-* The page for browsing past days (`/history`), opened from the user's menu. It has no search bar. The menu lists **History** and then **Search**, which opens the search page.
+* The page for browsing past days (`/history`), opened from the user's menu. The menu lists **History** and then **Search**, which opens the search page.
 
 * **Month calendar:** Shown first, on the current month, which loads when the page opens. A month input (no later than the current month) and a **Show** button load another month. The month is laid out as a Sunday-to-Saturday calendar table; each day up to today is colored by its rating like the heatmap and opens its day view, while later days are shown without a link. **← Previous month** and **Next month →** buttons move the shown month; the next month button is disabled on the current month.
 
@@ -489,7 +489,7 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
   5. Verify the appended note appears under the targeted sub-entry.
 
-  6. Use the search bar to find the appended text and verify navigation back to the detailed day view.
+  6. Open the search page from the menu, search for the appended text and verify navigation back to the detailed day view.
 * The journey runs first, so its user becomes the admin; the specs below run after it and log in as that admin.
 
 * **User Administration:**
