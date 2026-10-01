@@ -10,6 +10,7 @@ import type {
   LoginResponse,
   PushPublicKey,
   PushSubscriptionRequest,
+  ResetPasswordResponse,
   SearchResult,
   SettingName,
   SubEntry,
@@ -108,6 +109,16 @@ export const api = {
 
   me: () => request<User>('GET', '/auth/me'),
 
+  /** Signs out every other session; the response is the new session for this one. */
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request<LoginResponse>('PUT', '/account/password', { currentPassword, newPassword }),
+
+  /** The response is a new session carrying the new username. */
+  changeUsername: (username: string) => request<LoginResponse>('PUT', '/account/username', { username }),
+
+  /** Deletes the account and all its data. */
+  deleteAccount: (password: string) => request<void>('DELETE', '/account', { password }),
+
   /** Resolves to null when there is no entry for the date. */
   getDay: async (date: string): Promise<DayDetail | null> => {
     try {
@@ -163,6 +174,9 @@ export const api = {
   deleteUser: (userId: number) => request<void>('DELETE', `/admin/users/${userId}`),
 
   promoteUser: (userId: number) => request<void>('POST', `/admin/users/${userId}/promote`),
+
+  resetUserPassword: (userId: number) =>
+    request<ResetPasswordResponse>('POST', `/admin/users/${userId}/reset-password`),
 
   getVersion: () => request<BuildVersion>('GET', '/version'),
 }

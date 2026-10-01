@@ -20,7 +20,7 @@ function wrapper({ children }: { children: ReactNode }) {
 }
 
 function signIn() {
-  const session = { token: 'token', user: { id: 1, username: 'billy', role: 'Standard' } }
+  const session = { token: 'token', user: { id: 1, username: 'billy', role: 'Standard', mustChangePassword: false } }
   localStorage.setItem('autograt.session', JSON.stringify(session))
 }
 

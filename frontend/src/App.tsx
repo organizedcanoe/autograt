@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './auth/AuthContext'
 import Layout from './components/Layout'
 import UpdateBanner from './components/UpdateBanner'
 import AdminPage from './pages/AdminPage'
+import ChangePasswordPage from './pages/ChangePasswordPage'
 import DayPage from './pages/DayPage'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
@@ -28,6 +29,8 @@ function AppRoutes() {
 
   // Signed-out users see the login page at any URL, then land where they were headed.
   if (!user) return <LoginPage />
+  // After an admin reset, the temporary password must be replaced before anything else.
+  if (user.mustChangePassword) return <ChangePasswordPage />
 
   return (
     <Routes>

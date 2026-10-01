@@ -16,6 +16,9 @@ public enum ServiceError
 
     /// <summary>The record is not in a state that allows the operation.</summary>
     InvalidState,
+
+    /// <summary>The password given to confirm the operation is wrong.</summary>
+    WrongPassword,
 }
 
 /// <summary>

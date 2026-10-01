@@ -11,12 +11,19 @@ export interface User {
   id: number
   username: string
   role: UserRole
+  /** Set after an admin resets the password; the user must choose a new one before using the app. */
+  mustChangePassword: boolean
 }
 
 export interface LoginResponse {
   token: string
   expiresAtUtc: string
   user: User
+}
+
+/** A temporary password an admin set for a user; the server only ever returns it once. */
+export interface ResetPasswordResponse {
+  temporaryPassword: string
 }
 
 export interface Append {

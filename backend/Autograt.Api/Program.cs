@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Autograt.Api.Auth;
 using Autograt.Api.Data;
 using Autograt.Api.Models;
 using Autograt.Api.RateLimiting;
@@ -77,6 +78,7 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
     {
         options.MapInboundClaims = false;
         options.TokenValidationParameters = TokenService.CreateValidationParameters(signingKey);
+        options.Events = new JwtBearerEvents { OnTokenValidated = SessionValidator.ValidateAsync };
     });
 
 // Every endpoint requires a signed-in user unless it opts out with [AllowAnonymous].
@@ -97,6 +99,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<JournalService>();
 builder.Services.AddScoped<SearchService>();

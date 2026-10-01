@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { api, setAuthToken, setUnauthorizedHandler } from '../api/client'
-import type { User } from '../api/types'
+import type { LoginResponse, User } from '../api/types'
 
 interface Session {
   token: string
@@ -13,6 +13,8 @@ interface AuthContextValue {
   /** Registers and logs in, unless the new account is pending approval. Returns the new user. */
   register: (username: string, password: string) => Promise<User>
   logout: () => void
+  /** Replaces the session with one the server issued, e.g. after a password or username change. */
+  startSession: (response: LoginResponse) => void
 }
 
 const STORAGE_KEY = 'autograt.session'
@@ -52,12 +54,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(next)
   }, [])
 
-  const login = useCallback(
-    async (username: string, password: string) => {
-      const response = await api.login(username, password)
-      applySession({ token: response.token, user: response.user })
-    },
+  const startSession = useCallback(
+    (response: LoginResponse) => applySession({ token: response.token, user: response.user }),
     [applySession],
+  )
+
+  const login = useCallback(
+    async (username: string, password: string) => startSession(await api.login(username, password)),
+    [startSession],
   )
 
   const register = useCallback(
@@ -77,8 +81,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [logout])
 
   const value = useMemo(
-    () => ({ user: session?.user ?? null, login, register, logout }),
-    [session, login, register, logout],
+    () => ({ user: session?.user ?? null, login, register, logout, startSession }),
+    [session, login, register, logout, startSession],
   )
 
   return <AuthContext value={value}>{children}</AuthContext>

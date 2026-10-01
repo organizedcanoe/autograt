@@ -19,16 +19,26 @@ export async function registerUser(request: APIRequestContext, username: string)
   expect(response.ok()).toBe(true)
 }
 
+/** Registers a user and approves them through the API as the admin, so they can log in straight away. */
+export async function createApprovedUser(request: APIRequestContext, username: string): Promise<void> {
+  await registerUser(request, username)
+  const login = await request.post('/api/auth/login', { data: { username: ADMIN_USERNAME, password: PASSWORD } })
+  const headers = { Authorization: `Bearer ${(await login.json()).token}` }
+  const users: { id: number; username: string }[] = await (await request.get('/api/admin/users', { headers })).json()
+  const user = users.find((u) => u.username === username)!
+  expect((await request.post(`/api/admin/users/${user.id}/approve`, { headers })).ok()).toBe(true)
+}
+
 /** Submits the login form, leaving the outcome for the caller to check. */
-export async function submitLogin(page: Page, username: string): Promise<void> {
+export async function submitLogin(page: Page, username: string, password = PASSWORD): Promise<void> {
   await page.goto('/')
   await page.getByLabel('Username').fill(username)
-  await page.getByLabel('Password', { exact: true }).fill(PASSWORD)
+  await page.getByLabel('Password', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Log in' }).click()
 }
 
-export async function logIn(page: Page, username: string): Promise<void> {
-  await submitLogin(page, username)
+export async function logIn(page: Page, username: string, password = PASSWORD): Promise<void> {
+  await submitLogin(page, username, password)
   await expect(page.getByRole('banner').getByText(username)).toBeVisible()
 }
 
