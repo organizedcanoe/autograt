@@ -1,0 +1,10 @@
+/* Pico has no red button variant. A danger button re-points Pico's own primary button variables at red,
+   so Pico's base, hover and focus rules all apply unchanged. */
+button[data-danger] {
+  --pico-primary-background: #c62828;
+  --pico-primary-border: #c62828;
+  --pico-primary-hover-background: #b71c1c;
+  --pico-primary-hover-border: #b71c1c;
+  --pico-primary-focus: rgba(198, 40, 40, 0.5);
+  --pico-primary-inverse: #fff;
+}

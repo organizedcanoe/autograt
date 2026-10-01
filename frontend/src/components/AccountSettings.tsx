@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext'
 import { forgetThisDevice } from '../push/pushSubscription'
 import { errorMessage } from '../utils/errors'
 import ChangePasswordForm from './ChangePasswordForm'
+import './AccountSettings.css'
 
 /** The signed-in user's username and password, and deleting their account. */
 export default function AccountSettings() {
@@ -96,7 +97,7 @@ function DeleteAccount() {
     <>
       <h3>Delete account</h3>
       <p>Permanently delete your account with all your entries, ratings and settings.</p>
-      <button type="button" className="secondary outline" onClick={() => setConfirming(true)}>
+      <button type="button" data-danger onClick={() => setConfirming(true)}>
         Delete account…
       </button>
       {confirming && (
@@ -105,7 +106,7 @@ function DeleteAccount() {
             <h3>Delete your account?</h3>
             <p>
               All your entries, ratings and settings will be deleted permanently. This cannot be undone. To keep a
-              copy, export your journal in the Your data section first.
+              copy, export your journal in the <strong>Your data</strong> section first.
             </p>
             <form id="delete-account" onSubmit={(e) => void handleSubmit(e)}>
               <label>
@@ -119,11 +120,11 @@ function DeleteAccount() {
               </label>
               {error && <p role="alert">{error}</p>}
             </form>
-            <footer>
-              <button type="button" className="secondary" onClick={close}>
+            <footer data-confirm-actions>
+              <button type="button" onClick={close}>
                 Cancel
               </button>
-              <button type="submit" form="delete-account" disabled={!password || deleting} aria-busy={deleting}>
+              <button type="submit" form="delete-account" data-danger disabled={!password || deleting} aria-busy={deleting}>
                 Delete forever
               </button>
             </footer>

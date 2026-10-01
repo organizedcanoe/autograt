@@ -12,16 +12,3 @@
 [data-row-actions] button {
   margin: 0;
 }
-
-/* Pico has no red button variant. Overriding Pico's own button variables keeps its hover/focus behavior;
-   this selector outranks Pico's :hover and :focus rules. */
-[data-row-actions] button[data-danger] {
-  --pico-background-color: #c62828;
-  --pico-border-color: #c62828;
-  --pico-color: #fff;
-}
-
-[data-row-actions] button[data-danger]:is(:hover, :active, :focus) {
-  --pico-background-color: #b71c1c;
-  --pico-border-color: #b71c1c;
-}

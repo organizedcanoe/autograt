@@ -9,7 +9,7 @@
 }
 
 [data-alert="error"] {
-  --alert-color: #c62828; /* matches the danger buttons in AdminPage.css */
+  --alert-color: #c62828; /* matches the danger buttons in danger.css */
 }
 
 [data-alert="warning"] {
