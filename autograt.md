@@ -320,7 +320,7 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 #### Search Interface
 
-* Header search bar accepting user text queries, shown on every page except the settings, admin and history pages. Searching opens the search page (`/search?q=…`), whose search bar shows the current query.
+* Header search bar accepting user text queries, shown on every page except the home (today view), settings, admin and history pages. Searching opens the search page (`/search?q=…`), whose search bar shows the current query.
 
 * Renders matching journal sub-entries and appended notes, newest first, with date links pointing directly to the corresponding day view. The number of matches is shown, and the matches are shown 10 at a time, with a **Show more** button for the next 10.
 

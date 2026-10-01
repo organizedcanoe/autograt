@@ -47,7 +47,7 @@ describe('App', () => {
     expect(menu).not.toHaveAttribute('open')
   })
 
-  it.each(['/settings', '/admin', '/history'])('hides the search bar on %s', (path) => {
+  it.each(['/', '/settings', '/admin', '/history'])('hides the search bar on %s', (path) => {
     signInAs('Admin')
     window.history.replaceState(null, '', path)
     render(<App />)

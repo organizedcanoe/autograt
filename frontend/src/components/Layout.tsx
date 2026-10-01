@@ -5,8 +5,9 @@ import BuildInfo from './BuildInfo'
 import SearchBar from './SearchBar'
 import Wordmark from './Wordmark'
 
-// Account pages hold no journal content, and the history page is for browsing by date.
-const PAGES_WITHOUT_SEARCH = ['/settings', '/admin', '/history']
+// The home page is for writing today's entry, account pages hold no journal content,
+// and the history page is for browsing by date.
+const PAGES_WITHOUT_SEARCH = ['/', '/settings', '/admin', '/history']
 
 export default function Layout() {
   const { user, logout } = useAuth()
