@@ -6,4 +6,7 @@ public enum UserRole
     Pending = 0,
     Standard = 1,
     Admin = 2,
+
+    /// <summary>Blocked by an admin; cannot log in, and existing sessions stop working.</summary>
+    Disabled = 3,
 }

@@ -1,5 +1,6 @@
 import type {
   Append,
+  AppSettings,
   BuildVersion,
   DayDetail,
   EntryCategory,
@@ -10,6 +11,7 @@ import type {
   LoginResponse,
   PushPublicKey,
   PushSubscriptionRequest,
+  RegistrationStatus,
   ResetPasswordResponse,
   SearchResult,
   SettingName,
@@ -109,6 +111,8 @@ export const api = {
 
   me: () => request<User>('GET', '/auth/me'),
 
+  getRegistrationStatus: () => request<RegistrationStatus>('GET', '/auth/registration'),
+
   /** Signs out every other session; the response is the new session for this one. */
   changePassword: (currentPassword: string, newPassword: string) =>
     request<LoginResponse>('PUT', '/account/password', { currentPassword, newPassword }),
@@ -175,8 +179,18 @@ export const api = {
 
   promoteUser: (userId: number) => request<void>('POST', `/admin/users/${userId}/promote`),
 
+  demoteUser: (userId: number) => request<void>('POST', `/admin/users/${userId}/demote`),
+
+  disableUser: (userId: number) => request<void>('POST', `/admin/users/${userId}/disable`),
+
+  enableUser: (userId: number) => request<void>('POST', `/admin/users/${userId}/enable`),
+
   resetUserPassword: (userId: number) =>
     request<ResetPasswordResponse>('POST', `/admin/users/${userId}/reset-password`),
+
+  getAppSettings: () => request<AppSettings>('GET', '/admin/settings'),
+
+  updateAppSettings: (settings: AppSettings) => request<AppSettings>('PUT', '/admin/settings', settings),
 
   getVersion: () => request<BuildVersion>('GET', '/version'),
 }

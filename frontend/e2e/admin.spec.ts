@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { ADMIN_USERNAME, PASSWORD, logIn, logOut, openMenuItem, registerUser, submitLogin } from './helpers.ts'
+import { ADMIN_USERNAME, PASSWORD, createApprovedUser, logIn, logOut, openMenuItem, registerUser, submitLogin } from './helpers.ts'
 
 function userRow(page: Page, username: string) {
   return page.getByRole('row').filter({ has: page.getByRole('cell', { name: username, exact: true }) })
@@ -87,4 +87,50 @@ test('a standard user is redirected away from the admin page', async ({ page, re
   await page.goto('/admin')
   await expect(page).toHaveURL('/')
   await expect(page.getByRole('heading', { level: 1, name: 'Admin' })).toHaveCount(0)
+})
+
+test('admin disables a user, who can no longer log in until enabled again', async ({ page, request }) => {
+  const username = `e2e-disable-${Date.now()}`
+  await createApprovedUser(request, username)
+
+  await logIn(page, ADMIN_USERNAME)
+  await openMenuItem(page, ADMIN_USERNAME, 'Admin')
+  const row = userRow(page, username)
+  page.once('dialog', (dialog) => void dialog.accept())
+  await row.getByRole('button', { name: 'Disable' }).click()
+  await expect(row.getByRole('cell', { name: 'Disabled', exact: true })).toBeVisible()
+  await logOut(page, ADMIN_USERNAME)
+
+  await submitLogin(page, username)
+  await expect(page.getByRole('alert')).toContainText('disabled')
+
+  await logIn(page, ADMIN_USERNAME)
+  await openMenuItem(page, ADMIN_USERNAME, 'Admin')
+  await userRow(page, username).getByRole('button', { name: 'Enable' }).click()
+  await expect(userRow(page, username).getByRole('cell', { name: 'User', exact: true })).toBeVisible()
+  await logOut(page, ADMIN_USERNAME)
+  await logIn(page, username)
+})
+
+test('admin demotes another admin, who loses the admin page straight away', async ({ browser, page, request }) => {
+  const username = `e2e-demote-${Date.now()}`
+  await createApprovedUser(request, username)
+  await logIn(page, ADMIN_USERNAME)
+  await openMenuItem(page, ADMIN_USERNAME, 'Admin')
+  const row = userRow(page, username)
+  await row.getByRole('button', { name: 'Promote' }).click()
+  await expect(row.getByRole('button', { name: 'Demote' })).toBeVisible()
+
+  // The other admin is signed in elsewhere while being demoted.
+  const otherPage = await (await browser.newContext()).newPage()
+  await logIn(otherPage, username)
+  await openMenuItem(otherPage, username, 'Admin')
+
+  await row.getByRole('button', { name: 'Demote' }).click()
+  await expect(row.getByRole('cell', { name: 'User', exact: true })).toBeVisible()
+
+  await otherPage.reload()
+  await otherPage.getByRole('banner').getByText(username).click()
+  await expect(otherPage.getByRole('link', { name: 'Admin' })).toHaveCount(0)
+  await otherPage.context().close()
 })

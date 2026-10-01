@@ -11,6 +11,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
   Pending: 'Pending approval',
   Standard: 'User',
   Admin: 'Admin',
+  Disabled: 'Disabled',
 }
 
 export default function AdminUsers() {
@@ -30,9 +31,20 @@ export default function AdminUsers() {
     }
   }
 
-  function deletePendingUser(user: User) {
-    if (window.confirm(`Delete pending user '${user.username}'? This cannot be undone.`)) {
+  function deleteUser(user: User) {
+    const question =
+      user.role === 'Pending'
+        ? `Delete pending user '${user.username}'? This cannot be undone.`
+        : `Delete '${user.username}' and all their journal entries, ratings and settings? This cannot be undone.`
+    if (window.confirm(question)) {
       void runAction(() => api.deleteUser(user.id))
+    }
+  }
+
+  function disableUser(user: User) {
+    const question = `Disable '${user.username}'? They will be signed out and can't log in until enabled again. Their journal is kept.`
+    if (window.confirm(question)) {
+      void runAction(() => api.disableUser(user.id))
     }
   }
 
@@ -50,7 +62,7 @@ export default function AdminUsers() {
     <>
       <hgroup>
         <h2>Users</h2>
-        <p>New users can log in once approved. Promoted users get admin rights the next time they log in.</p>
+        <p>New users can log in once approved. Role changes take effect straight away. Admins must be demoted before they can be disabled or deleted.</p>
       </hgroup>
       {error && <p role="alert">{error}</p>}
       <AsyncView state={users}>
@@ -73,23 +85,38 @@ export default function AdminUsers() {
                   <td>
                     <div data-row-actions>
                       {user.role === 'Pending' && (
+                        <button type="button" onClick={() => runAction(() => api.approveUser(user.id))}>
+                          Approve
+                        </button>
+                      )}
+                      {user.role === 'Standard' && (
                         <>
-                          <button type="button" onClick={() => runAction(() => api.approveUser(user.id))}>
-                            Approve
+                          <button type="button" onClick={() => runAction(() => api.promoteUser(user.id))}>
+                            Promote
                           </button>
-                          <button type="button" data-danger onClick={() => deletePendingUser(user)}>
-                            Delete
+                          <button type="button" className="secondary" onClick={() => disableUser(user)}>
+                            Disable
                           </button>
                         </>
                       )}
-                      {user.role === 'Standard' && (
-                        <button type="button" onClick={() => runAction(() => api.promoteUser(user.id))}>
-                          Promote
+                      {user.role === 'Admin' && user.id !== currentUser?.id && (
+                        <button type="button" className="secondary" onClick={() => runAction(() => api.demoteUser(user.id))}>
+                          Demote
+                        </button>
+                      )}
+                      {user.role === 'Disabled' && (
+                        <button type="button" onClick={() => runAction(() => api.enableUser(user.id))}>
+                          Enable
                         </button>
                       )}
                       {user.role !== 'Pending' && user.id !== currentUser?.id && (
                         <button type="button" className="secondary" onClick={() => resetPassword(user)}>
                           Reset password
+                        </button>
+                      )}
+                      {user.role !== 'Admin' && (
+                        <button type="button" data-danger onClick={() => deleteUser(user)}>
+                          Delete
                         </button>
                       )}
                     </div>

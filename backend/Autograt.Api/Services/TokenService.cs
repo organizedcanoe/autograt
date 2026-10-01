@@ -22,10 +22,7 @@ public class TokenService(JwtSigningKey signingKey)
             new(AuthClaims.Username, user.Username),
             new(AuthClaims.SecurityStamp, user.SecurityStamp),
         };
-        if (user.Role == UserRole.Admin)
-        {
-            claims.Add(new Claim(AuthClaims.Role, AuthClaims.AdminRole));
-        }
+        // No role claim: SessionValidator adds it from the database on each request, so role changes apply at once.
 
         var token = new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor
         {

@@ -80,6 +80,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => setUnauthorizedHandler(null)
   }, [logout])
 
+  // The stored user may be stale, e.g. an admin changed their role, so refresh it once on load.
+  // A rejected session is handled by the 401 handler; other failures keep the stored user.
+  const [initialToken] = useState(session?.token ?? null)
+  useEffect(() => {
+    if (!initialToken) return
+    api.me().then(
+      (user) => {
+        setSession((current) => {
+          if (current?.token !== initialToken) return current
+          const next = { ...current, user }
+          saveSession(next)
+          return next
+        })
+      },
+      () => {},
+    )
+  }, [initialToken])
+
   const value = useMemo(
     () => ({ user: session?.user ?? null, login, register, logout, startSession }),
     [session, login, register, logout, startSession],

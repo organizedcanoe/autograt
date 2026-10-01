@@ -23,6 +23,21 @@ public class AuthServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Register_WhenClosed_RejectsLaterUsers_ButNotTheFirst()
+    {
+        await using (var context = _database.CreateContext())
+        {
+            await new AppSettingsService(context).SetRegistrationOpenAsync(false);
+        }
+
+        var first = await RegisterAsync("first", "password-one");
+        var second = await RegisterAsync("second", "password-two");
+
+        Assert.Equal(UserRole.Admin, first.Value!.Role);
+        Assert.Equal(ServiceError.InvalidState, second.Error);
+    }
+
+    [Fact]
     public async Task Register_StoresHashNotPlainPassword()
     {
         var result = await RegisterAsync("billy", "my-secret-password");
@@ -82,5 +97,5 @@ public class AuthServiceTests : IDisposable
     }
 
     private static AuthService CreateService(AutogratDbContext context) =>
-        new(context, new PasswordHasher<User>());
+        new(context, new PasswordHasher<User>(), new AppSettingsService(context));
 }

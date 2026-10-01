@@ -34,7 +34,7 @@ The database schema consists of four core journal tables structured in a three-t
 
 * **PasswordHash:** String, Required. Securely hashed password.
 
-* **Role:** Enumeration, Required, Default: `Pending`. Allowed values: `Pending` (0), `Standard` (1), `Admin` (2). `Pending` accounts are awaiting admin approval and cannot log in; `Admin` accounts have administrative privileges.
+* **Role:** Enumeration, Required, Default: `Pending`. Allowed values: `Pending` (0), `Standard` (1), `Admin` (2), `Disabled` (3). `Pending` accounts are awaiting admin approval and cannot log in; `Admin` accounts have administrative privileges; `Disabled` accounts were blocked by an admin, cannot log in, and keep their data.
 
 * **SecurityStamp:** String, Required. A random value copied into every token. Replacing it ends every session issued before it.
 
@@ -71,6 +71,14 @@ One row per browser or device a user has enabled reminder notifications on.
 * **Auth:** String, Required. The browser's authentication secret.
 
 * **CreatedAtUtc:** DateTime, Required.
+
+### Table: `AppSetting`
+
+Holds server-wide settings that admins manage. A setting with no row uses its default.
+
+* **Key:** Enumeration, Primary Key. Allowed values: `RegistrationOpen` (1: `on` or `off`; default `on`).
+
+* **Value:** String, Required.
 
 ### Table: `JournalEntry` (Parent Record)
 
@@ -118,11 +126,15 @@ Represents additional immutable notes appended specifically to an existing `Jour
 
 * **Registration:** Open registration endpoint. During user creation, the system checks total user count. If the user count is zero, `Role` is set to `Admin`; otherwise, it is set to `Pending`.
 
-* **Approval:** A `Pending` user cannot log in; login is rejected with an HTTP 403 Forbidden error explaining that the account awaits admin approval. Registration returns no token, so a pending user cannot call authenticated endpoints.
+* **Closing Registration:** While the `RegistrationOpen` app setting is `off`, registering is rejected with an HTTP 403 Forbidden error ("Registration is closed."). The first user can always register, so a new install gets an admin. The anonymous `GET /api/auth/registration` returns `{ open }` so the login page can hide registration.
+
+* **Approval:** A `Pending` user cannot log in; login is rejected with an HTTP 403 Forbidden error explaining that the account awaits admin approval. Registration returns no token, so a pending user cannot call authenticated endpoints. A `Disabled` user's login is likewise rejected with 403 ("This account has been disabled.").
 
 * **Authentication:** Authenticated via JSON Web Tokens (JWT) provided in the Authorization HTTP header.
 
-* **Session Revocation:** Each token carries the user's `SecurityStamp`. Every request checks it against the database, so a token whose user no longer exists, whose stamp has changed, or which has no stamp is rejected with an HTTP 401 Unauthorized error. The stamp is replaced when the user changes their password and when an admin resets it, which signs out every existing session.
+* **Session Revocation:** Each token carries the user's `SecurityStamp`. Every request checks it against the database, so a token whose user no longer exists, is pending or disabled, whose stamp has changed, or which has no stamp is rejected with an HTTP 401 Unauthorized error. The stamp is replaced when the user changes their password, when an admin resets it, and when an admin disables the user, which signs out every existing session.
+
+* **Roles:** Tokens do not carry the role. Every request reads it from the database along with the security stamp, so promoting or demoting a user takes effect on their next request without logging in again.
 
 * **Account Self-Management:** Endpoints for the signed-in user's own account. A wrong password is rejected with an HTTP 400 Bad Request error ("Current password is incorrect."), not 401, since the frontend treats a 401 as an expired session. The endpoints that check a password share the login and register rate limit.
 
@@ -134,7 +146,21 @@ Represents additional immutable notes appended specifically to an existing `Jour
 
 * **Forgotten Passwords:** `POST /api/admin/users/{id}/reset-password` (admins only) gives an approved user (standard or admin) a random 12-character temporary password, sets `MustChangePassword`, replaces their `SecurityStamp`, and returns `{ temporaryPassword }`. The temporary password is only ever returned in this response. Resetting a pending user or your own password is rejected with 400; an unknown user returns 404. User responses include `mustChangePassword`.
 
-* **Admin Capabilities:** Endpoints restricted to admin users that list all users, approve `Pending` users (`POST /api/admin/users/{id}/approve`, making them `Standard`), promote `Standard` users to `Admin` (`POST /api/admin/users/{id}/promote`), and delete `Pending` users such as duplicate sign-ups (`DELETE /api/admin/users/{id}`). Approving or deleting a user who is not pending, or promoting one who is not standard, is rejected with an HTTP 400 Bad Request error; an unknown user returns 404.
+* **Admin Capabilities:** Endpoints restricted to admin users. An action on a user in the wrong role is rejected with an HTTP 400 Bad Request error; an unknown user returns 404.
+
+  * `GET /api/admin/users` lists all users.
+
+  * `POST /api/admin/users/{id}/approve` makes a `Pending` user `Standard`.
+
+  * `POST /api/admin/users/{id}/promote` makes a `Standard` user `Admin`.
+
+  * `POST /api/admin/users/{id}/demote` makes an `Admin` user `Standard`. Demoting yourself or the last admin is rejected with 400.
+
+  * `POST /api/admin/users/{id}/disable` makes a `Standard` user `Disabled` and replaces their `SecurityStamp`; admins must be demoted first. `POST /api/admin/users/{id}/enable` makes a `Disabled` user `Standard` again.
+
+  * `DELETE /api/admin/users/{id}` deletes a `Pending`, `Standard` or `Disabled` user and all their journal data, settings and push subscriptions. Admins (including yourself) must be demoted first (400).
+
+  * `GET /api/admin/settings` returns `{ registrationOpen }`; `PUT /api/admin/settings` with `{ registrationOpen }` saves it and returns the saved settings.
 
 ### Rate Limiting
 
@@ -345,7 +371,11 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 * After registering, a user who needs approval is not logged in; the form switches to login and shows "Account created. An admin must approve it before you can log in." The first user, who becomes the admin, is logged in straight away.
 
-* The admin page (`/admin`) is only available to admins; other users visiting it are redirected to the today view. It lists every user with their role (`Pending approval`, `User`, `Admin`), **Approve** and **Delete** buttons for pending users (deleting asks for confirmation first), and a **Promote** button for standard users. Every approved user other than the signed-in admin has a **Reset password** button; after confirming, a dialog shows the temporary password once with **Copy** and **Done** buttons.
+* The admin page (`/admin`) is only available to admins; other users visiting it are redirected to the today view. It lists every user with their role (`Pending approval`, `User`, `Admin`, `Disabled`) and the actions that apply: **Approve** for pending users, **Promote** and **Disable** for standard users, **Demote** for other admins, **Enable** for disabled users, and **Delete** for every non-admin. Disabling and deleting ask for confirmation first. Every approved user other than the signed-in admin has a **Reset password** button; after confirming, a dialog shows the temporary password once with **Copy** and **Done** buttons.
+
+* Below the users, a **Registration** section has an **Open registration** switch. While registration is closed, the login page shows "Registration is closed. Ask an admin for an account." instead of the register link. If the status can't be loaded, the register link stays.
+
+* On load, a signed-in browser refreshes the stored user from `GET /api/auth/me`, so a demoted admin loses the Admin menu item.
 
 ## 6. Docker & Containerization Specification
 
@@ -375,9 +405,11 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
 ### Backend Tests (xUnit + Moq + EF Core In-Memory / SQLite)
 
-* **Authentication Unit Tests:** Verify user creation logic, initial user admin assignment, later users starting as pending, and password hashing logic.
+* **Authentication Unit Tests:** Verify user creation logic, initial user admin assignment, later users starting as pending, that closed registration rejects later users but not the first, and password hashing logic.
 
-* **Admin Endpoint Tests:** Verify that pending users cannot log in, that admins can approve or delete pending users and promote standard users, that invalid approvals, deletions and promotions are rejected, and that non-admins are forbidden (403) from every admin endpoint.
+* **Admin Endpoint Tests:** Verify that pending users cannot log in; that admins can approve or delete pending users and promote standard users; that deleting a standard or disabled user removes their data and ends their session, and deleting an admin is rejected; that promoting and demoting apply to the user's existing session, and demoting yourself or a non-admin is rejected; that disabling a standard user ends their session and blocks login until enabled again, and disabling an admin or enabling a user who isn't disabled is rejected; that closing registration rejects new sign-ups and is reported by the registration status, and reopening allows them; that invalid role changes are rejected and unknown users return 404; and that non-admins are forbidden (403) from every admin endpoint.
+
+* **Reminder Tests:** In addition to the scheduling tests, verify that disabled users receive no reminders.
 
 * **Account Endpoint Tests:** Verify that every account endpoint returns 401 without a token; that changing the password returns a working token, signs out other sessions and replaces the login password, and that a wrong current password returns 400 without signing out; that changing the username returns a new token, allows a case-only change of one's own name and rejects taken or invalid names; that deleting the account needs the password, removes all the user's data but no one else's and ends the session, and is rejected for the last admin while other users exist; that an admin password reset returns a temporary password that logs in with `mustChangePassword`, ends the user's sessions, and is cleared by a password change, and is rejected for pending users and yourself; and that a token without a security stamp is rejected.
 
@@ -417,7 +449,7 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
 * Validate that the settings page saves theme changes and reports failed saves, and that only admins can reach the admin page.
 
-* Validate that registering a pending account shows the approval notice without logging in, and that the admin page approves pending users and deletes them only after confirmation.
+* Validate that registering a pending account shows the approval notice without logging in, and that the login page hides registration while it is closed (but not when its status fails to load); that the admin page shows the actions for each role, approves pending users, demotes other admins, disables users and deletes them only after confirmation, enables disabled users, and shows server errors; that the registration switch saves and keeps the old value when saving fails; and that a stored session's user is refreshed from the server on load.
 
 * Validate that the Account section saves a new username into the session and shows server errors; that the password form checks its fields before calling the server, keeps this session signed in on success and shows a wrong password; that deleting the account can be cancelled, needs the password, shows a wrong password in the dialog, and logs out on success; that a user who must change their password sees only the choose a new password page; and that the admin page offers a password reset only for other approved users, confirms first and shows the temporary password once.
 
@@ -455,6 +487,12 @@ The application deployment is governed by a `docker-compose.yml` file defining t
   * Registering a pending account shows the approval notice, and logging in with it is rejected.
 
   * A standard user has no Admin menu item and is redirected to the today view from `/admin`.
+
+  * The admin disables a user, whose login is then rejected; after enabling them they can log in again.
+
+  * The admin demotes another admin who is signed in elsewhere; after a reload, that user has no Admin menu item.
+
+  * The admin closes registration: the login page hides the register link and registering is rejected; reopening brings the link back. This spec runs after all the others, since it would break specs that register users.
 
 * **Account:** A user changes their password and logs in with the new one; an admin resets a user's password, and the user logs in with the temporary password, must choose a new one, and then reaches the today view; a user deletes their account (after cancelling once) and can no longer log in.
 

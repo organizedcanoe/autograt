@@ -19,13 +19,18 @@ public class AuthController(AuthService authService, UserService userService, To
     public async Task<ActionResult<UserResponse>> Register(RegisterRequest request)
     {
         var result = await authService.RegisterAsync(request.Username, request.Password);
-        if (result.IsSuccess == false)
+        return result.Error switch
         {
-            return Conflict(new ProblemDetails { Title = "That username is already taken." });
-        }
-
-        return CreatedAtAction(nameof(Me), UserResponse.From(result.Value));
+            null => CreatedAtAction(nameof(Me), UserResponse.From(result.Value!)),
+            ServiceError.Conflict => Conflict(new ProblemDetails { Title = "That username is already taken." }),
+            ServiceError.InvalidState => Problem(title: "Registration is closed.", statusCode: StatusCodes.Status403Forbidden),
+            _ => throw new InvalidOperationException($"Unexpected error: {result.Error}."),
+        };
     }
+
+    [AllowAnonymous]
+    [HttpGet("registration")]
+    public async Task<RegistrationStatusResponse> Registration() => new(await authService.IsRegistrationOpenAsync());
 
     [AllowAnonymous]
     [EnableRateLimiting(RateLimitingSetup.AuthPolicy)]
@@ -41,6 +46,11 @@ public class AuthController(AuthService authService, UserService userService, To
         if (user.Role == UserRole.Pending)
         {
             return Problem(title: "Your account is awaiting admin approval.", statusCode: StatusCodes.Status403Forbidden);
+        }
+
+        if (user.Role == UserRole.Disabled)
+        {
+            return Problem(title: "This account has been disabled.", statusCode: StatusCodes.Status403Forbidden);
         }
 
         var (token, expiresAtUtc) = tokenService.CreateToken(user);

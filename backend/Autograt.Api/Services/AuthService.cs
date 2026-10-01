@@ -5,14 +5,19 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Autograt.Api.Services;
 
-public class AuthService(AutogratDbContext db, IPasswordHasher<User> passwordHasher)
+public class AuthService(AutogratDbContext db, IPasswordHasher<User> passwordHasher, AppSettingsService appSettingsService)
 {
     /// <summary>
     /// Creates a user. The very first user becomes the admin; later users are pending until an admin approves them.
-    /// Usernames are unique, ignoring case.
+    /// Usernames are unique, ignoring case. Fails with InvalidState when an admin has closed registration.
     /// </summary>
     public async Task<ServiceResult<User>> RegisterAsync(string username, string password)
     {
+        if (await IsRegistrationOpenAsync() == false)
+        {
+            return ServiceResult<User>.Failure(ServiceError.InvalidState);
+        }
+
         username = username.Trim();
         if (await db.Users.AnyAsync(u => u.Username == username))
         {
@@ -33,6 +38,10 @@ public class AuthService(AutogratDbContext db, IPasswordHasher<User> passwordHas
         await db.SaveChangesAsync();
         return ServiceResult<User>.Success(user);
     }
+
+    /// <summary>Whether anyone can register. The first user can always register, so a new install gets an admin.</summary>
+    public async Task<bool> IsRegistrationOpenAsync() =>
+        await db.Users.AnyAsync() == false || await appSettingsService.IsRegistrationOpenAsync();
 
     /// <returns>The user when the credentials are valid; otherwise null.</returns>
     public async Task<User?> ValidateCredentialsAsync(string username, string password)

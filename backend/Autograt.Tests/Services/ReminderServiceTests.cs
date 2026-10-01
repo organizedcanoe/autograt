@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using Autograt.Api.Data;
+using Autograt.Api.Models;
 using Autograt.Api.Services;
 using Autograt.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -64,6 +65,22 @@ public class ReminderServiceTests : IClassFixture<AutogratApiFactory>
     public async Task RemindersOff_SendsNothing()
     {
         var (_, device) = await CreateUserWithRemindersAsync(remindersEnabled: false);
+
+        await RunAtAsync(12, 0);
+
+        Assert.Empty(_factory.Push.SentTo(device.Endpoint));
+    }
+
+    [Fact]
+    public async Task DisabledUser_SendsNothing()
+    {
+        var (username, device) = await CreateUserWithRemindersAsync();
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AutogratDbContext>();
+            await db.Users.Where(u => u.Username == username)
+                .ExecuteUpdateAsync(u => u.SetProperty(x => x.Role, UserRole.Disabled));
+        }
 
         await RunAtAsync(12, 0);
 

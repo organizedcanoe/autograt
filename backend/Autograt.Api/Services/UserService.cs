@@ -21,19 +21,68 @@ public class UserService(AutogratDbContext db)
         ChangeRoleAsync(userId, from: UserRole.Standard, to: UserRole.Admin);
 
     /// <summary>
-    /// Removes a pending user, e.g. a duplicate sign-up. Pending users cannot log in, so they have no journal data.
-    /// Fails with InvalidState when the user is not pending.
+    /// Makes an admin a standard user. Fails with InvalidState when the user is not an admin, or is the last admin.
     /// </summary>
-    public async Task<ServiceResult<User>> DeletePendingAsync(int userId)
+    public async Task<ServiceResult<User>> DemoteToStandardAsync(int userId)
     {
-        var result = await FindWithRoleAsync(userId, UserRole.Pending);
+        var result = await FindWithRoleAsync(userId, UserRole.Admin);
+        if (result.IsSuccess == false)
+        {
+            return result;
+        }
+
+        if (await db.Users.AnyAsync(u => u.Role == UserRole.Admin && u.Id != userId) == false)
+        {
+            return ServiceResult<User>.Failure(ServiceError.InvalidState);
+        }
+
+        result.Value.Role = UserRole.Standard;
+        await db.SaveChangesAsync();
+        return result;
+    }
+
+    /// <summary>
+    /// Stops a standard user logging in and ends their sessions, keeping their data. Admins must be demoted first.
+    /// Fails with InvalidState when the user is not a standard user.
+    /// </summary>
+    public async Task<ServiceResult<User>> DisableAsync(int userId)
+    {
+        var result = await FindWithRoleAsync(userId, UserRole.Standard);
         if (result.IsSuccess)
         {
-            db.Users.Remove(result.Value);
+            result.Value.Role = UserRole.Disabled;
+            // Sessions are already rejected while disabled; a new stamp keeps them dead after re-enabling.
+            result.Value.SecurityStamp = User.NewSecurityStamp();
             await db.SaveChangesAsync();
         }
 
         return result;
+    }
+
+    /// <summary>Lets a disabled user log in again as a standard user. Fails with InvalidState when the user is not disabled.</summary>
+    public Task<ServiceResult<User>> EnableAsync(int userId) =>
+        ChangeRoleAsync(userId, from: UserRole.Disabled, to: UserRole.Standard);
+
+    /// <summary>
+    /// Deletes a non-admin user and, through cascades, all their journal data, settings and push subscriptions.
+    /// Fails with InvalidState when the user is an admin; admins must be demoted first.
+    /// </summary>
+    public async Task<ServiceResult<User>> DeleteAsync(int userId)
+    {
+        var user = await db.Users.FindAsync(userId);
+        if (user is null)
+        {
+            return ServiceResult<User>.Failure(ServiceError.NotFound);
+        }
+
+        if (user.Role == UserRole.Admin)
+        {
+            return ServiceResult<User>.Failure(ServiceError.InvalidState);
+        }
+
+        db.Users.Remove(user);
+        await db.SaveChangesAsync();
+        return ServiceResult<User>.Success(user);
     }
 
     private async Task<ServiceResult<User>> ChangeRoleAsync(int userId, UserRole from, UserRole to)

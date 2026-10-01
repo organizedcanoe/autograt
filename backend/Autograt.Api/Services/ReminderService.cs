@@ -39,6 +39,7 @@ public class ReminderService(IServiceScopeFactory scopeFactory, TimeProvider tim
         var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
 
         var users = await db.Users
+            .Where(u => u.Role == UserRole.Standard || u.Role == UserRole.Admin)
             .Where(u => db.UserSettings.Any(s =>
                 s.UserId == u.Id && s.Setting == Setting.RemindersEnabled && s.Value == SettingDefinitions.On))
             .Where(u => db.PushSubscriptions.Any(p => p.UserId == u.Id))

@@ -20,14 +20,33 @@ public class AdminController(UserService userService, AccountService accountServ
     public async Task<IActionResult> Approve(int id) =>
         ToActionResult(await userService.ApproveAsync(id), "Only pending users can be approved.");
 
-    /// <remarks>The promoted user receives admin rights in tokens issued from their next login.</remarks>
     [HttpPost("{id:int}/promote")]
     public async Task<IActionResult> Promote(int id) =>
-        ToActionResult(await userService.PromoteToAdminAsync(id), "Only approved, non-admin users can be promoted.");
+        ToActionResult(await userService.PromoteToAdminAsync(id), "Only standard users can be promoted.");
 
+    [HttpPost("{id:int}/demote")]
+    public async Task<IActionResult> Demote(int id)
+    {
+        if (id == User.GetUserId())
+        {
+            return BadRequest(new ProblemDetails { Title = "Another admin must demote you." });
+        }
+
+        return ToActionResult(await userService.DemoteToStandardAsync(id), "Only admins can be demoted, and not the last one.");
+    }
+
+    [HttpPost("{id:int}/disable")]
+    public async Task<IActionResult> Disable(int id) =>
+        ToActionResult(await userService.DisableAsync(id), "Only standard users can be disabled. Demote admins first.");
+
+    [HttpPost("{id:int}/enable")]
+    public async Task<IActionResult> Enable(int id) =>
+        ToActionResult(await userService.EnableAsync(id), "Only disabled users can be enabled.");
+
+    /// <summary>Deletes a pending, standard or disabled user and all their data.</summary>
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id) =>
-        ToActionResult(await userService.DeletePendingAsync(id), "Only pending users can be deleted.");
+        ToActionResult(await userService.DeleteAsync(id), "Admins can't be deleted. Demote them first.");
 
     /// <summary>
     /// Sets a random temporary password for an approved user, signs them out everywhere, and makes them choose
