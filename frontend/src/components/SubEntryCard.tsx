@@ -39,32 +39,32 @@ export default function SubEntryCard({ subEntry, onAppend, onEdit, onDelete, onD
 
   return (
     <article style={{ backgroundColor: categoryTint(subEntry.category) }}>
-      <header>
-        <strong>{subEntry.category}</strong> ·{' '}
-        <small>
-          <time dateTime={subEntry.createdAtUtc}>{formatTime(subEntry.createdAtUtc)}</time>
-        </small>
-        {onEdit && editing === false && (
-          <>
-            {' '}
-            <button type="button" className="outline secondary" onClick={() => setEditing(true)}>
-              Edit
-            </button>
-          </>
-        )}
-        {onDelete && editing === false && (
-          <>
-            {' '}
-            <button
-              type="button"
-              className="outline secondary"
-              onClick={() =>
-                confirmDelete('Delete this entry and its notes? This cannot be undone.', () => onDelete(subEntry.id))
-              }
-            >
-              Delete
-            </button>
-          </>
+      <header data-row-actions>
+        <span>
+          <strong>{subEntry.category}</strong> ·{' '}
+          <small>
+            <time dateTime={subEntry.createdAtUtc}>{formatTime(subEntry.createdAtUtc)}</time>
+          </small>
+        </span>
+        {editing === false && (onEdit || onDelete) && (
+          <span data-row-actions>
+            {onEdit && (
+              <button type="button" className="outline secondary" onClick={() => setEditing(true)}>
+                Edit
+              </button>
+            )}
+            {onDelete && (
+              <button
+                type="button"
+                className="outline secondary"
+                onClick={() =>
+                  confirmDelete('Delete this entry and its notes? This cannot be undone.', () => onDelete(subEntry.id))
+                }
+              >
+                Delete
+              </button>
+            )}
+          </span>
         )}
       </header>
       {error && <p role="alert">{error}</p>}

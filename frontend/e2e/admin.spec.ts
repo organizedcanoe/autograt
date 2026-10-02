@@ -1,9 +1,16 @@
-import { expect, test, type Page } from '@playwright/test'
-import { ADMIN_USERNAME, PASSWORD, createApprovedUser, logIn, logOut, openMenuItem, registerUser, submitLogin } from './helpers.ts'
-
-function userRow(page: Page, username: string) {
-  return page.getByRole('row').filter({ has: page.getByRole('cell', { name: username, exact: true }) })
-}
+import { expect, test } from '@playwright/test'
+import {
+  ADMIN_USERNAME,
+  PASSWORD,
+  chooseUserAction,
+  createApprovedUser,
+  logIn,
+  logOut,
+  openMenuItem,
+  registerUser,
+  submitLogin,
+  userRow,
+} from './helpers.ts'
 
 test('admin approves and promotes a pending user, who then gets admin rights', async ({ page, request }) => {
   const username = `e2e-approve-${Date.now()}`
@@ -15,12 +22,10 @@ test('admin approves and promotes a pending user, who then gets admin rights', a
   await expect(row.getByRole('cell', { name: 'Pending approval' })).toBeVisible()
 
   // Approving makes them a standard user, who can then be promoted.
-  await row.getByRole('button', { name: 'Approve' }).click()
+  await chooseUserAction(page, username, 'Approve')
   await expect(row.getByRole('cell', { name: 'User', exact: true })).toBeVisible()
-  await expect(row.getByRole('button', { name: 'Approve' })).toHaveCount(0)
-  await row.getByRole('button', { name: 'Promote' }).click()
+  await chooseUserAction(page, username, 'Promote')
   await expect(row.getByRole('cell', { name: 'Admin', exact: true })).toBeVisible()
-  await expect(row.getByRole('button', { name: 'Promote' })).toHaveCount(0)
 
   // The promoted user gets the admin page on their next login.
   await logOut(page, ADMIN_USERNAME)
@@ -38,14 +43,14 @@ test('admin deletes a pending user only after confirming', async ({ page, reques
 
   // Cancelling the confirmation keeps the user.
   page.once('dialog', (dialog) => void dialog.dismiss())
-  await row.getByRole('button', { name: 'Delete' }).click()
+  await chooseUserAction(page, username, 'Delete')
   await expect(row).toBeVisible()
 
   page.once('dialog', (dialog) => {
     expect(dialog.message()).toContain(username)
     void dialog.accept()
   })
-  await row.getByRole('button', { name: 'Delete' }).click()
+  await chooseUserAction(page, username, 'Delete')
   await expect(row).toHaveCount(0)
 
   // The deleted account no longer exists, so its login is rejected.
@@ -77,8 +82,8 @@ test('a standard user is redirected away from the admin page', async ({ page, re
 
   await logIn(page, ADMIN_USERNAME)
   await openMenuItem(page, ADMIN_USERNAME, 'Admin')
-  await userRow(page, username).getByRole('button', { name: 'Approve' }).click()
-  await expect(userRow(page, username).getByRole('button', { name: 'Promote' })).toBeVisible()
+  await chooseUserAction(page, username, 'Approve')
+  await expect(userRow(page, username).getByRole('cell', { name: 'User', exact: true })).toBeVisible()
   await logOut(page, ADMIN_USERNAME)
 
   await logIn(page, username)
@@ -97,7 +102,7 @@ test('admin disables a user, who can no longer log in until enabled again', asyn
   await openMenuItem(page, ADMIN_USERNAME, 'Admin')
   const row = userRow(page, username)
   page.once('dialog', (dialog) => void dialog.accept())
-  await row.getByRole('button', { name: 'Disable' }).click()
+  await chooseUserAction(page, username, 'Disable')
   await expect(row.getByRole('cell', { name: 'Disabled', exact: true })).toBeVisible()
   await logOut(page, ADMIN_USERNAME)
 
@@ -106,7 +111,7 @@ test('admin disables a user, who can no longer log in until enabled again', asyn
 
   await logIn(page, ADMIN_USERNAME)
   await openMenuItem(page, ADMIN_USERNAME, 'Admin')
-  await userRow(page, username).getByRole('button', { name: 'Enable' }).click()
+  await chooseUserAction(page, username, 'Enable')
   await expect(userRow(page, username).getByRole('cell', { name: 'User', exact: true })).toBeVisible()
   await logOut(page, ADMIN_USERNAME)
   await logIn(page, username)
@@ -118,15 +123,15 @@ test('admin demotes another admin, who loses the admin page straight away', asyn
   await logIn(page, ADMIN_USERNAME)
   await openMenuItem(page, ADMIN_USERNAME, 'Admin')
   const row = userRow(page, username)
-  await row.getByRole('button', { name: 'Promote' }).click()
-  await expect(row.getByRole('button', { name: 'Demote' })).toBeVisible()
+  await chooseUserAction(page, username, 'Promote')
+  await expect(row.getByRole('cell', { name: 'Admin', exact: true })).toBeVisible()
 
   // The other admin is signed in elsewhere while being demoted.
   const otherPage = await (await browser.newContext()).newPage()
   await logIn(otherPage, username)
   await openMenuItem(otherPage, username, 'Admin')
 
-  await row.getByRole('button', { name: 'Demote' }).click()
+  await chooseUserAction(page, username, 'Demote')
   await expect(row.getByRole('cell', { name: 'User', exact: true })).toBeVisible()
 
   await otherPage.reload()

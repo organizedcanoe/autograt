@@ -1,4 +1,4 @@
-import { expect, type APIRequestContext, type Page } from '@playwright/test'
+import { expect, type APIRequestContext, type Locator, type Page } from '@playwright/test'
 
 export const PASSWORD = 'password123'
 
@@ -53,4 +53,16 @@ export async function openMenuItem(page: Page, username: string, item: 'Settings
   await page.getByRole('banner').getByText(username).click()
   await page.getByRole('link', { name: item }).click()
   await expect(page.getByRole('heading', { level: 1, name: item })).toBeVisible()
+}
+
+/** A user's row in the admin page's user table. */
+export function userRow(page: Page, username: string): Locator {
+  return page.getByRole('row').filter({ has: page.getByRole('cell', { name: username, exact: true }) })
+}
+
+/** Opens a user's ⋯ menu on the admin page and chooses one of its actions. */
+export async function chooseUserAction(page: Page, username: string, action: string): Promise<void> {
+  const row = userRow(page, username)
+  await row.getByLabel(`Actions for ${username}`).click()
+  await row.getByRole('button', { name: action }).click()
 }

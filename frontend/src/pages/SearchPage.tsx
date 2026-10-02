@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router'
 import { api } from '../api/client'
 import type { SearchResult } from '../api/types'
 import AsyncView from '../components/AsyncView'
+import { categoryTint } from '../components/categoryColors'
 import SearchBar from '../components/SearchBar'
 import { useAsync } from '../hooks/useAsync'
 import { formatLongDate } from '../utils/dates'
@@ -67,7 +68,7 @@ function SearchResultCard({ match }: { match: SearchResult }) {
   const kind = match.type === 'Append' ? `Note on a ${match.category} entry` : `${match.category} entry`
 
   return (
-    <article>
+    <article style={{ backgroundColor: categoryTint(match.category) }}>
       <header>
         <Link to={`/day/${match.entryDate}`}>{formatLongDate(match.entryDate)}</Link> · <small>{kind}</small>
       </header>

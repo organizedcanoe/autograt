@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { api } from '../api/client'
 import type { User, UserRole } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
@@ -6,6 +6,13 @@ import AsyncView from './AsyncView'
 import { useAsync } from '../hooks/useAsync'
 import { errorMessage } from '../utils/errors'
 import './AdminUsers.css'
+
+interface UserAction {
+  label: string
+  run: () => void
+  /** Shown in red, for actions that can't be undone. */
+  danger?: boolean
+}
 
 const ROLE_LABELS: Record<UserRole, string> = {
   Pending: 'Pending approval',
@@ -58,6 +65,22 @@ export default function AdminUsers() {
     }
   }
 
+  /** The actions that apply to a user's role, in the order the dropdown lists them. */
+  function actionsFor(user: User): UserAction[] {
+    const isSelf = user.id === currentUser?.id
+    const actions: UserAction[] = []
+    if (user.role === 'Pending') actions.push({ label: 'Approve', run: () => runAction(() => api.approveUser(user.id)) })
+    if (user.role === 'Standard') {
+      actions.push({ label: 'Promote', run: () => runAction(() => api.promoteUser(user.id)) })
+      actions.push({ label: 'Disable', run: () => disableUser(user) })
+    }
+    if (user.role === 'Admin' && !isSelf) actions.push({ label: 'Demote', run: () => runAction(() => api.demoteUser(user.id)) })
+    if (user.role === 'Disabled') actions.push({ label: 'Enable', run: () => runAction(() => api.enableUser(user.id)) })
+    if (user.role !== 'Pending' && !isSelf) actions.push({ label: 'Reset password', run: () => resetPassword(user) })
+    if (user.role !== 'Admin') actions.push({ label: 'Delete', run: () => deleteUser(user), danger: true })
+    return actions
+  }
+
   return (
     <>
       <hgroup>
@@ -83,43 +106,7 @@ export default function AdminUsers() {
                   <td>{user.username}</td>
                   <td>{ROLE_LABELS[user.role]}</td>
                   <td>
-                    <div data-row-actions>
-                      {user.role === 'Pending' && (
-                        <button type="button" onClick={() => runAction(() => api.approveUser(user.id))}>
-                          Approve
-                        </button>
-                      )}
-                      {user.role === 'Standard' && (
-                        <>
-                          <button type="button" onClick={() => runAction(() => api.promoteUser(user.id))}>
-                            Promote
-                          </button>
-                          <button type="button" className="secondary" onClick={() => disableUser(user)}>
-                            Disable
-                          </button>
-                        </>
-                      )}
-                      {user.role === 'Admin' && user.id !== currentUser?.id && (
-                        <button type="button" className="secondary" onClick={() => runAction(() => api.demoteUser(user.id))}>
-                          Demote
-                        </button>
-                      )}
-                      {user.role === 'Disabled' && (
-                        <button type="button" onClick={() => runAction(() => api.enableUser(user.id))}>
-                          Enable
-                        </button>
-                      )}
-                      {user.role !== 'Pending' && user.id !== currentUser?.id && (
-                        <button type="button" className="secondary" onClick={() => resetPassword(user)}>
-                          Reset password
-                        </button>
-                      )}
-                      {user.role !== 'Admin' && (
-                        <button type="button" data-danger onClick={() => deleteUser(user)}>
-                          Delete
-                        </button>
-                      )}
-                    </div>
+                    <UserActions username={user.username} actions={actionsFor(user)} />
                   </td>
                 </tr>
               ))}
@@ -151,5 +138,33 @@ export default function AdminUsers() {
         </dialog>
       )}
     </>
+  )
+}
+
+/** A ⋯ menu per row instead of a button per action, so every row lines up at the same height. */
+function UserActions({ username, actions }: { username: string; actions: UserAction[] }) {
+  const menuRef = useRef<HTMLDetailsElement>(null)
+  if (actions.length === 0) return null
+
+  // The menu stays mounted after a choice, so it has to be closed by hand.
+  function choose(action: UserAction) {
+    if (menuRef.current) menuRef.current.open = false
+    action.run()
+  }
+
+  return (
+    <details className="dropdown" ref={menuRef} data-row-menu>
+      <summary aria-label={`Actions for ${username}`}>⋯</summary>
+      {/* rtl opens the menu leftwards, so it stays on screen at the right edge of the table. */}
+      <ul dir="rtl">
+        {actions.map((action) => (
+          <li key={action.label}>
+            <button type="button" data-danger={action.danger || undefined} onClick={() => choose(action)}>
+              {action.label}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </details>
   )
 }
