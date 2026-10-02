@@ -11,11 +11,11 @@
 
 /* Section headings under a page's h1 are shrunk so they read as subheadings, not as the page title. */
 h1 ~ * h2 {
-  --pico-font-size: 1.25rem;
+  --pico-font-size: 1.5rem;
 }
 
 h1 ~ * h3 {
-  --pico-font-size: 1.125rem;
+  --pico-font-size: 1.25rem;
 }
 
 /* A row with its content on the left and compact action buttons on the right. */

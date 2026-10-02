@@ -1,6 +1,47 @@
-/* A compact actions dropdown without Pico's form-element bottom margin, so every row is the same height. */
-table select {
-  --pico-form-element-spacing-vertical: 0.25rem;
-  width: auto;
+/* Row actions: a compact ⋯ button at the right of the row, opening Pico's dropdown leftwards. */
+td:has(> [data-row-menu]) {
+  text-align: right;
+}
+
+/* Prefixed with details.dropdown so these outrank Pico's own dropdown rules. */
+details.dropdown[data-row-menu] {
+  display: inline-block;
   margin: 0;
+}
+
+details.dropdown[data-row-menu] > summary:not([role]) {
+  --pico-form-element-spacing-vertical: 0.25rem;
+  --pico-form-element-spacing-horizontal: 0.75rem;
+  border-color: transparent;
+  background-color: transparent;
+  color: var(--pico-color);
+  font-weight: bold;
+  line-height: 1;
+}
+
+details.dropdown[data-row-menu] > summary::after {
+  display: none;
+}
+
+/* Menu buttons look like Pico's dropdown links: full width, no button chrome, highlighted on hover. */
+details.dropdown[data-row-menu] li button {
+  display: block;
+  width: calc(100% + var(--pico-form-element-spacing-horizontal) * 2);
+  margin: calc(var(--pico-form-element-spacing-vertical) * -0.5) calc(var(--pico-form-element-spacing-horizontal) * -1);
+  padding: calc(var(--pico-form-element-spacing-vertical) * 0.5) var(--pico-form-element-spacing-horizontal);
+  border: none;
+  border-radius: 0;
+  background: none;
+  color: var(--pico-dropdown-color);
+  text-align: start;
+}
+
+details.dropdown[data-row-menu] li button:hover,
+details.dropdown[data-row-menu] li button:focus-visible {
+  background-color: var(--pico-dropdown-hover-background-color);
+  box-shadow: none;
+}
+
+details.dropdown[data-row-menu] li button[data-danger] {
+  color: var(--pico-del-color);
 }

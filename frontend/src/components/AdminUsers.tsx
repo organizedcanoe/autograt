@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { api } from '../api/client'
 import type { User, UserRole } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
@@ -10,6 +10,8 @@ import './AdminUsers.css'
 interface UserAction {
   label: string
   run: () => void
+  /** Shown in red, for actions that can't be undone. */
+  danger?: boolean
 }
 
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -75,7 +77,7 @@ export default function AdminUsers() {
     if (user.role === 'Admin' && !isSelf) actions.push({ label: 'Demote', run: () => runAction(() => api.demoteUser(user.id)) })
     if (user.role === 'Disabled') actions.push({ label: 'Enable', run: () => runAction(() => api.enableUser(user.id)) })
     if (user.role !== 'Pending' && !isSelf) actions.push({ label: 'Reset password', run: () => resetPassword(user) })
-    if (user.role !== 'Admin') actions.push({ label: 'Delete', run: () => deleteUser(user) })
+    if (user.role !== 'Admin') actions.push({ label: 'Delete', run: () => deleteUser(user), danger: true })
     return actions
   }
 
@@ -139,23 +141,30 @@ export default function AdminUsers() {
   )
 }
 
-/** One dropdown per row instead of a button per action, so every row lines up at the same height. */
+/** A ⋯ menu per row instead of a button per action, so every row lines up at the same height. */
 function UserActions({ username, actions }: { username: string; actions: UserAction[] }) {
+  const menuRef = useRef<HTMLDetailsElement>(null)
   if (actions.length === 0) return null
 
+  // The menu stays mounted after a choice, so it has to be closed by hand.
+  function choose(action: UserAction) {
+    if (menuRef.current) menuRef.current.open = false
+    action.run()
+  }
+
   return (
-    // Always shows the placeholder: choosing runs the action rather than storing a value.
-    <select
-      aria-label={`Actions for ${username}`}
-      value=""
-      onChange={(e) => actions.find((action) => action.label === e.target.value)?.run()}
-    >
-      <option value="" disabled>
-        Actions
-      </option>
-      {actions.map((action) => (
-        <option key={action.label}>{action.label}</option>
-      ))}
-    </select>
+    <details className="dropdown" ref={menuRef} data-row-menu>
+      <summary aria-label={`Actions for ${username}`}>⋯</summary>
+      {/* rtl opens the menu leftwards, so it stays on screen at the right edge of the table. */}
+      <ul dir="rtl">
+        {actions.map((action) => (
+          <li key={action.label}>
+            <button type="button" data-danger={action.danger || undefined} onClick={() => choose(action)}>
+              {action.label}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </details>
   )
 }

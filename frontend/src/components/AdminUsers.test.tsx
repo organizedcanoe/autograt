@@ -1,5 +1,5 @@
 import { render, screen, within } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import userEvent, { type UserEvent } from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../api/client'
 import type { User } from '../api/types'
@@ -37,8 +37,11 @@ async function findRow(username: string) {
   return (await screen.findByRole('cell', { name: username })).closest('tr')!
 }
 
-async function findActions(username: string) {
-  return within(await findRow(username)).getByRole('combobox', { name: `Actions for ${username}` })
+/** Opens the row's ⋯ menu and clicks one of its actions. */
+async function chooseAction(user: UserEvent, username: string, label: string) {
+  const row = within(await findRow(username))
+  await user.click(row.getByLabelText(`Actions for ${username}`))
+  await user.click(row.getByRole('button', { name: label }))
 }
 
 describe('AdminUsers', () => {
@@ -65,31 +68,31 @@ describe('AdminUsers', () => {
 
     const adminRow = within(await findRow('admin'))
     expect(adminRow.getByRole('cell', { name: 'Admin' })).toBeInTheDocument()
-    expect(adminRow.queryByRole('combobox')).not.toBeInTheDocument()
+    expect(adminRow.queryByLabelText('Actions for admin')).not.toBeInTheDocument()
 
     const regularRow = within(await findRow('regular'))
     expect(regularRow.getByRole('cell', { name: 'User' })).toBeInTheDocument()
-    expect(regularRow.getByRole('option', { name: 'Promote' })).toBeInTheDocument()
-    expect(regularRow.getByRole('option', { name: 'Disable' })).toBeInTheDocument()
-    expect(regularRow.getByRole('option', { name: 'Delete' })).toBeInTheDocument()
+    expect(regularRow.getByRole('button', { name: 'Promote' })).toBeInTheDocument()
+    expect(regularRow.getByRole('button', { name: 'Disable' })).toBeInTheDocument()
+    expect(regularRow.getByRole('button', { name: 'Delete' })).toBeInTheDocument()
 
     const pendingRow = within(await findRow('newcomer'))
     expect(pendingRow.getByRole('cell', { name: 'Pending approval' })).toBeInTheDocument()
-    expect(pendingRow.getByRole('option', { name: 'Approve' })).toBeInTheDocument()
-    expect(pendingRow.getByRole('option', { name: 'Delete' })).toBeInTheDocument()
-    expect(pendingRow.queryByRole('option', { name: 'Promote' })).not.toBeInTheDocument()
-    expect(pendingRow.queryByRole('option', { name: 'Disable' })).not.toBeInTheDocument()
+    expect(pendingRow.getByRole('button', { name: 'Approve' })).toBeInTheDocument()
+    expect(pendingRow.getByRole('button', { name: 'Delete' })).toBeInTheDocument()
+    expect(pendingRow.queryByRole('button', { name: 'Promote' })).not.toBeInTheDocument()
+    expect(pendingRow.queryByRole('button', { name: 'Disable' })).not.toBeInTheDocument()
 
     const otherAdminRow = within(await findRow('other-admin'))
-    expect(otherAdminRow.getByRole('option', { name: 'Demote' })).toBeInTheDocument()
-    expect(otherAdminRow.queryByRole('option', { name: 'Delete' })).not.toBeInTheDocument()
-    expect(otherAdminRow.queryByRole('option', { name: 'Disable' })).not.toBeInTheDocument()
+    expect(otherAdminRow.getByRole('button', { name: 'Demote' })).toBeInTheDocument()
+    expect(otherAdminRow.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
+    expect(otherAdminRow.queryByRole('button', { name: 'Disable' })).not.toBeInTheDocument()
 
     const disabledRow = within(await findRow('blocked'))
     expect(disabledRow.getByRole('cell', { name: 'Disabled' })).toBeInTheDocument()
-    expect(disabledRow.getByRole('option', { name: 'Enable' })).toBeInTheDocument()
-    expect(disabledRow.getByRole('option', { name: 'Delete' })).toBeInTheDocument()
-    expect(disabledRow.queryByRole('option', { name: 'Promote' })).not.toBeInTheDocument()
+    expect(disabledRow.getByRole('button', { name: 'Enable' })).toBeInTheDocument()
+    expect(disabledRow.getByRole('button', { name: 'Delete' })).toBeInTheDocument()
+    expect(disabledRow.queryByRole('button', { name: 'Promote' })).not.toBeInTheDocument()
   })
 
   it('demotes another admin and reloads the list', async () => {
@@ -98,22 +101,21 @@ describe('AdminUsers', () => {
     vi.mocked(api.demoteUser).mockResolvedValue(undefined)
     render(<AdminUsers />)
 
-    await user.selectOptions(await findActions('other-admin'), 'Demote')
+    await chooseAction(user, 'other-admin', 'Demote')
 
     expect(api.demoteUser).toHaveBeenCalledWith(4)
     expect(api.listUsers).toHaveBeenCalledTimes(2)
   })
 
-  it('returns the actions dropdown to its placeholder after choosing', async () => {
+  it('closes the actions menu after choosing', async () => {
     const user = userEvent.setup()
     vi.spyOn(window, 'confirm').mockReturnValue(false)
     vi.mocked(api.listUsers).mockResolvedValue(users)
     render(<AdminUsers />)
 
-    const actions = await findActions('regular')
-    await user.selectOptions(actions, 'Disable')
+    await chooseAction(user, 'regular', 'Disable')
 
-    expect(actions).toHaveValue('')
+    expect(within(await findRow('regular')).getByRole('group')).not.toHaveAttribute('open')
   })
 
   it('disables a user once confirmed', async () => {
@@ -123,7 +125,7 @@ describe('AdminUsers', () => {
     vi.mocked(api.disableUser).mockResolvedValue(undefined)
     render(<AdminUsers />)
 
-    await user.selectOptions(await findActions('regular'), 'Disable')
+    await chooseAction(user, 'regular', 'Disable')
 
     expect(window.confirm).toHaveBeenCalledWith(
       "Disable 'regular'? They will be signed out and can't log in until enabled again. Their journal is kept.",
@@ -137,7 +139,7 @@ describe('AdminUsers', () => {
     vi.mocked(api.listUsers).mockResolvedValue(users)
     render(<AdminUsers />)
 
-    await user.selectOptions(await findActions('regular'), 'Disable')
+    await chooseAction(user, 'regular', 'Disable')
 
     expect(api.disableUser).not.toHaveBeenCalled()
   })
@@ -148,7 +150,7 @@ describe('AdminUsers', () => {
     vi.mocked(api.enableUser).mockResolvedValue(undefined)
     render(<AdminUsers />)
 
-    await user.selectOptions(await findActions('blocked'), 'Enable')
+    await chooseAction(user, 'blocked', 'Enable')
 
     expect(api.enableUser).toHaveBeenCalledWith(5)
   })
@@ -160,7 +162,7 @@ describe('AdminUsers', () => {
     vi.mocked(api.deleteUser).mockResolvedValue(undefined)
     render(<AdminUsers />)
 
-    await user.selectOptions(await findActions('regular'), 'Delete')
+    await chooseAction(user, 'regular', 'Delete')
 
     expect(window.confirm).toHaveBeenCalledWith(
       "Delete 'regular' and all their journal entries, ratings and settings? This cannot be undone.",
@@ -174,7 +176,7 @@ describe('AdminUsers', () => {
     vi.mocked(api.demoteUser).mockRejectedValue(new Error('Only admins can be demoted, and not the last one.'))
     render(<AdminUsers />)
 
-    await user.selectOptions(await findActions('other-admin'), 'Demote')
+    await chooseAction(user, 'other-admin', 'Demote')
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Only admins can be demoted, and not the last one.')
   })
@@ -185,7 +187,7 @@ describe('AdminUsers', () => {
     vi.mocked(api.approveUser).mockResolvedValue(undefined)
     render(<AdminUsers />)
 
-    await user.selectOptions(await findActions('newcomer'), 'Approve')
+    await chooseAction(user, 'newcomer', 'Approve')
 
     expect(api.approveUser).toHaveBeenCalledWith(3)
     expect(api.listUsers).toHaveBeenCalledTimes(2)
@@ -198,7 +200,7 @@ describe('AdminUsers', () => {
     vi.mocked(api.deleteUser).mockResolvedValue(undefined)
     render(<AdminUsers />)
 
-    await user.selectOptions(await findActions('newcomer'), 'Delete')
+    await chooseAction(user, 'newcomer', 'Delete')
 
     expect(window.confirm).toHaveBeenCalledWith("Delete pending user 'newcomer'? This cannot be undone.")
     expect(api.deleteUser).toHaveBeenCalledWith(3)
@@ -211,7 +213,7 @@ describe('AdminUsers', () => {
     vi.mocked(api.listUsers).mockResolvedValue(users)
     render(<AdminUsers />)
 
-    await user.selectOptions(await findActions('newcomer'), 'Delete')
+    await chooseAction(user, 'newcomer', 'Delete')
 
     expect(api.deleteUser).not.toHaveBeenCalled()
   })
@@ -220,10 +222,10 @@ describe('AdminUsers', () => {
     vi.mocked(api.listUsers).mockResolvedValue(users)
     render(<AdminUsers />)
 
-    expect(within(await findRow('regular')).getByRole('option', { name: 'Reset password' })).toBeInTheDocument()
-    expect(within(await findRow('other-admin')).getByRole('option', { name: 'Reset password' })).toBeInTheDocument()
-    expect(within(await findRow('admin')).queryByRole('option', { name: 'Reset password' })).not.toBeInTheDocument()
-    expect(within(await findRow('newcomer')).queryByRole('option', { name: 'Reset password' })).not.toBeInTheDocument()
+    expect(within(await findRow('regular')).getByRole('button', { name: 'Reset password' })).toBeInTheDocument()
+    expect(within(await findRow('other-admin')).getByRole('button', { name: 'Reset password' })).toBeInTheDocument()
+    expect(within(await findRow('admin')).queryByRole('button', { name: 'Reset password' })).not.toBeInTheDocument()
+    expect(within(await findRow('newcomer')).queryByRole('button', { name: 'Reset password' })).not.toBeInTheDocument()
   })
 
   it('resets a password once confirmed and shows the temporary password until closed', async () => {
@@ -233,7 +235,7 @@ describe('AdminUsers', () => {
     vi.mocked(api.resetUserPassword).mockResolvedValue({ temporaryPassword: 'Temp4321abcd' })
     render(<AdminUsers />)
 
-    await user.selectOptions(await findActions('regular'), 'Reset password')
+    await chooseAction(user, 'regular', 'Reset password')
 
     expect(window.confirm).toHaveBeenCalledWith(
       "Reset the password for 'regular'? They will be signed out everywhere and must choose a new password when they next log in.",
@@ -255,7 +257,7 @@ describe('AdminUsers', () => {
     vi.mocked(api.resetUserPassword).mockResolvedValue({ temporaryPassword: 'Temp4321abcd' })
     render(<AdminUsers />)
 
-    await user.selectOptions(await findActions('regular'), 'Reset password')
+    await chooseAction(user, 'regular', 'Reset password')
     await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Copy' }))
 
     expect(writeText).toHaveBeenCalledWith('Temp4321abcd')
@@ -267,7 +269,7 @@ describe('AdminUsers', () => {
     vi.mocked(api.listUsers).mockResolvedValue(users)
     render(<AdminUsers />)
 
-    await user.selectOptions(await findActions('regular'), 'Reset password')
+    await chooseAction(user, 'regular', 'Reset password')
 
     expect(api.resetUserPassword).not.toHaveBeenCalled()
   })
