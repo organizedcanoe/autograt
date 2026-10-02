@@ -11,7 +11,8 @@ public class TokenService(JwtSigningKey signingKey)
     public const string Issuer = "autograt";
     public const string Audience = "autograt";
 
-    private static readonly TimeSpan Lifetime = TimeSpan.FromDays(7);
+    // Clients refresh the token while in use (POST /api/auth/refresh), so this is how long a session survives unused.
+    private static readonly TimeSpan Lifetime = TimeSpan.FromDays(30);
 
     public (string Token, DateTime ExpiresAtUtc) CreateToken(User user)
     {

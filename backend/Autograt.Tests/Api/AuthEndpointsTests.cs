@@ -97,4 +97,44 @@ public class AuthEndpointsTests : IDisposable
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
+
+    [Fact]
+    public async Task Refresh_ReturnsWorkingTokenLasting30Days()
+    {
+        var client = await _factory.CreateAuthenticatedClientAsync("billy");
+
+        var response = await client.PostAsync("/api/auth/refresh", null);
+        var session = await response.Content.ReadFromJsonAsync<LoginResponse>(TestJson.Options);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("billy", session!.User.Username);
+        Assert.InRange(session.ExpiresAtUtc, DateTime.UtcNow.AddDays(29), DateTime.UtcNow.AddDays(31));
+
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.Token);
+        Assert.Equal(HttpStatusCode.OK, (await _client.GetAsync("/api/auth/me")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Refresh_WithoutToken_Returns401()
+    {
+        var response = await _client.PostAsync("/api/auth/refresh", null);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Refresh_EndedSession_Returns401()
+    {
+        var client = await _factory.CreateAuthenticatedClientAsync("billy");
+        var otherDevice = await _client.PostAsJsonAsync(
+            "/api/auth/login", new { username = "billy", password = AutogratApiFactory.DefaultPassword });
+        var otherSession = await otherDevice.Content.ReadFromJsonAsync<LoginResponse>(TestJson.Options);
+        await client.PutAsJsonAsync("/api/account/password",
+            new { currentPassword = AutogratApiFactory.DefaultPassword, newPassword = "a-brand-new-password" });
+
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", otherSession!.Token);
+        var response = await _client.PostAsync("/api/auth/refresh", null);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
 }
