@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { api, setAuthToken, setUnauthorizedHandler } from '../api/client'
 import type { LoginResponse, User } from '../api/types'
 
@@ -18,6 +18,9 @@ interface AuthContextValue {
 }
 
 const STORAGE_KEY = 'autograt.session'
+
+/** How long an app left open (e.g. an installed PWA) waits before refreshing its token again. */
+const REFRESH_INTERVAL_MS = 24 * 60 * 60 * 1000
 
 // Storage can be unavailable (private mode, blocked site data), so every access is guarded.
 function loadSession(): Session | null {
@@ -48,7 +51,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return stored
   })
 
+  // When the token was last refreshed or issued; 0 until then.
+  const lastRefreshRef = useRef(0)
+
   const applySession = useCallback((next: Session | null) => {
+    lastRefreshRef.current = Date.now()
     setAuthToken(next?.token ?? null)
     saveSession(next)
     setSession(next)
@@ -80,23 +87,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => setUnauthorizedHandler(null)
   }, [logout])
 
-  // The stored user may be stale, e.g. an admin changed their role, so refresh it once on load.
-  // A rejected session is handled by the 401 handler; other failures keep the stored user.
-  const [initialToken] = useState(session?.token ?? null)
-  useEffect(() => {
-    if (!initialToken) return
-    api.me().then(
-      (user) => {
+  // Swapping the token for a new one while the app is in use keeps the session from expiring. It also refreshes
+  // the stored user, which may be stale, e.g. an admin changed their role. A rejected session is handled by the
+  // 401 handler; other failures keep the current session.
+  const refreshSession = useCallback((token: string) => {
+    lastRefreshRef.current = Date.now()
+    api.refresh().then(
+      (response) => {
         setSession((current) => {
-          if (current?.token !== initialToken) return current
-          const next = { ...current, user }
+          if (current?.token !== token) return current
+          const next = { token: response.token, user: response.user }
+          setAuthToken(next.token)
           saveSession(next)
           return next
         })
       },
       () => {},
     )
-  }, [initialToken])
+  }, [])
+
+  const [initialToken] = useState(session?.token ?? null)
+  useEffect(() => {
+    if (initialToken) refreshSession(initialToken)
+  }, [initialToken, refreshSession])
+
+  const token = session?.token ?? null
+  useEffect(() => {
+    if (!token) return
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && Date.now() - lastRefreshRef.current > REFRESH_INTERVAL_MS) {
+        refreshSession(token)
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange)
+  }, [token, refreshSession])
 
   const value = useMemo(
     () => ({ user: session?.user ?? null, login, register, logout, startSession }),
