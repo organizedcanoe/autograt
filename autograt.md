@@ -132,6 +132,8 @@ Represents additional notes appended specifically to an existing `JournalSubEntr
 
 * **Authentication:** Authenticated via JSON Web Tokens (JWT) provided in the Authorization HTTP header.
 
+* **Session Length:** Tokens last 30 days. Sessions slide: the authenticated `POST /api/auth/refresh` returns a new `LoginResponse` for the current user, so a session in use never expires and one left unused for 30 days does. An ended session (see Session Revocation) cannot be refreshed.
+
 * **Session Revocation:** Each token carries the user's `SecurityStamp`. Every request checks it against the database, so a token whose user no longer exists, is pending or disabled, whose stamp has changed, or which has no stamp is rejected with an HTTP 401 Unauthorized error. The stamp is replaced when the user changes their password, when an admin resets it, and when an admin disables the user, which signs out every existing session.
 
 * **Roles:** Tokens do not carry the role. Every request reads it from the database along with the security stamp, so promoting or demoting a user takes effect on their next request without logging in again.
@@ -391,7 +393,7 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 * Below the users, a **Registration** section has an **Open registration** switch. While registration is closed, the login page shows "Registration is closed. Ask an admin for an account." instead of the register link. If the status can't be loaded, the register link stays.
 
-* On load, a signed-in browser refreshes the stored user from `GET /api/auth/me`, so a demoted admin loses the Admin menu item.
+* On load, a signed-in browser refreshes its session from `POST /api/auth/refresh`, replacing the stored token and user, so the session keeps sliding and a demoted admin loses the Admin menu item. An app left open (e.g. an installed PWA) refreshes again when it returns to the foreground more than a day after the last refresh. A failed refresh keeps the current session, unless it is rejected with 401.
 
 ## 6. Docker & Containerization Specification
 
@@ -421,7 +423,7 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
 ### Backend Tests (xUnit + Moq + EF Core In-Memory / SQLite)
 
-* **Authentication Unit Tests:** Verify user creation logic, initial user admin assignment, later users starting as pending, that closed registration rejects later users but not the first, and password hashing logic.
+* **Authentication Unit Tests:** Verify user creation logic, initial user admin assignment, later users starting as pending, that closed registration rejects later users but not the first, and password hashing logic. Verify that refreshing returns a working token lasting 30 days, and returns 401 without a token or for an ended session.
 
 * **Admin Endpoint Tests:** Verify that pending users cannot log in; that admins can approve or delete pending users and promote standard users; that deleting a standard or disabled user removes their data and ends their session, and deleting an admin is rejected; that promoting and demoting apply to the user's existing session, and demoting yourself or a non-admin is rejected; that disabling a standard user ends their session and blocks login until enabled again, and disabling an admin or enabling a user who isn't disabled is rejected; that closing registration rejects new sign-ups and is reported by the registration status, and reopening allows them; that invalid role changes are rejected and unknown users return 404; and that non-admins are forbidden (403) from every admin endpoint.
 
@@ -471,7 +473,7 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
 * Validate that the settings page saves theme changes and reports failed saves, and that only admins can reach the admin page.
 
-* Validate that registering a pending account shows the approval notice without logging in, and that the login page hides registration while it is closed (but not when its status fails to load); that the admin page shows the actions for each role, approves pending users, demotes other admins, disables users and deletes them only after confirmation, enables disabled users, and shows server errors; that the registration switch saves and keeps the old value when saving fails; and that a stored session's user is refreshed from the server on load.
+* Validate that registering a pending account shows the approval notice without logging in, and that the login page hides registration while it is closed (but not when its status fails to load); that the admin page shows the actions for each role, approves pending users, demotes other admins, disables users and deletes them only after confirmation, enables disabled users, and shows server errors; that the registration switch saves and keeps the old value when saving fails; and that a stored session's token and user are refreshed from the server on load, kept when the refresh fails, and refreshed again when the app returns to the foreground a day later but not sooner.
 
 * Validate that the Account section saves a new username into the session and shows server errors; that the password form checks its fields before calling the server, keeps this session signed in on success and shows a wrong password; that deleting the account can be cancelled, needs the password, shows a wrong password in the dialog, and logs out on success; that a user who must change their password sees only the choose a new password page; and that the admin page offers a password reset only for other approved users, confirms first and shows the temporary password once.
 

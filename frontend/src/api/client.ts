@@ -111,6 +111,9 @@ export const api = {
 
   me: () => request<User>('GET', '/auth/me'),
 
+  /** Swaps the current token for a new one, so a session in use never expires. */
+  refresh: () => request<LoginResponse>('POST', '/auth/refresh'),
+
   getRegistrationStatus: () => request<RegistrationStatus>('GET', '/auth/registration'),
 
   /** Signs out every other session; the response is the new session for this one. */
