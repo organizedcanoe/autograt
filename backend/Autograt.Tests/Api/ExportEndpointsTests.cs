@@ -145,6 +145,49 @@ public class ExportEndpointsTests : IClassFixture<AutogratApiFactory>
         Assert.Equal(expected.ReplaceLineEndings("\n"), markdown);
     }
 
+    [Fact]
+    public async Task ExportMarkdown_ShowsDatesInTheSavedTimeZone()
+    {
+        var username = $"tz-{Guid.NewGuid():N}"[..16];
+        var client = await _factory.CreateAuthenticatedClientAsync(username);
+        await client.SaveSettingAsync("TimeZone", "America/Toronto");
+        // 02:00 UTC on the 24th is 22:00 on the 23rd in Toronto.
+        var appendedAtUtc = new DateTime(2026, 9, 23, 2, 0, 0, DateTimeKind.Utc);
+        var import = await client.PostAsJsonAsync("/api/import", new
+        {
+            format = "autograt-export",
+            version = 1,
+            settings = Array.Empty<object>(),
+            entries = new[]
+            {
+                new
+                {
+                    date = Yesterday,
+                    createdAtUtc = appendedAtUtc.AddDays(-1),
+                    subEntries = new[]
+                    {
+                        new
+                        {
+                            category = "Good",
+                            content = "Walked the dog",
+                            createdAtUtc = appendedAtUtc.AddDays(-1),
+                            appends = new[] { new { content = "It rained later", createdAtUtc = appendedAtUtc } },
+                        },
+                    },
+                },
+            },
+        });
+        import.EnsureSuccessStatusCode();
+        using var _ = _factory.Clock.TravelTo(new DateTimeOffset(2026, 9, 24, 2, 0, 0, TimeSpan.Zero));
+
+        var response = await client.GetAsync("/api/export?format=markdown");
+
+        Assert.Equal($"autograt-{username}-{Today:yyyy-MM-dd}.md", response.Content.Headers.ContentDisposition!.FileName?.Trim('"'));
+        var markdown = (await response.Content.ReadAsStringAsync()).ReplaceLineEndings("\n");
+        Assert.Contains($"Exported {Today:yyyy-MM-dd}\n", markdown);
+        Assert.Contains($"_Added {Yesterday:yyyy-MM-dd}:_ It rained later", markdown);
+    }
+
     private static async Task<JournalExport> GetJsonExportAsync(HttpClient client) =>
         (await client.GetFromJsonAsync<JournalExport>("/api/export?format=json", TestJson.Options))!;
 }

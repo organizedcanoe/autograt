@@ -92,7 +92,7 @@ public class ReminderServiceTests : IClassFixture<AutogratApiFactory>
     {
         var username = NewUsername();
         var client = await _factory.CreateAuthenticatedClientAsync(username);
-        await PutSettingAsync(client, "RemindersEnabled", "on");
+        await client.SaveSettingAsync("RemindersEnabled", "on");
 
         await RunAtAsync(12, 0);
 
@@ -103,7 +103,7 @@ public class ReminderServiceTests : IClassFixture<AutogratApiFactory>
     public async Task UsesTheUsersTimeZone()
     {
         var (_, device) = await CreateUserWithRemindersAsync();
-        await PutSettingAsync(device.Client, "TimeZone", "America/Toronto");
+        await device.Client.SaveSettingAsync("TimeZone", "America/Toronto");
 
         await RunAtAsync(12, 0);
         Assert.Empty(_factory.Push.SentTo(device.Endpoint));
@@ -174,7 +174,7 @@ public class ReminderServiceTests : IClassFixture<AutogratApiFactory>
         var client = await _factory.CreateAuthenticatedClientAsync(username);
         if (remindersEnabled)
         {
-            await PutSettingAsync(client, "RemindersEnabled", "on");
+            await client.SaveSettingAsync("RemindersEnabled", "on");
         }
 
         var endpoint = NewEndpoint();
@@ -187,12 +187,6 @@ public class ReminderServiceTests : IClassFixture<AutogratApiFactory>
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AutogratDbContext>();
         return await db.Users.Where(u => u.Username == username).Select(u => u.LastReminderAtUtc).SingleAsync();
-    }
-
-    private static async Task PutSettingAsync(HttpClient client, string setting, string value)
-    {
-        var response = await client.PutAsJsonAsync($"/api/settings/{setting}", new { values = new[] { value } });
-        response.EnsureSuccessStatusCode();
     }
 
     private static async Task SubscribeAsync(HttpClient client, string endpoint)

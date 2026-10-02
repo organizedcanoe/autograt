@@ -173,6 +173,36 @@ public class ImportEndpointsTests : IClassFixture<AutogratApiFactory>
         Assert.Empty((await GetDayAsync(client, LastYear)).SubEntries);
     }
 
+    [Fact]
+    public async Task Import_DayThatHasNotStartedInTheSavedTimeZone_Returns400()
+    {
+        var client = await _factory.CreateAuthenticatedClientAsync();
+        await client.SaveSettingAsync("TimeZone", "America/Toronto");
+        var file = ValidFile();
+        // Noon UTC on the 23rd is 08:00 on the 23rd in Toronto, though the 24th has started in UTC+14.
+        file["entries"]!.AsArray().Add(Day(Today.AddDays(1), "Too soon"));
+
+        var response = await client.PostAsJsonAsync("/api/import", file);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Import_WithATimeZoneInTheFile_UsesItForTheFutureCheck()
+    {
+        var client = await _factory.CreateAuthenticatedClientAsync();
+        await client.SaveSettingAsync("TimeZone", "America/Toronto");
+        var file = ValidFile();
+        file["settings"]!.AsArray().Add(new JsonObject { ["setting"] = "TimeZone", ["values"] = new JsonArray("Asia/Tokyo") });
+        file["entries"]!.AsArray().Add(Day(Today.AddDays(1), "Already tomorrow in Tokyo"));
+        // 20:00 UTC on the 23rd is 05:00 on the 24th in Tokyo, but 16:00 on the 23rd in Toronto.
+        using var _ = _factory.Clock.TravelTo(new DateTimeOffset(2026, 9, 23, 20, 0, 0, TimeSpan.Zero));
+
+        var result = await ImportAsync(client, file);
+
+        Assert.Equal(2, result.ImportedDays);
+    }
+
     public static TheoryData<string, Action<JsonNode>> InvalidFiles => new()
     {
         { "wrong format", file => file["format"] = "something-else" },

@@ -3,7 +3,6 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api, ApiError } from '../api/client'
 import type { UserSetting } from '../api/types'
-import { detectTimeZone } from '../push/timeZones'
 import { restorePushBrowser, stubIos, stubPushBrowser, TEST_ENDPOINT } from '../test/pushBrowserStub'
 import ReminderSettings from './ReminderSettings'
 
@@ -23,23 +22,16 @@ vi.mock('../api/client', async (importOriginal) => {
   }
 })
 
-vi.mock('../push/timeZones', async (importOriginal) => {
-  const original = await importOriginal<typeof import('../push/timeZones')>()
-  return { ...original, detectTimeZone: vi.fn() }
-})
-
 interface SavedReminders {
   enabled?: boolean
   times?: string[]
-  timeZone?: string
 }
 
-function renderWith({ enabled = false, times = ['12:00', '20:00'], timeZone = 'UTC' }: SavedReminders = {}) {
+function renderWith({ enabled = false, times = ['12:00', '20:00'] }: SavedReminders = {}) {
   const settings: UserSetting[] = [
     { setting: 'BrightnessTheme', values: ['system'] },
     { setting: 'RemindersEnabled', values: [enabled ? 'on' : 'off'] },
     { setting: 'ReminderTime', values: times },
-    { setting: 'TimeZone', values: [timeZone] },
   ]
   vi.mocked(api.getSettings).mockResolvedValue(settings)
   render(<ReminderSettings />)
@@ -49,7 +41,6 @@ const reminderSwitch = () => screen.findByRole('switch', { name: 'Enable reminde
 
 describe('ReminderSettings', () => {
   beforeEach(() => {
-    vi.mocked(detectTimeZone).mockReturnValue('America/Toronto')
     vi.mocked(api.updateSetting).mockImplementation((setting, values) => Promise.resolve({ setting, values }))
     vi.mocked(api.getPushPublicKey).mockResolvedValue({ publicKey: 'AQID' })
   })
@@ -60,12 +51,11 @@ describe('ReminderSettings', () => {
   })
 
   describe('unsupported browsers', () => {
-    it('explains when the browser has no notifications, but still shows the time zone', async () => {
+    it('explains when the browser has no notifications', async () => {
       renderWith()
 
       expect(await screen.findByText("This browser doesn't support notifications.")).toBeInTheDocument()
       expect(screen.queryByRole('switch')).not.toBeInTheDocument()
-      expect(screen.getByRole('combobox', { name: 'Time zone' })).toBeInTheDocument()
     })
 
     it('asks iOS users to add the app to the Home Screen', async () => {
@@ -227,52 +217,6 @@ describe('ReminderSettings', () => {
       renderWith()
 
       expect(await screen.findByLabelText('Reminder time 1')).toHaveValue('12:00')
-    })
-  })
-
-  describe('time zone', () => {
-    it('shows the saved zone and offers the detected one with a warning', async () => {
-      stubPushBrowser()
-      renderWith({ timeZone: 'UTC' })
-
-      expect(await screen.findByRole('combobox', { name: 'Time zone' })).toHaveValue('UTC')
-      expect(screen.getByText(/this device is in America\/Toronto/)).toBeInTheDocument()
-
-      await userEvent.click(screen.getByRole('button', { name: 'Use America/Toronto (detected)' }))
-
-      expect(api.updateSetting).toHaveBeenCalledWith('TimeZone', ['America/Toronto'])
-      expect(screen.getByRole('combobox', { name: 'Time zone' })).toHaveValue('America/Toronto')
-      expect(screen.queryByRole('button', { name: /detected/ })).not.toBeInTheDocument()
-      expect(screen.queryByText(/this device is in/)).not.toBeInTheDocument()
-    })
-
-    it('shows neither the button nor the warning when the zones match', async () => {
-      stubPushBrowser()
-      vi.mocked(detectTimeZone).mockReturnValue('UTC')
-      renderWith({ timeZone: 'UTC' })
-
-      await screen.findByRole('combobox', { name: 'Time zone' })
-      expect(screen.queryByRole('button', { name: /detected/ })).not.toBeInTheDocument()
-      expect(screen.queryByText(/this device is in/)).not.toBeInTheDocument()
-    })
-
-    it('saves a zone chosen from the list', async () => {
-      stubPushBrowser()
-      renderWith()
-
-      await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'Time zone' }), 'Europe/London')
-
-      expect(api.updateSetting).toHaveBeenCalledWith('TimeZone', ['Europe/London'])
-    })
-
-    it('reports a zone that could not be saved', async () => {
-      stubPushBrowser()
-      vi.mocked(api.updateSetting).mockRejectedValue(new ApiError(400, 'Bad zone'))
-      renderWith()
-
-      await userEvent.selectOptions(await screen.findByRole('combobox', { name: 'Time zone' }), 'Europe/London')
-
-      expect(await screen.findByRole('alert')).toHaveTextContent('Your time zone could not be saved: Bad zone')
     })
   })
 })

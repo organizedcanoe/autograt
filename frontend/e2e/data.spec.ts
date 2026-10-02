@@ -19,7 +19,7 @@ test("a JSON export imported into another account shows up on that account's hea
   const downloading = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Export as JSON' }).click()
   const download = await downloading
-  expect(download.suggestedFilename()).toBe(`autograt-${ADMIN_USERNAME}-${new Date().toISOString().slice(0, 10)}.json`)
+  expect(download.suggestedFilename()).toBe(`autograt-${ADMIN_USERNAME}-${today}.json`)
   const exportPath = await download.path()
   await logOut(page, ADMIN_USERNAME)
 

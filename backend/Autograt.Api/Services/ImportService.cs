@@ -13,13 +13,13 @@ public sealed record ImportProblem(string Field, string Message);
 /// user's day on that date, days not in the file are left untouched, and each setting in it replaces the
 /// user's saved values. Unlike normal editing, past days can be written, and the file's timestamps are kept.
 /// </summary>
-public class ImportService(AutogratDbContext db, TimeProvider timeProvider)
+public class ImportService(AutogratDbContext db, SettingsService settingsService, TimeProvider timeProvider)
 {
     /// <summary>
     /// Checks the rules data annotations can't express. The file must already have passed annotation validation.
     /// </summary>
     /// <returns>Every problem found, or an empty list when the file can be imported.</returns>
-    public List<ImportProblem> Validate(JournalExport file)
+    public async Task<List<ImportProblem>> ValidateAsync(int userId, JournalExport file)
     {
         var problems = new List<ImportProblem>();
 
@@ -33,6 +33,7 @@ public class ImportService(AutogratDbContext db, TimeProvider timeProvider)
             problems.Add(new("version", $"Version {file.Version} is not supported; this server imports version {JournalExport.CurrentVersion}."));
         }
 
+        var timeZone = await GetTimeZoneAfterImportAsync(userId, file);
         var now = timeProvider.GetUtcNow();
         var seenDates = new HashSet<DateOnly>();
         for (var i = 0; i < file.Entries.Count; i++)
@@ -42,7 +43,7 @@ public class ImportService(AutogratDbContext db, TimeProvider timeProvider)
             {
                 problems.Add(new($"entries[{i}].date", $"{date:yyyy-MM-dd} appears more than once."));
             }
-            else if (JournalDates.IsFuture(date, now))
+            else if (JournalDates.IsFuture(date, now, timeZone))
             {
                 problems.Add(new($"entries[{i}].date", $"{date:yyyy-MM-dd} is in the future."));
             }
@@ -64,7 +65,7 @@ public class ImportService(AutogratDbContext db, TimeProvider timeProvider)
         return problems;
     }
 
-    /// <summary>Imports a file that passed <see cref="Validate"/>, all or nothing.</summary>
+    /// <summary>Imports a file that passed <see cref="ValidateAsync"/>, all or nothing.</summary>
     public async Task<ImportResponse> ImportAsync(int userId, JournalExport file)
     {
         await using var transaction = await db.Database.BeginTransactionAsync();
@@ -92,6 +93,13 @@ public class ImportService(AutogratDbContext db, TimeProvider timeProvider)
         await transaction.CommitAsync();
 
         return new ImportResponse(file.Entries.Count, replaced.Select(e => e.EntryDate).ToList(), file.Settings.Count);
+    }
+
+    /// <summary>The time zone the user will have once the file is imported: the file's, or else their saved one.</summary>
+    private async Task<TimeZoneInfo?> GetTimeZoneAfterImportAsync(int userId, JournalExport file)
+    {
+        var imported = file.Settings.FirstOrDefault(s => s.Setting == Setting.TimeZone)?.Values.FirstOrDefault();
+        return SettingsService.FindTimeZone(imported) ?? await settingsService.GetTimeZoneAsync(userId);
     }
 
     private static JournalEntry ToEntity(int userId, ExportedDay day)

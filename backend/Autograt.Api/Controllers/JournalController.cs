@@ -52,8 +52,8 @@ public class JournalController(JournalService journalService, SearchService sear
     [HttpPost("sub-entries/{subEntryId:int}/appends")]
     public async Task<ActionResult<AppendResponse>> AddAppend(int subEntryId, CreateAppendRequest request)
     {
-        var append = await journalService.AddAppendAsync(User.GetUserId(), subEntryId, request);
-        return append is null ? NotFound() : StatusCode(StatusCodes.Status201Created, append);
+        var result = await journalService.AddAppendAsync(User.GetUserId(), subEntryId, request);
+        return result.IsSuccess ? StatusCode(StatusCodes.Status201Created, result.Value) : Failure(result.Error.Value);
     }
 
     [HttpDelete("appends/{appendId:int}")]
@@ -100,6 +100,7 @@ public class JournalController(JournalService journalService, SearchService sear
     {
         ServiceError.NotFound => NotFound(),
         ServiceError.ReadOnly => BadRequest(new ProblemDetails { Title = "Past days are read-only. You can still append notes." }),
+        ServiceError.FutureDay => BadRequest(new ProblemDetails { Title = "Future days can't be written yet." }),
         _ => throw new ArgumentOutOfRangeException(nameof(error), error, null),
     };
 }

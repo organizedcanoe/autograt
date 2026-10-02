@@ -15,6 +15,9 @@ public enum Setting
     /// <summary>The local times reminders are sent at, as 24-hour "HH:mm"; up to four values.</summary>
     ReminderTime = 4,
 
-    /// <summary>The IANA time zone reminder times are in, e.g. "America/Toronto".</summary>
+    /// <summary>
+    /// The user's IANA time zone, e.g. "America/Toronto". It decides when "today" starts and ends and what time
+    /// reminders are sent at. It has no default, since the server can't know it until the user saves one.
+    /// </summary>
     TimeZone = 5,
 }

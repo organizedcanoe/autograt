@@ -4,7 +4,6 @@ import type { SettingName, UserSetting } from '../api/types'
 import { useAsync } from '../hooks/useAsync'
 import { getPushSupport, type PushSupport } from '../push/pushSupport'
 import { getThisDeviceSubscription, subscribeThisDevice, unsubscribeThisDevice } from '../push/pushSubscription'
-import { detectTimeZone, timeZoneOptions } from '../push/timeZones'
 import { errorMessage } from '../utils/errors'
 import AsyncView from './AsyncView'
 
@@ -22,7 +21,6 @@ const NOTICES: Record<Exclude<PushSupport, 'supported'>, string> = {
 interface Reminders {
   enabled: boolean
   times: string[]
-  timeZone: string
 }
 
 function remindersFromSettings(settings: UserSetting[]): Reminders {
@@ -30,7 +28,6 @@ function remindersFromSettings(settings: UserSetting[]): Reminders {
   return {
     enabled: valuesOf('RemindersEnabled')[0] === 'on',
     times: valuesOf('ReminderTime'),
-    timeZone: valuesOf('TimeZone')[0] ?? 'UTC',
   }
 }
 
@@ -48,10 +45,8 @@ export default function ReminderSettings() {
 
 function ReminderForm({ saved }: { saved: Reminders }) {
   const [support] = useState(getPushSupport)
-  const [detectedZone] = useState(detectTimeZone)
   const [enabled, setEnabled] = useState(saved.enabled)
   const [times, setTimes] = useState(saved.times)
-  const [timeZone, setTimeZone] = useState(saved.timeZone)
   // Null until known; reminders are delivered only to devices that subscribed.
   const [deviceSubscribed, setDeviceSubscribed] = useState<boolean | null>(null)
   const [busy, setBusy] = useState(false)
@@ -137,11 +132,6 @@ function ReminderForm({ saved }: { saved: Reminders }) {
     saveTimes(next)
   }
 
-  function changeTimeZone(zone: string) {
-    setTimeZone(zone)
-    void attempt('Your time zone could not be saved', () => saveSetting('TimeZone', [zone]))
-  }
-
   function sendTest() {
     void attempt('The test notification could not be sent', async () => {
       await api.sendTestPush()
@@ -149,33 +139,11 @@ function ReminderForm({ saved }: { saved: Reminders }) {
     })
   }
 
-  const zoneMismatch = detectedZone !== timeZone
-
   return (
     <>
       {error && <p role="alert">{error}</p>}
 
-      <label htmlFor="reminder-time-zone">Time zone</label>
-      <fieldset role="group">
-        <select id="reminder-time-zone" value={timeZone} onChange={(e) => changeTimeZone(e.target.value)}>
-          {timeZoneOptions(timeZone).map((zone) => (
-            <option key={zone} value={zone}>
-              {zone}
-            </option>
-          ))}
-        </select>
-        {zoneMismatch && (
-          <button type="button" className="secondary" onClick={() => changeTimeZone(detectedZone)}>
-            Use {detectedZone} (detected)
-          </button>
-        )}
-      </fieldset>
-      {zoneMismatch && (
-        <p>
-          <mark>Warning:</mark> your time zone is set to {timeZone}, but this device is in {detectedZone}. Reminder
-          times follow your time zone, so set it before turning reminders on.
-        </p>
-      )}
+      <p>Reminder times follow your time zone, set above.</p>
 
       {support === 'supported' ? (
         <>

@@ -60,12 +60,15 @@ public class ExportService(AutogratDbContext db, TimeProvider timeProvider)
         };
     }
 
-    /// <summary>Renders an export for reading or printing, newest day first. It cannot be imported.</summary>
-    public static string ToMarkdown(JournalExport export)
+    /// <summary>
+    /// Renders an export for reading or printing, newest day first, with times shown as dates in the user's time
+    /// zone (UTC without one). It cannot be imported.
+    /// </summary>
+    public static string ToMarkdown(JournalExport export, TimeZoneInfo? timeZone)
     {
         var markdown = new StringBuilder()
             .Append($"# Autograt journal: {export.Username}\n")
-            .Append($"Exported {export.ExportedAtUtc:yyyy-MM-dd}\n");
+            .Append($"Exported {LocalDate(export.ExportedAtUtc!.Value, timeZone):yyyy-MM-dd}\n");
 
         foreach (var day in export.Entries.OrderByDescending(e => e.Date))
         {
@@ -77,13 +80,16 @@ public class ExportService(AutogratDbContext db, TimeProvider timeProvider)
                 markdown.Append($"- **{subEntry.Category}:** {Indent(subEntry.Content, 2)}\n");
                 foreach (var append in subEntry.Appends)
                 {
-                    markdown.Append($"  - _Added {append.CreatedAtUtc:yyyy-MM-dd}:_ {Indent(append.Content, 4)}\n");
+                    markdown.Append($"  - _Added {LocalDate(append.CreatedAtUtc!.Value, timeZone):yyyy-MM-dd}:_ {Indent(append.Content, 4)}\n");
                 }
             }
         }
 
         return markdown.ToString();
     }
+
+    private static DateOnly LocalDate(DateTime utc, TimeZoneInfo? timeZone) =>
+        JournalDates.ToLocalDate(new DateTimeOffset(utc, TimeSpan.Zero), timeZone);
 
     /// <summary>Indents the lines after the first, so multi-line content stays inside its list item.</summary>
     private static string Indent(string content, int spaces) =>
