@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { ADMIN_USERNAME, PASSWORD, createApprovedUser, logIn, logOut, openMenuItem, submitLogin } from './helpers.ts'
+import { ADMIN_USERNAME, PASSWORD, chooseUserAction, createApprovedUser, logIn, logOut, openMenuItem, submitLogin } from './helpers.ts'
 
 const NEW_PASSWORD = 'a-brand-new-password'
 
@@ -33,11 +33,7 @@ test('an admin resets a password and the user must choose a new one', async ({ p
   await logIn(page, ADMIN_USERNAME)
   await openMenuItem(page, ADMIN_USERNAME, 'Admin')
   page.once('dialog', (dialog) => void dialog.accept())
-  await page
-    .getByRole('row')
-    .filter({ has: page.getByRole('cell', { name: username, exact: true }) })
-    .getByRole('button', { name: 'Reset password' })
-    .click()
+  await chooseUserAction(page, username, 'Reset password')
   const temporaryPassword = await page.getByRole('dialog').locator('code').innerText()
   await page.getByRole('button', { name: 'Done' }).click()
   await logOut(page, ADMIN_USERNAME)
