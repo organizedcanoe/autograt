@@ -1,13 +1,16 @@
 import { expect, test, type Page } from '@playwright/test'
-import { ADMIN_USERNAME, logIn, openMenuItem } from './helpers.ts'
+import { createApprovedUser, logIn, openMenuItem } from './helpers.ts'
 
 function settingSaved(page: Page, setting: string) {
   return page.waitForResponse((r) => r.request().method() === 'PUT' && r.url().endsWith(`/api/settings/${setting}`) && r.ok())
 }
 
-test('settings changes are saved to the account', async ({ page, browser }) => {
-  await logIn(page, ADMIN_USERNAME)
-  await openMenuItem(page, ADMIN_USERNAME, 'Settings')
+test('settings changes are saved to the account', async ({ page, browser, request }) => {
+  // Its own user, since the time zone set here decides "today" for other specs' entries.
+  const username = `e2e-settings-${Date.now()}`
+  await createApprovedUser(request, username)
+  await logIn(page, username)
+  await openMenuItem(page, username, 'Settings')
   const root = page.locator('html')
 
   // Theme changes apply straight away.
@@ -27,10 +30,10 @@ test('settings changes are saved to the account', async ({ page, browser }) => {
   // A fresh browser has no cached theme, so it can only get these from the server.
   const freshContext = await browser.newContext()
   const freshPage = await freshContext.newPage()
-  await logIn(freshPage, ADMIN_USERNAME)
+  await logIn(freshPage, username)
   await expect(freshPage.locator('html')).toHaveAttribute('data-theme', 'dark')
   await expect(freshPage.locator('html')).toHaveAttribute('data-color', 'violet')
-  await openMenuItem(freshPage, ADMIN_USERNAME, 'Settings')
+  await openMenuItem(freshPage, username, 'Settings')
   await expect(freshPage.getByLabel('Mode')).toHaveValue('dark')
   await expect(freshPage.getByLabel('Color')).toHaveValue('violet')
   await expect(freshPage.getByLabel('Time zone')).toHaveValue('Asia/Tokyo')

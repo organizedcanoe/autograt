@@ -8,9 +8,9 @@ namespace Autograt.Api.Services;
 /// <summary>
 /// Journal operations for a single user. Today's rating and sub-entries can be edited, and today's sub-entries and
 /// appends deleted; the day's entry is created by whichever comes first. Past days are read-only apart from new
-/// appends, and appends are never edited.
+/// appends, future days can't be written, and appends are never edited. "Today" follows the user's time zone.
 /// </summary>
-public class JournalService(AutogratDbContext db, TimeProvider timeProvider)
+public class JournalService(AutogratDbContext db, SettingsService settingsService, TimeProvider timeProvider)
 {
     /// <summary>The longest heatmap range, enough for a full leap year.</summary>
     public const int MaxHeatmapDays = 366;
@@ -37,12 +37,12 @@ public class JournalService(AutogratDbContext db, TimeProvider timeProvider)
     }
 
     /// <summary>Sets the rating of today's entry, creating the entry if the day has none yet.</summary>
-    /// <returns>The updated day, or a failure if the date is in the past.</returns>
+    /// <returns>The updated day, or a failure if the date isn't today.</returns>
     public async Task<ServiceResult<DayDetailResponse>> UpdateRatingAsync(int userId, DateOnly entryDate, int dayRating)
     {
-        if (IsPastDay(entryDate))
+        if (await FindDateErrorAsync(userId, entryDate) is { } dateError)
         {
-            return ServiceResult<DayDetailResponse>.Failure(ServiceError.ReadOnly);
+            return ServiceResult<DayDetailResponse>.Failure(dateError);
         }
 
         var entry = await FindOrAddEntryAsync(userId, entryDate);
@@ -52,12 +52,12 @@ public class JournalService(AutogratDbContext db, TimeProvider timeProvider)
     }
 
     /// <summary>Adds a sub-entry to today's entry, creating an unrated entry if the day has none yet.</summary>
-    /// <returns>The new sub-entry, or a failure if the date is in the past.</returns>
+    /// <returns>The new sub-entry, or a failure if the date isn't today.</returns>
     public async Task<ServiceResult<SubEntryResponse>> AddSubEntryAsync(int userId, DateOnly entryDate, SubEntryRequest request)
     {
-        if (IsPastDay(entryDate))
+        if (await FindDateErrorAsync(userId, entryDate) is { } dateError)
         {
-            return ServiceResult<SubEntryResponse>.Failure(ServiceError.ReadOnly);
+            return ServiceResult<SubEntryResponse>.Failure(dateError);
         }
 
         var entry = await FindOrAddEntryAsync(userId, entryDate);
@@ -72,7 +72,7 @@ public class JournalService(AutogratDbContext db, TimeProvider timeProvider)
     }
 
     /// <summary>Replaces the category and content of one of today's sub-entries, keeping its appends.</summary>
-    /// <returns>The updated sub-entry, or a failure if it is not the user's or belongs to a past day.</returns>
+    /// <returns>The updated sub-entry, or a failure if it is not the user's or its day isn't today.</returns>
     public async Task<ServiceResult<SubEntryResponse>> UpdateSubEntryAsync(int userId, int subEntryId, SubEntryRequest request)
     {
         var subEntry = await db.JournalSubEntries
@@ -85,9 +85,9 @@ public class JournalService(AutogratDbContext db, TimeProvider timeProvider)
             return ServiceResult<SubEntryResponse>.Failure(ServiceError.NotFound);
         }
 
-        if (IsPastDay(subEntry.JournalEntry!.EntryDate))
+        if (await FindDateErrorAsync(userId, subEntry.JournalEntry!.EntryDate) is { } dateError)
         {
-            return ServiceResult<SubEntryResponse>.Failure(ServiceError.ReadOnly);
+            return ServiceResult<SubEntryResponse>.Failure(dateError);
         }
 
         subEntry.Category = request.Category!.Value;
@@ -97,7 +97,7 @@ public class JournalService(AutogratDbContext db, TimeProvider timeProvider)
     }
 
     /// <summary>Deletes one of today's sub-entries with its appends. The day's entry and rating are kept.</summary>
-    /// <returns>The deleted sub-entry, or a failure if it is not the user's or belongs to a past day.</returns>
+    /// <returns>The deleted sub-entry, or a failure if it is not the user's or its day isn't today.</returns>
     public async Task<ServiceResult<JournalSubEntry>> DeleteSubEntryAsync(int userId, int subEntryId)
     {
         var subEntry = await db.JournalSubEntries
@@ -110,9 +110,9 @@ public class JournalService(AutogratDbContext db, TimeProvider timeProvider)
             return ServiceResult<JournalSubEntry>.Failure(ServiceError.NotFound);
         }
 
-        if (IsPastDay(subEntry.JournalEntry!.EntryDate))
+        if (await FindDateErrorAsync(userId, subEntry.JournalEntry!.EntryDate) is { } dateError)
         {
-            return ServiceResult<JournalSubEntry>.Failure(ServiceError.ReadOnly);
+            return ServiceResult<JournalSubEntry>.Failure(dateError);
         }
 
         db.JournalSubEntries.Remove(subEntry);
@@ -121,7 +121,7 @@ public class JournalService(AutogratDbContext db, TimeProvider timeProvider)
     }
 
     /// <summary>Deletes an append on one of today's sub-entries. Appends on past days are never deleted.</summary>
-    /// <returns>The deleted append, or a failure if it is not the user's or belongs to a past day.</returns>
+    /// <returns>The deleted append, or a failure if it is not the user's or its day isn't today.</returns>
     public async Task<ServiceResult<JournalAppend>> DeleteAppendAsync(int userId, int appendId)
     {
         var append = await db.JournalAppends
@@ -133,9 +133,9 @@ public class JournalService(AutogratDbContext db, TimeProvider timeProvider)
             return ServiceResult<JournalAppend>.Failure(ServiceError.NotFound);
         }
 
-        if (IsPastDay(append.JournalSubEntry!.JournalEntry!.EntryDate))
+        if (await FindDateErrorAsync(userId, append.JournalSubEntry!.JournalEntry!.EntryDate) is { } dateError)
         {
-            return ServiceResult<JournalAppend>.Failure(ServiceError.ReadOnly);
+            return ServiceResult<JournalAppend>.Failure(dateError);
         }
 
         db.JournalAppends.Remove(append);
@@ -144,21 +144,28 @@ public class JournalService(AutogratDbContext db, TimeProvider timeProvider)
     }
 
     /// <summary>Appends a note to a sub-entry. Unlike other changes, this is allowed on past days.</summary>
-    /// <returns>The new append, or null if the sub-entry does not exist or belongs to another user.</returns>
-    public async Task<AppendResponse?> AddAppendAsync(int userId, int subEntryId, CreateAppendRequest request)
+    /// <returns>The new append, or a failure if the sub-entry is not the user's or belongs to a future day.</returns>
+    public async Task<ServiceResult<AppendResponse>> AddAppendAsync(int userId, int subEntryId, CreateAppendRequest request)
     {
-        var ownsSubEntry = await db.JournalSubEntries
-            .AnyAsync(s => s.Id == subEntryId && s.JournalEntry!.UserId == userId);
+        var entryDate = await db.JournalSubEntries
+            .Where(s => s.Id == subEntryId && s.JournalEntry!.UserId == userId)
+            .Select(s => (DateOnly?)s.JournalEntry!.EntryDate)
+            .SingleOrDefaultAsync();
 
-        if (!ownsSubEntry)
+        if (entryDate is null)
         {
-            return null;
+            return ServiceResult<AppendResponse>.Failure(ServiceError.NotFound);
+        }
+
+        if (await FindDateErrorAsync(userId, entryDate.Value) == ServiceError.FutureDay)
+        {
+            return ServiceResult<AppendResponse>.Failure(ServiceError.FutureDay);
         }
 
         var append = new JournalAppend { JournalSubEntryId = subEntryId, Content = request.Content.Trim() };
         db.JournalAppends.Add(append);
         await db.SaveChangesAsync();
-        return ToResponse(append);
+        return ServiceResult<AppendResponse>.Success(ToResponse(append));
     }
 
     /// <summary>
@@ -198,7 +205,18 @@ public class JournalService(AutogratDbContext db, TimeProvider timeProvider)
         return entry;
     }
 
-    private bool IsPastDay(DateOnly date) => JournalDates.IsPast(date, timeProvider.GetUtcNow());
+    /// <returns>Why the day can't be changed, or null while it is today for the user.</returns>
+    private async Task<ServiceError?> FindDateErrorAsync(int userId, DateOnly date)
+    {
+        var timeZone = await settingsService.GetTimeZoneAsync(userId);
+        var now = timeProvider.GetUtcNow();
+        if (JournalDates.IsPast(date, now, timeZone))
+        {
+            return ServiceError.ReadOnly;
+        }
+
+        return JournalDates.IsFuture(date, now, timeZone) ? ServiceError.FutureDay : null;
+    }
 
     private static SubEntryResponse ToResponse(JournalSubEntry subEntry) => new(
         subEntry.Id,

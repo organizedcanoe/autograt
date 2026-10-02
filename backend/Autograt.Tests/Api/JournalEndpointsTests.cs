@@ -12,7 +12,9 @@ public class JournalEndpointsTests(AutogratApiFactory factory) : IClassFixture<A
 {
     private const string Today = "2026-09-23";
     private const string Yesterday = "2026-09-22";
+    private const string Tomorrow = "2026-09-24";
     private const string ReadOnlyTitle = "Past days are read-only. You can still append notes.";
+    private const string FutureTitle = "Future days can't be written yet.";
 
     [Fact]
     public async Task AddSubEntry_WithNoEntryForDay_CreatesUnratedDay()
@@ -88,6 +90,80 @@ public class JournalEndpointsTests(AutogratApiFactory factory) : IClassFixture<A
         var response = await client.PostAsJsonAsync($"/api/journal/entries/{Today}/sub-entries", new { category = "Good", content = "Too late" });
 
         await AssertReadOnlyAsync(response);
+    }
+
+    [Fact]
+    public async Task AddSubEntry_OnceTodayHasEndedInTheSavedTimeZone_Returns400()
+    {
+        var client = await factory.CreateAuthenticatedClientAsync();
+        await client.SaveSettingAsync("TimeZone", "America/Toronto");
+        // 04:30 UTC on the 24th is 00:30 on the 24th in Toronto.
+        using var _ = factory.Clock.TravelTo(new DateTimeOffset(2026, 9, 24, 4, 30, 0, TimeSpan.Zero));
+
+        var response = await client.PostAsJsonAsync($"/api/journal/entries/{Today}/sub-entries", new { category = "Good", content = "Too late" });
+
+        await AssertReadOnlyAsync(response);
+    }
+
+    [Fact]
+    public async Task AddSubEntry_WhileStillTodayInTheSavedTimeZone_Succeeds()
+    {
+        var client = await factory.CreateAuthenticatedClientAsync();
+        await client.SaveSettingAsync("TimeZone", "America/Toronto");
+        // 03:30 UTC on the 24th is 23:30 on the 23rd in Toronto.
+        using var _ = factory.Clock.TravelTo(new DateTimeOffset(2026, 9, 24, 3, 30, 0, TimeSpan.Zero));
+
+        var response = await client.PostAsJsonAsync($"/api/journal/entries/{Today}/sub-entries", new { category = "Good", content = "Just in time" });
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task AddSubEntry_ForTomorrowInTheSavedTimeZone_Returns400()
+    {
+        var client = await factory.CreateAuthenticatedClientAsync();
+        await client.SaveSettingAsync("TimeZone", "America/Toronto");
+
+        var response = await client.PostAsJsonAsync($"/api/journal/entries/{Tomorrow}/sub-entries", new { category = "Good", content = "Too soon" });
+
+        await AssertFutureAsync(response);
+    }
+
+    [Fact]
+    public async Task UpdateRating_ForTomorrowInTheSavedTimeZone_Returns400()
+    {
+        var client = await factory.CreateAuthenticatedClientAsync();
+        await client.SaveSettingAsync("TimeZone", "America/Toronto");
+
+        var response = await client.PutAsJsonAsync($"/api/journal/entries/{Tomorrow}/rating", new { dayRating = 5 });
+
+        await AssertFutureAsync(response);
+    }
+
+    [Fact]
+    public async Task AddSubEntry_WithoutASavedTimeZone_IsAllowedOnceTheDateHasStartedAnywhere()
+    {
+        var client = await factory.CreateAuthenticatedClientAsync();
+        // Noon UTC on the 23rd is 02:00 on the 24th in UTC+14.
+        var started = await client.PostAsJsonAsync($"/api/journal/entries/{Tomorrow}/sub-entries", new { category = "Good", content = "Kiritimati" });
+
+        var notStarted = await client.PostAsJsonAsync("/api/journal/entries/2026-09-25/sub-entries", new { category = "Good", content = "Too soon" });
+
+        Assert.Equal(HttpStatusCode.Created, started.StatusCode);
+        await AssertFutureAsync(notStarted);
+    }
+
+    [Fact]
+    public async Task AddAppend_OnADayThatHasNotStartedInTheSavedTimeZone_Returns400()
+    {
+        var client = await factory.CreateAuthenticatedClientAsync();
+        // Allowed before a time zone is saved, since the 24th has started in UTC+14.
+        var subEntry = await client.AddSubEntryAsync(DateOnly.Parse(Tomorrow), "Good", "Written early");
+        await client.SaveSettingAsync("TimeZone", "America/Toronto");
+
+        var response = await client.PostAsJsonAsync($"/api/journal/sub-entries/{subEntry.Id}/appends", new { content = "Too soon" });
+
+        await AssertFutureAsync(response);
     }
 
     [Fact]
@@ -448,6 +524,13 @@ public class JournalEndpointsTests(AutogratApiFactory factory) : IClassFixture<A
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>(TestJson.Options);
         Assert.Equal(ReadOnlyTitle, problem!.Title);
+    }
+
+    private static async Task AssertFutureAsync(HttpResponseMessage response)
+    {
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>(TestJson.Options);
+        Assert.Equal(FutureTitle, problem!.Title);
     }
 
     private static async Task<AppendResponse> AppendAsync(HttpClient client, int subEntryId, string content)

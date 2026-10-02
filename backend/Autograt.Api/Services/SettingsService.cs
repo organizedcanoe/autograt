@@ -24,6 +24,21 @@ public class SettingsService(AutogratDbContext db)
             .ToList();
     }
 
+    /// <returns>The user's saved time zone, or null if they have not saved one the server knows.</returns>
+    public async Task<TimeZoneInfo?> GetTimeZoneAsync(int userId)
+    {
+        var timeZoneId = await db.UserSettings
+            .Where(s => s.UserId == userId && s.Setting == Setting.TimeZone)
+            .Select(s => s.Value)
+            .FirstOrDefaultAsync();
+
+        return FindTimeZone(timeZoneId);
+    }
+
+    /// <returns>The time zone with the IANA id, or null if the id is null or unknown.</returns>
+    public static TimeZoneInfo? FindTimeZone(string? timeZoneId) =>
+        timeZoneId is not null && TimeZoneInfo.TryFindSystemTimeZoneById(timeZoneId, out var timeZone) ? timeZone : null;
+
     /// <summary>Replaces the user's values for one setting. The values must already be validated.</summary>
     public async Task<SettingResponse> UpdateAsync(int userId, Setting setting, IReadOnlyList<string> values)
     {

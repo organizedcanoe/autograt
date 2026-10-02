@@ -3,7 +3,8 @@ using System.Globalization;
 namespace Autograt.Api.Models;
 
 /// <summary>
-/// The values a setting accepts and the defaults used until the user saves their own. A value must be one of
+/// The values a setting accepts and the defaults used until the user saves their own (none when the server can't
+/// choose one for them). A value must be one of
 /// <see cref="AllowedValues"/> when they are given, and must pass <see cref="IsValid"/> when it is given.
 /// </summary>
 public sealed record SettingDefinition(IReadOnlyList<string> Defaults)
@@ -75,7 +76,7 @@ public static class SettingDefinitions
             InvalidValueHint = "Use a 24-hour time such as 08:30.",
             MaxValues = 4, // Keeps the reminder scheduler cheap and the settings page tidy.
         },
-        [Setting.TimeZone] = new(Defaults: ["UTC"])
+        [Setting.TimeZone] = new(Defaults: [])
         {
             IsValid = value => TimeZoneInfo.TryFindSystemTimeZoneById(value, out _),
             InvalidValueHint = "Use an IANA time zone such as America/Toronto.",

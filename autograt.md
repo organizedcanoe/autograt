@@ -52,7 +52,7 @@ Holds a user's preferences. A setting with no rows uses its default; a setting t
 
 * **UserId:** Integer, Foreign Key referencing `User.Id`, Required. Rows are deleted with their user.
 
-* **Setting:** Enumeration, Required. Allowed values: `BrightnessTheme` (1: `system`, `light` or `dark`; default `system`), `ColourTheme` (2: `azure`, `jade`, `violet`, `pumpkin`, `pink` or `slate`; default `azure`), `RemindersEnabled` (3: `on` or `off`; default `off`), `ReminderTime` (4: 24-hour `HH:mm` times, up to four; default `12:00` and `20:00`), `TimeZone` (5: an IANA time zone such as `America/Toronto`; default `UTC`). Only `ReminderTime` takes several values. An index on `(UserId, Setting)` speeds up lookups.
+* **Setting:** Enumeration, Required. Allowed values: `BrightnessTheme` (1: `system`, `light` or `dark`; default `system`), `ColourTheme` (2: `azure`, `jade`, `violet`, `pumpkin`, `pink` or `slate`; default `azure`), `RemindersEnabled` (3: `on` or `off`; default `off`), `ReminderTime` (4: 24-hour `HH:mm` times, up to four; default `12:00` and `20:00`), `TimeZone` (5: an IANA time zone such as `America/Toronto`; no default, since the server can't know it until it is saved, so it is returned with no values until then). Only `ReminderTime` takes several values. An index on `(UserId, Setting)` speeds up lookups.
 
 * **Value:** String, Required. One value of the setting.
 
@@ -192,7 +192,7 @@ Represents additional notes appended specifically to an existing `JournalSubEntr
 
 * **Sending:** A message goes to every subscription the user has. A subscription the push service reports as gone (404/410) is deleted; other failures are logged and skipped. The payload is JSON `{ title, body, url }`; `url` is `/`, so clicking the notification opens the today view.
 
-* **Reminder Scheduler:** A background service runs every minute. For each user with `RemindersEnabled` = `on` and at least one subscription, it converts the current time to the user's `TimeZone` and finds the latest `ReminderTime` slot (today's, or yesterday's just after midnight) that has passed within the last 15 minutes. A slot is handled only if it is later than `User.LastReminderAtUtc`, which is then set to it, so each slot is handled once even across restarts, and reminders are never sent hours late. A time skipped when clocks go forward is sent when the clock jumps past it; a time repeated when clocks go back is sent on its first occurrence.
+* **Reminder Scheduler:** A background service runs every minute. For each user with `RemindersEnabled` = `on` and at least one subscription, it converts the current time to the user's `TimeZone` (UTC if none is saved) and finds the latest `ReminderTime` slot (today's, or yesterday's just after midnight) that has passed within the last 15 minutes. A slot is handled only if it is later than `User.LastReminderAtUtc`, which is then set to it, so each slot is handled once even across restarts, and reminders are never sent hours late. A time skipped when clocks go forward is sent when the clock jumps past it; a time repeated when clocks go back is sent on its first occurrence.
 
 * **Reminder Content:** The reminder asks for whatever the user's day is still missing: before 17:00 local time it asks "How is your day going?", from 17:00 "How has your day been?", followed by "Take a minute to reflect / add an entry / rate it." A day that already has sub-entries and a rating gets no reminder (the slot still counts as handled).
 
@@ -202,17 +202,17 @@ Represents additional notes appended specifically to an existing `JournalSubEntr
 
 * **Endpoints:** All signed-in only, and always scoped to the signed-in user.
 
-  * `GET /api/export?format=json` returns the user's journal and saved settings as a JSON attachment named `autograt-<username>-<yyyy-MM-dd>.json`; `format=markdown` returns a readable `text/markdown` file (`.md`). Any other or missing format is rejected with an HTTP 400 Bad Request error.
+  * `GET /api/export?format=json` returns the user's journal and saved settings as a JSON attachment named `autograt-<username>-<yyyy-MM-dd>.json` (the date in the user's time zone); `format=markdown` returns a readable `text/markdown` file (`.md`). Any other or missing format is rejected with an HTTP 400 Bad Request error.
 
   * `POST /api/import` with a JSON export (up to 25 MB) returns `{ importedDays, replacedDays: ["yyyy-MM-dd", ...], settingsImported }`.
 
 * **JSON Format (version 1):** `{ format: "autograt-export", version: 1, exportedAtUtc, username, settings: [{ setting, values }], entries: [{ date, rating, createdAtUtc, subEntries: [{ category, content, createdAtUtc, appends: [{ content, createdAtUtc }] }] }] }`. Database ids are left out, so a file can be imported into any server. `settings` holds only settings the user has saved (defaults are left out). `category` is the enum name (`Neutral`/`Good`/`Bad`) and `rating` is null for an unrated day. Days are ordered by date; sub-entries and appends by `CreatedAtUtc`. Push subscriptions, password hashes and `LastReminderAtUtc` are never exported.
 
-* **Markdown Format:** A `# Autograt journal: <username>` heading and export date, then one `## <date> (rating N/10)` (or `(unrated)`) section per day, newest first, listing `- **<Category>:** <content>` with appends indented beneath as `- _Added <date>:_ <content>`. It is for reading only and cannot be imported.
+* **Markdown Format:** A `# Autograt journal: <username>` heading and export date, then one `## <date> (rating N/10)` (or `(unrated)`) section per day, newest first, listing `- **<Category>:** <content>` with appends indented beneath as `- _Added <date>:_ <content>`. Dates of timestamps (the export date and append dates) are in the user's time zone, or UTC if none is saved. It is for reading only and cannot be imported.
 
 * **Import Rules:**
 
-  * **Validation first:** The whole file is checked before anything is written, and every problem is returned in one HTTP 400 Bad Request response: a wrong `format` or unknown `version`, a missing or invalid date, a date repeated or in the future (not yet started in the earliest time zone, UTC+14), a rating outside 0–10, an unknown category, empty `content`, a missing `createdAtUtc`, or a setting that is unknown, repeated or fails the same checks as `PUT /api/settings/{setting}`.
+  * **Validation first:** The whole file is checked before anything is written, and every problem is returned in one HTTP 400 Bad Request response: a wrong `format` or unknown `version`, a missing or invalid date, a date repeated or in the future (see Determining "Today"; the time zone is the file's `TimeZone` setting if it has one, since importing saves it, or else the user's saved one), a rating outside 0–10, an unknown category, empty `content`, a missing `createdAtUtc`, or a setting that is unknown, repeated or fails the same checks as `PUT /api/settings/{setting}`.
 
   * **The file wins:** A day in the file replaces the user's day on that date, including its rating, sub-entries and appends, and is listed in `replacedDays`. A day only in the file is created. A day only in the database is left untouched. Importing the same file again leaves the same data, without duplicates.
 
@@ -238,9 +238,11 @@ Represents additional notes appended specifically to an existing `JournalSubEntr
 
 * **Deleting Mistakes:** For the current day, a `JournalSubEntry` can be deleted (`DELETE /api/journal/sub-entries/{id}`), which also deletes its appends, and a single `JournalAppend` on one of the day's sub-entries can be deleted (`DELETE /api/journal/appends/{id}`). Both return `204`, or `404` if the record does not exist or belongs to another user. The day's `JournalEntry` and its rating are kept, even when its last sub-entry is deleted.
 
-* **Read-Only Past Days:** For days before the current day, adding, editing or deleting `JournalSubEntry` records, deleting `JournalAppend` records (even one written today), and changing the `DayRating` are rejected with an HTTP 400 Bad Request error. Appending notes remains allowed on any day.
+* **Read-Only Past Days:** For days before the current day, adding, editing or deleting `JournalSubEntry` records, deleting `JournalAppend` records (even one written today), and changing the `DayRating` are rejected with an HTTP 400 Bad Request error. Appending notes remains allowed on any past day.
 
-* **Determining "Today":** The client applies the rule using the user's local date. The server does not know the user's time zone, so it treats a date as past only once that date has ended in the latest time zone (UTC−12).
+* **No Future Days:** Days after the current day can't be written yet: every change above, and appending, is rejected with an HTTP 400 Bad Request error.
+
+* **Determining "Today":** The server uses the date in the user's saved `TimeZone`. A user with no saved zone could be anywhere, so any date that is today somewhere is allowed: a date is past only once it has ended in the latest time zone (UTC−12), and future only until it has started in the earliest (UTC+14). After login the client saves this device's zone if none is saved, and it applies the rule using the device's local date. If the saved zone differs from the device's, the settings page offers to switch.
 
 * **Append Immutability:** `JournalAppend` records cannot be edited; there are no `PUT` or `PATCH` endpoints for them. They can only be deleted on the current day (see Deleting Mistakes).
 
@@ -354,9 +356,9 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 * The theme is cached in the browser so the login page and first paint use it; after login the user's saved theme is loaded from the server and applied.
 
-* A **Reminders** section, below Appearance, controls reminder notifications. Changes save straight away; a failed save shows an error.
+* A **Time zone** section, below Appearance, explains that the zone decides when each day starts and ends and when reminders are sent. It has a select of IANA time zones (UTC first), showing the saved zone, or "Not set". If that differs from the zone this device detects, a warning and a **Use <zone> (detected)** button are shown. A change saves straight away; a failed save shows an error.
 
-  * **Time zone:** A select of IANA time zones (UTC first), showing the saved zone. If it differs from the zone this device detects, a warning and a **Use <zone> (detected)** button are shown, since reminder times follow the saved zone.
+* A **Reminders** section, below Time zone, controls reminder notifications; reminder times follow the saved time zone. Changes save straight away; a failed save shows an error.
 
   * **Enable reminders:** A switch. Turning it on asks for notification permission, subscribes this browser, saves the subscription and sets `RemindersEnabled` to `on`. If permission is refused, the switch stays off and an alert explains why. Turning it off deletes this browser's subscription, unsubscribes it and sets `RemindersEnabled` to `off`.
 
@@ -366,7 +368,7 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
   * **Send test notification:** Shown while reminders are on; sends a test notification to every device.
 
-  * **Unsupported browsers:** Instead of the switch, a notice explains why reminders are unavailable: the browser has no notification support; on iPhone/iPad, the app must be added to the Home Screen and opened from there (iOS 16.4 or later); or notifications are blocked in the browser settings. The time zone and times can still be changed.
+  * **Unsupported browsers:** Instead of the switch, a notice explains why reminders are unavailable: the browser has no notification support; on iPhone/iPad, the app must be added to the Home Screen and opened from there (iOS 16.4 or later); or notifications are blocked in the browser settings. The times can still be changed.
 
 * A **Your data** section, below Reminders, exports and imports the journal.
 
@@ -437,9 +439,11 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
   * Verify that today's rating and sub-entries can be edited, and that creating, adding to, or editing a past day is rejected while appending to it succeeds.
 
+  * Verify that "today" follows the user's saved time zone: a day ends at local midnight, and adding to, rating or appending to the next day is rejected; and that without a saved zone, any date that is today somewhere is allowed. Verify that import's future check uses the file's time zone or else the saved one, and that the export file name and Markdown dates use the saved zone.
+
   * Verify that deleting one of today's sub-entries removes its appends but keeps the day and its rating, that deleting one of today's appends removes only that append, that deleting a past day's sub-entry or append (even one written today) is rejected with `400`, and that deleting another user's sub-entry or append returns `404`.
 
-* **Settings Endpoint Tests:** Verify that unsaved settings return their defaults, that saving replaces a setting's value for the signed-in user only, and that unknown settings and invalid values are rejected, including malformed, repeated or more than four reminder times and unknown time zones.
+* **Settings Endpoint Tests:** Verify that unsaved settings return their defaults (none for the time zone), that saving replaces a setting's value for the signed-in user only, and that unknown settings and invalid values are rejected, including malformed, repeated or more than four reminder times and unknown time zones.
 
 * **Push Endpoint Tests:** Verify that every push endpoint returns 401 without a token; that subscribing creates a subscription, updates an existing endpoint without a duplicate, and moves another user's endpoint to the current user; that invalid bodies are rejected; that unsubscribing removes only the caller's subscription (404 otherwise); and that the test notification reaches only the current user's devices and deletes expired subscriptions.
 
@@ -477,7 +481,9 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
 * Validate that the Your data section exports in each format and saves the file, reports a failed export, confirms before importing (and can be cancelled), shows the import result and replaced days, reminds the user to enable reminders on this device when the import turned them on, lists every server validation problem, and rejects a non-JSON file without calling the server.
 
-* Validate that the Reminders section shows each unsupported notice; that turning reminders on asks for permission, subscribes and saves, and that a refused permission reverts the switch with an alert; that turning them off unsubscribes and saves; that it offers to enable an unsubscribed device and resaves a subscribed one; that times are added, edited, removed and limited to four; that the time zone offers the detected zone when it differs; and that the test notification is sent only while reminders are on.
+* Validate that the Time zone section shows the saved zone (or "Not set"), saves a chosen zone, reports a failed save, and offers the detected zone with a warning only when it differs; and that after login the detected zone is saved once if none is saved, and a saved zone is never changed.
+
+* Validate that the Reminders section shows each unsupported notice; that turning reminders on asks for permission, subscribes and saves, and that a refused permission reverts the switch with an alert; that turning them off unsubscribes and saves; that it offers to enable an unsubscribed device and resaves a subscribed one; that times are added, edited, removed and limited to four; and that the test notification is sent only while reminders are on.
 
 ### End-to-End Tests (Playwright)
 
@@ -514,7 +520,7 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
 * **Account:** A user changes their password and logs in with the new one; an admin resets a user's password, and the user logs in with the temporary password, must choose a new one, and then reaches the today view; a user deletes their account (after cancelling once) and can no longer log in.
 
-* **Settings:** Changing the mode, color and reminder time zone applies the theme straight away and is saved to the account, so a fresh browser that logs in gets the same settings.
+* **Settings:** Changing the mode, color and time zone applies the theme straight away and is saved to the account, so a fresh browser that logs in gets the same settings.
 
 * **Browsing:** On a day view, the previous and next day links move between days; the history page has no search bar, opens on the current month with today colored by its rating, shows a heatmap range including today only when asked, and jumping to a date opens it.
 

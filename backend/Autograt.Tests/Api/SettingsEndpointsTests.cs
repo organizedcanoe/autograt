@@ -31,7 +31,8 @@ public class SettingsEndpointsTests : IClassFixture<AutogratApiFactory>
         Assert.Equal(["azure"], settings[Setting.ColourTheme]);
         Assert.Equal(["off"], settings[Setting.RemindersEnabled]);
         Assert.Equal(["12:00", "20:00"], settings[Setting.ReminderTime]);
-        Assert.Equal(["UTC"], settings[Setting.TimeZone]);
+        // No default: until it is saved, the server can't know the user's time zone.
+        Assert.Empty(settings[Setting.TimeZone]);
     }
 
     [Fact]
@@ -54,8 +55,8 @@ public class SettingsEndpointsTests : IClassFixture<AutogratApiFactory>
     {
         var client = await _factory.CreateAuthenticatedClientAsync();
 
-        await PutSettingAsync(client, "ColourTheme", "jade");
-        await PutSettingAsync(client, "ColourTheme", "violet");
+        await client.SaveSettingAsync("ColourTheme", "jade");
+        await client.SaveSettingAsync("ColourTheme", "violet");
 
         var settings = await GetSettingsAsync(client);
         Assert.Equal(["violet"], settings[Setting.ColourTheme]);
@@ -67,7 +68,7 @@ public class SettingsEndpointsTests : IClassFixture<AutogratApiFactory>
         var alice = await _factory.CreateAuthenticatedClientAsync();
         var bob = await _factory.CreateAuthenticatedClientAsync();
 
-        await PutSettingAsync(alice, "ColourTheme", "pink");
+        await alice.SaveSettingAsync("ColourTheme", "pink");
 
         var bobSettings = await GetSettingsAsync(bob);
         Assert.Equal(["azure"], bobSettings[Setting.ColourTheme]);
@@ -126,11 +127,5 @@ public class SettingsEndpointsTests : IClassFixture<AutogratApiFactory>
     {
         var settings = await client.GetFromJsonAsync<List<SettingResponse>>("/api/settings", TestJson.Options);
         return settings!.ToDictionary(s => s.Setting, s => s.Values.ToList());
-    }
-
-    private static async Task PutSettingAsync(HttpClient client, string setting, string value)
-    {
-        var response = await client.PutAsJsonAsync($"/api/settings/{setting}", new { values = new[] { value } });
-        response.EnsureSuccessStatusCode();
     }
 }

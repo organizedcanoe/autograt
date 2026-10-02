@@ -8,6 +8,7 @@ import SettingsPage from './SettingsPage'
 vi.mock('../theme/ThemeContext', () => ({ useTheme: vi.fn() }))
 // Tested on its own; here it only needs to appear below Appearance.
 vi.mock('../components/AccountSettings', () => ({ default: () => <section>Account settings</section> }))
+vi.mock('../components/TimeZoneSettings', () => ({ default: () => <section>Time zone settings</section> }))
 vi.mock('../components/ReminderSettings', () => ({ default: () => <section>Reminder settings</section> }))
 vi.mock('../components/DataSettings', () => ({
   default: ({ onImported }: { onImported: () => void }) => (
@@ -37,12 +38,14 @@ describe('SettingsPage', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
-  it('shows the reminder settings after the appearance settings', () => {
+  it('shows the time zone, then the reminder settings, after the appearance settings', () => {
     renderPage()
 
     const appearance = screen.getByRole('heading', { name: 'Appearance' })
+    const timeZone = screen.getByText('Time zone settings')
     const reminders = screen.getByText('Reminder settings')
-    expect(appearance.compareDocumentPosition(reminders) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(appearance.compareDocumentPosition(timeZone) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(timeZone.compareDocumentPosition(reminders) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('reports a theme that could not be saved', async () => {

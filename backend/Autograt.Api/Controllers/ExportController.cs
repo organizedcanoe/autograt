@@ -14,6 +14,7 @@ namespace Autograt.Api.Controllers;
 public class ExportController(
     ExportService exportService,
     ImportService importService,
+    SettingsService settingsService,
     IOptions<JsonOptions> jsonOptions,
     TimeProvider timeProvider) : ControllerBase
 {
@@ -30,20 +31,22 @@ public class ExportController(
             return ValidationProblem(ModelState);
         }
 
-        var export = await exportService.BuildAsync(User.GetUserId());
+        var userId = User.GetUserId();
+        var export = await exportService.BuildAsync(userId);
         if (export is null)
         {
             return NotFound();
         }
 
-        var fileName = $"autograt-{export.Username}-{timeProvider.GetUtcNow():yyyy-MM-dd}";
+        var timeZone = await settingsService.GetTimeZoneAsync(userId);
+        var fileName = $"autograt-{export.Username}-{JournalDates.ToLocalDate(timeProvider.GetUtcNow(), timeZone):yyyy-MM-dd}";
         if (format == "json")
         {
             var options = new JsonSerializerOptions(jsonOptions.Value.JsonSerializerOptions) { WriteIndented = true };
             return File(JsonSerializer.SerializeToUtf8Bytes(export, options), "application/json", $"{fileName}.json");
         }
 
-        return File(Encoding.UTF8.GetBytes(ExportService.ToMarkdown(export)), "text/markdown; charset=utf-8", $"{fileName}.md");
+        return File(Encoding.UTF8.GetBytes(ExportService.ToMarkdown(export, timeZone)), "text/markdown; charset=utf-8", $"{fileName}.md");
     }
 
     /// <summary>Imports a JSON export. Days and settings in the file replace the user's; nothing else changes.</summary>
@@ -51,7 +54,7 @@ public class ExportController(
     [RequestSizeLimit(MaxImportBytes)]
     public async Task<ActionResult<ImportResponse>> Import(JournalExport file)
     {
-        var problems = importService.Validate(file);
+        var problems = await importService.ValidateAsync(User.GetUserId(), file);
         if (problems.Count > 0)
         {
             foreach (var problem in problems)

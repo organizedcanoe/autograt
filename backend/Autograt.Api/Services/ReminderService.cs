@@ -67,7 +67,8 @@ public class ReminderService(IServiceScopeFactory scopeFactory, TimeProvider tim
     private async Task HandleUserAsync(
         AutogratDbContext db, PushService pushService, User user, List<UserSetting> settings, DateTime nowUtc, CancellationToken cancellationToken)
     {
-        var timeZoneId = ValuesOf(settings, Setting.TimeZone)[0];
+        // Reminder times are taken to be UTC until the user saves a time zone.
+        var timeZoneId = ValuesOf(settings, Setting.TimeZone).FirstOrDefault() ?? "UTC";
         if (TimeZoneInfo.TryFindSystemTimeZoneById(timeZoneId, out var timeZone) == false)
         {
             logger.LogWarning("User {UserId} has an unknown time zone '{TimeZone}'.", user.Id, timeZoneId);
