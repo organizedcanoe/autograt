@@ -322,7 +322,7 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 #### Search Interface
 
-* The search page (`/search`), opened from the user's menu, is the only page with a search bar. Searching shows the results on the same page (`/search?q=…`), with the current query in the search bar.
+* The search page (`/search`), opened from the user's menu, is the only page with a search bar. Searching shows the results on the same page (`/search?q=…`), with the current query in the search bar. Each result is tinted with its category colour, like sub-entries on a day.
 
 * Renders matching journal sub-entries and appended notes, newest first, with date links pointing directly to the corresponding day view. The number of matches is shown, and the matches are shown 10 at a time, with a **Show more** button for the next 10.
 
@@ -385,7 +385,7 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 * After registering, a user who needs approval is not logged in; the form switches to login and shows "Account created. An admin must approve it before you can log in." The first user, who becomes the admin, is logged in straight away.
 
-* The admin page (`/admin`) is only available to admins; other users visiting it are redirected to the today view. It lists every user with their role (`Pending approval`, `User`, `Admin`, `Disabled`) and the actions that apply: **Approve** for pending users, **Promote** and **Disable** for standard users, **Demote** for other admins, **Enable** for disabled users, and **Delete** for every non-admin. Disabling and deleting ask for confirmation first. Every approved user other than the signed-in admin has a **Reset password** button; after confirming, a dialog shows the temporary password once with **Copy** and **Done** buttons.
+* The admin page (`/admin`) is only available to admins; other users visiting it are redirected to the today view. It lists every user with their role (`Pending approval`, `User`, `Admin`, `Disabled`) and an **Actions** dropdown listing only the actions that apply: **Approve** for pending users, **Promote** and **Disable** for standard users, **Demote** for other admins, **Enable** for disabled users, and **Delete** for every non-admin. Disabling and deleting ask for confirmation first. Every approved user other than the signed-in admin has a **Reset password** action; after confirming, a dialog shows the temporary password once with **Copy** and **Done** buttons.
 
 * Below the users, a **Registration** section has an **Open registration** switch. While registration is closed, the login page shows "Registration is closed. Ask an admin for an account." instead of the register link. If the status can't be loaded, the register link stays.
 
@@ -413,7 +413,7 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
   * Serves `sw.js`, `index.html` and `manifest.webmanifest` (as `application/manifest+json`) with `Cache-Control: no-cache`, so a new deploy is picked up promptly, and the content-hashed files under `/assets/` with `Cache-Control: public, max-age=31536000, immutable`.
 
-* **Build info:** Both images take `VERSION`, `COMMIT` and `BUILD_DATE` build args. Every page shows the frontend build in a footer (version, commit linked to GitHub, build date), and warns when `GET /api/version` reports a different backend build, meaning one container is stale.
+* **Build info:** Both images take `VERSION`, `COMMIT` and `BUILD_DATE` build args. Every page shows the frontend build in a footer kept at the bottom of the window (version, commit linked to GitHub, build date), and warns when `GET /api/version` reports a different backend build, meaning one container is stale.
 
 ## 7. Testing Strategy Specification
 
@@ -498,7 +498,7 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
 * **User Administration:**
 
-  * The admin approves a pending user (who becomes a `User` with a **Promote** button), then promotes them; the promoted user sees the Admin page on their next login.
+  * The admin approves a pending user (who becomes a `User` with a **Promote** action), then promotes them; the promoted user sees the Admin page on their next login.
 
   * The admin deletes a pending user: cancelling the confirmation keeps them, confirming removes them and their login is rejected.
 

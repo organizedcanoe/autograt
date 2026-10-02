@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../api/client'
 import type { SearchResult } from '../api/types'
+import { categoryTint } from '../components/categoryColors'
 import SearchPage from './SearchPage'
 
 vi.mock('../api/client', async (importOriginal) => {
@@ -61,6 +62,16 @@ describe('SearchPage', () => {
       '/day/2026-09-21',
     ])
     expect(matches[1]).toHaveTextContent(/note/i)
+  })
+
+  it('tints each match with its category colour', async () => {
+    vi.mocked(api.search).mockResolvedValue(results)
+
+    renderAt('/search?q=dog')
+
+    const matches = await screen.findAllByRole('article')
+    expect(matches[0]).toHaveStyle({ backgroundColor: categoryTint('Good') })
+    expect(matches[1]).toHaveStyle({ backgroundColor: categoryTint('Bad') })
   })
 
   it('says so when nothing matches', async () => {

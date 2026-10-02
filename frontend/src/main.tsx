@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './pico.scss'
 import './danger.css'
+import './layout.css'
 import App from './App.tsx'
 import { applyTheme, loadTheme } from './theme/theme'
 

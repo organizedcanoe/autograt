@@ -1,14 +1,6 @@
-/* Row actions: compact buttons side by side and right-aligned, without Pico's button bottom margin,
-   so rows with actions are no taller than rows without. */
-[data-row-actions] {
+/* A compact actions dropdown without Pico's form-element bottom margin, so every row is the same height. */
+table select {
   --pico-form-element-spacing-vertical: 0.25rem;
-  --pico-form-element-spacing-horizontal: 0.75rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  justify-content: flex-end;
-}
-
-[data-row-actions] button {
+  width: auto;
   margin: 0;
 }
