@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { api } from '../api/client'
 import type { SearchResult } from '../api/types'
@@ -7,6 +7,7 @@ import { categoryTint } from '../components/categoryColors'
 import SearchBar from '../components/SearchBar'
 import { useAsync } from '../hooks/useAsync'
 import { formatLongDate } from '../utils/dates'
+import { findHighlights } from '../utils/searchTerms'
 
 /** Matches shown at a time, so a broad search stays a manageable list. */
 const PAGE_SIZE = 10
@@ -49,7 +50,7 @@ function SearchResults({ query }: { query: string }) {
             <>
               <p>{matches.length === 1 ? '1 match' : `${matches.length} matches`}</p>
               {matches.slice(0, shownCount).map((match) => (
-                <SearchResultCard key={`${match.type}-${match.appendId ?? match.subEntryId}`} match={match} />
+                <SearchResultCard key={`${match.type}-${match.appendId ?? match.subEntryId}`} match={match} query={query} />
               ))}
               {shownCount < matches.length && (
                 <button type="button" className="secondary" onClick={() => setShownCount(shownCount + PAGE_SIZE)}>
@@ -64,7 +65,7 @@ function SearchResults({ query }: { query: string }) {
   )
 }
 
-function SearchResultCard({ match }: { match: SearchResult }) {
+function SearchResultCard({ match, query }: { match: SearchResult; query: string }) {
   const kind = match.type === 'Append' ? `Note on a ${match.category} entry` : `${match.category} entry`
 
   return (
@@ -72,7 +73,22 @@ function SearchResultCard({ match }: { match: SearchResult }) {
       <header>
         <Link to={`/day/${match.entryDate}`}>{formatLongDate(match.entryDate)}</Link> · <small>{kind}</small>
       </header>
-      <p>{match.content}</p>
+      <p>
+        <HighlightedText content={match.content} query={query} />
+      </p>
     </article>
   )
+}
+
+/** The content with each match of the query wrapped in `<mark>`. */
+function HighlightedText({ content, query }: { content: string; query: string }) {
+  const parts: ReactNode[] = []
+  let position = 0
+  for (const { start, length } of findHighlights(content, query)) {
+    parts.push(content.slice(position, start), <mark key={start}>{content.slice(start, start + length)}</mark>)
+    position = start + length
+  }
+  parts.push(content.slice(position))
+
+  return <>{parts}</>
 }

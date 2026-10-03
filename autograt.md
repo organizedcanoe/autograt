@@ -330,6 +330,8 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 * Renders matching journal sub-entries and appended notes, newest first, with date links pointing directly to the corresponding day view. The number of matches is shown, and the matches are shown 10 at a time, with a **Show more** button for the next 10.
 
+* Every occurrence of each search term in a result is highlighted with `<mark>`, using the same rules as the search (quoted terms match case, others ignore it).
+
 #### History Page
 
 * The page for browsing past days (`/history`), opened from the user's menu. The menu lists **History** and then **Search**, which opens the search page.
@@ -469,7 +471,7 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
 * Validate that the day view allows editing and deleting (after confirmation) for the current day and is read-only (apart from appends) for past days, and that it links to the previous day and, except on the current day, the next day.
 
-* Validate that the search page pages its results 10 at a time; that the history page shows the month calendar, jump to a date and heatmap in that order and loads only the current month on open; that jumping to a date starts on today and opens the chosen day; that the month calendar starts on the current month, starts each month on its weekday, colors and links each day up to today, and pages between months but not past the current one; and that the heatmap range loads each range ending today only when shown.
+* Validate that search terms are split like the server parser and every match is highlighted (overlaps merged, case ignored unless quoted, regex characters literal); that the search page pages its results 10 at a time; that the history page shows the month calendar, jump to a date and heatmap in that order and loads only the current month on open; that jumping to a date starts on today and opens the chosen day; that the month calendar starts on the current month, starts each month on its weekday, colors and links each day up to today, and pages between months but not past the current one; and that the heatmap range loads each range ending today only when shown.
 
 * Validate that the settings page saves theme changes and reports failed saves, and that only admins can reach the admin page.
 
