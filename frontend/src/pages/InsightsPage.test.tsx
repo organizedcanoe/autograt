@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../api/client'
 import type { Insights } from '../api/types'
+import { categoryTint } from '../components/categoryColors'
 import { formatMediumDate } from '../utils/dates'
 import InsightsPage from './InsightsPage'
 
@@ -78,7 +79,7 @@ describe('InsightsPage', () => {
     expect(longest).toHaveTextContent(`${formatMediumDate('2026-06-01')} – ${formatMediumDate('2026-06-21')}`)
   })
 
-  it('shows the entries in each category with their share', async () => {
+  it('shows the entries in each category with their share, tinted in its category colour', async () => {
     renderInsights()
 
     await screen.findByRole('heading', { level: 2, name: 'Entries' })
@@ -86,6 +87,9 @@ describe('InsightsPage', () => {
     expect(entries.getByRole('article', { name: 'Good' })).toHaveTextContent('660%')
     expect(entries.getByRole('article', { name: 'Bad' })).toHaveTextContent('330%')
     expect(entries.getByRole('article', { name: 'Neutral' })).toHaveTextContent('110%')
+    for (const category of ['Good', 'Bad', 'Neutral'] as const) {
+      expect(entries.getByRole('article', { name: category })).toHaveStyle({ backgroundColor: categoryTint(category) })
+    }
   })
 
   it('loads the rating trend', async () => {

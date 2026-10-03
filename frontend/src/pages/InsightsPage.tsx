@@ -1,6 +1,7 @@
 import { api } from '../api/client'
-import type { Insights, RatingAverage } from '../api/types'
+import type { EntryCategory, Insights, RatingAverage } from '../api/types'
 import AsyncView from '../components/AsyncView'
+import { categoryTint } from '../components/categoryColors'
 import RatingTrend from '../components/RatingTrend'
 import { useAsync } from '../hooks/useAsync'
 import { formatMediumDate } from '../utils/dates'
@@ -57,9 +58,9 @@ function InsightsSections({ insights }: { insights: Insights }) {
       <section>
         <h2>Entries</h2>
         <div className="grid">
-          <StatCard label="Good" value={String(categories.good)} detail={shareOf(categories.good, totalEntries)} />
-          <StatCard label="Bad" value={String(categories.bad)} detail={shareOf(categories.bad, totalEntries)} />
-          <StatCard label="Neutral" value={String(categories.neutral)} detail={shareOf(categories.neutral, totalEntries)} />
+          <CategoryCard category="Good" count={categories.good} total={totalEntries} />
+          <CategoryCard category="Bad" count={categories.bad} total={totalEntries} />
+          <CategoryCard category="Neutral" count={categories.neutral} total={totalEntries} />
         </div>
       </section>
 
@@ -76,10 +77,26 @@ function AverageCard({ label, average }: { label: string; average: RatingAverage
   return <StatCard label={label} value={average.average === null ? '—' : average.average.toFixed(1)} detail={ratedDays} />
 }
 
-function StatCard({ label, value, detail }: { label: string; value: string; detail?: string }) {
+function CategoryCard({ category, count, total }: { category: EntryCategory; count: number; total: number }) {
   return (
-    <article aria-label={label}>
-      <header>{label}</header>
+    <StatCard label={category} value={String(count)} detail={shareOf(count, total)} tint={categoryTint(category)} />
+  )
+}
+
+interface StatCardProps {
+  label: string
+  value: string
+  detail?: string
+  /** A background color for the whole card, e.g. a category tint. */
+  tint?: string
+}
+
+function StatCard({ label, value, detail, tint }: StatCardProps) {
+  // Inline styles (CLAUDE.md exception): the category tints, as on entries. The header drops Pico's own
+  // background so the tint covers the whole card.
+  return (
+    <article aria-label={label} style={tint ? { backgroundColor: tint } : undefined}>
+      <header style={tint ? { backgroundColor: 'transparent' } : undefined}>{label}</header>
       <p>
         <strong>{value}</strong>
       </p>
