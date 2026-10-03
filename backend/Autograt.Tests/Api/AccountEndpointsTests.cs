@@ -28,6 +28,7 @@ public class AccountEndpointsTests : IDisposable
     [InlineData("PUT", "/api/account/password")]
     [InlineData("PUT", "/api/account/username")]
     [InlineData("DELETE", "/api/account")]
+    [InlineData("POST", "/api/account/sign-out-everywhere")]
     public async Task Endpoint_WithoutToken_Returns401(string method, string url)
     {
         var response = await _factory.CreateClient().SendAsync(
@@ -215,6 +216,40 @@ public class AccountEndpointsTests : IDisposable
         var response = await DeleteAccountAsync(admin, AutogratApiFactory.DefaultPassword);
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task SignOutEverywhere_Returns204_AndEndsEverySession()
+    {
+        var client = await _factory.CreateAuthenticatedClientAsync("billy");
+        var otherDevice = await LogInAsync("billy", AutogratApiFactory.DefaultPassword);
+
+        var response = await client.PostAsync("/api/account/sign-out-everywhere", null);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/auth/me")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await WithToken(otherDevice).PostAsync("/api/auth/refresh", null)).StatusCode);
+    }
+
+    [Fact]
+    public async Task SignOutEverywhere_PasswordStillLogsIn()
+    {
+        var client = await _factory.CreateAuthenticatedClientAsync("billy");
+
+        await client.PostAsync("/api/account/sign-out-everywhere", null);
+
+        Assert.Equal(HttpStatusCode.OK, (await PostLoginAsync("billy", AutogratApiFactory.DefaultPassword)).StatusCode);
+    }
+
+    [Fact]
+    public async Task SignOutEverywhere_DoesNotAffectOtherUsers()
+    {
+        var billy = await _factory.CreateAuthenticatedClientAsync("billy");
+        var other = await _factory.CreateAuthenticatedClientAsync("other");
+
+        await billy.PostAsync("/api/account/sign-out-everywhere", null);
+
+        Assert.Equal(HttpStatusCode.OK, (await other.GetAsync("/api/auth/me")).StatusCode);
     }
 
     [Fact]

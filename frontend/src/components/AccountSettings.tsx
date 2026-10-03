@@ -6,7 +6,7 @@ import { errorMessage } from '../utils/errors'
 import ChangePasswordForm from './ChangePasswordForm'
 import './AccountSettings.css'
 
-/** The signed-in user's username and password, and deleting their account. */
+/** The signed-in user's username and password, their sessions, and deleting their account. */
 export default function AccountSettings() {
   return (
     <section>
@@ -14,8 +14,39 @@ export default function AccountSettings() {
       <UsernameForm />
       <h3>Change password</h3>
       <ChangePasswordForm />
+      <SignOutEverywhere />
       <DeleteAccount />
     </section>
+  )
+}
+
+function SignOutEverywhere() {
+  const { logout } = useAuth()
+  const [signingOut, setSigningOut] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleClick() {
+    setSigningOut(true)
+    setError(null)
+    try {
+      await api.signOutEverywhere()
+    } catch (e) {
+      setError(errorMessage(e))
+      setSigningOut(false)
+      return
+    }
+    logout()
+  }
+
+  return (
+    <>
+      <h3>Sessions</h3>
+      <p>Sign out on every device, this one included. Use this if you lost a device or think someone else is signed in.</p>
+      {error && <p role="alert">{error}</p>}
+      <button type="button" className="secondary" onClick={() => void handleClick()} disabled={signingOut} aria-busy={signingOut}>
+        Sign out everywhere
+      </button>
+    </>
   )
 }
 

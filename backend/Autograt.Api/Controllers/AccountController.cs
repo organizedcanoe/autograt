@@ -40,6 +40,14 @@ public class AccountController(AccountService accountService, TokenService token
         return result.IsSuccess ? CreateSession(result.Value) : ToErrorResult(result.Error.Value);
     }
 
+    /// <summary>Ends every session on every device, this one included.</summary>
+    [HttpPost("sign-out-everywhere")]
+    public async Task<IActionResult> SignOutEverywhere()
+    {
+        var result = await accountService.SignOutEverywhereAsync(User.GetUserId());
+        return result.IsSuccess ? NoContent() : ToErrorResult(result.Error.Value);
+    }
+
     /// <summary>Deletes the account and all its data.</summary>
     [EnableRateLimiting(RateLimitingSetup.AuthPolicy)]
     [HttpDelete]
