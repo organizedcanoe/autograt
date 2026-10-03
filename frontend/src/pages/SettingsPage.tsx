@@ -7,6 +7,7 @@ import TimeZoneSettings from '../components/TimeZoneSettings'
 import type { Theme } from '../theme/theme'
 import { useTheme } from '../theme/ThemeContext'
 import { errorMessage } from '../utils/errors'
+import Alert from '../components/Alert'
 
 export default function SettingsPage() {
   const { theme, setTheme, reloadTheme } = useTheme()
@@ -34,7 +35,7 @@ export default function SettingsPage() {
       <AccountSettings />
       <section>
         <h2>Appearance</h2>
-        {error && <p role="alert">{error}</p>}
+        {error && <Alert kind="error">{error}</Alert>}
         <ThemePicker theme={theme} onChange={(next) => void changeTheme(next)} />
       </section>
       <TimeZoneSettings key={importCount} />

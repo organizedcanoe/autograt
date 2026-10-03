@@ -3,6 +3,7 @@ import { api } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import { forgetThisDevice } from '../push/pushSubscription'
 import { errorMessage } from '../utils/errors'
+import Alert from './Alert'
 import ChangePasswordForm from './ChangePasswordForm'
 import './AccountSettings.css'
 
@@ -54,8 +55,8 @@ function UsernameForm() {
         Username
         <input autoComplete="username" maxLength={50} value={username} onChange={(e) => setUsername(e.target.value)} />
       </label>
-      {error && <p role="alert">{error}</p>}
-      {saved && <p role="status">Username saved.</p>}
+      {error && <Alert kind="error">{error}</Alert>}
+      {saved && <Alert kind="success">Username saved.</Alert>}
       <button type="submit" disabled={saving || username.trim() === user?.username} aria-busy={saving}>
         Update username
       </button>
@@ -118,7 +119,7 @@ function DeleteAccount() {
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </label>
-              {error && <p role="alert">{error}</p>}
+              {error && <Alert kind="error">{error}</Alert>}
             </form>
             <footer data-confirm-actions>
               <button type="button" onClick={close}>

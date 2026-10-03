@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext'
 import AsyncView from './AsyncView'
 import { useAsync } from '../hooks/useAsync'
 import { errorMessage } from '../utils/errors'
+import Alert from './Alert'
 import './AdminUsers.css'
 
 interface UserAction {
@@ -87,7 +88,7 @@ export default function AdminUsers() {
         <h2>Users</h2>
         <p>New users can log in once approved. Role changes take effect straight away. Admins must be demoted before they can be disabled or deleted.</p>
       </hgroup>
-      {error && <p role="alert">{error}</p>}
+      {error && <Alert kind="error">{error}</Alert>}
       <AsyncView state={users}>
         {(list) => (
           <table>

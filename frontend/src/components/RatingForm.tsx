@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { errorMessage } from '../utils/errors'
+import Alert from './Alert'
 import RatingSelect from './RatingSelect'
 
 interface RatingFormProps {
@@ -31,7 +32,7 @@ export default function RatingForm({ rating, onSubmit }: RatingFormProps) {
   return (
     <form onSubmit={handleSubmit}>
       <RatingSelect label={rating === null ? 'How was your day?' : 'Change rating'} value={value} onChange={setValue} />
-      {error && <p role="alert">{error}</p>}
+      {error && <Alert kind="error">{error}</Alert>}
       <button type="submit" disabled={value === savedValue || submitting} aria-busy={submitting}>
         Save rating
       </button>

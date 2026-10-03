@@ -3,6 +3,7 @@ import { api, ApiError } from '../api/client'
 import type { ExportFormat, ImportResult } from '../api/types'
 import { saveFile } from '../utils/download'
 import { errorMessage } from '../utils/errors'
+import Alert from './Alert'
 
 interface Props {
   /** Called after a successful import, so the page can pick up the imported settings. */
@@ -100,7 +101,7 @@ export default function DataSettings({ onImported }: Props) {
           Export as Markdown
         </button>
       </div>
-      {exportError && <p role="alert">{exportError}</p>}
+      {exportError && <Alert kind="error">{exportError}</Alert>}
 
       <form ref={form} onSubmit={(e) => void confirmImport(e)}>
         <label>
@@ -117,18 +118,18 @@ export default function DataSettings({ onImported }: Props) {
       </form>
 
       {importErrors.length > 0 && (
-        <div role="alert">
+        <Alert kind="error">
           <p>Your journal could not be imported:</p>
           <ul>
             {importErrors.map((error) => (
               <li key={error}>{error}</li>
             ))}
           </ul>
-        </div>
+        </Alert>
       )}
 
       {outcome && (
-        <div role="status">
+        <Alert kind="success">
           <p>
             {plural(outcome.result.importedDays, 'day')} imported ({outcome.result.replacedDays.length} replaced) and{' '}
             {plural(outcome.result.settingsImported, 'setting')}.
@@ -144,7 +145,7 @@ export default function DataSettings({ onImported }: Props) {
               </ul>
             </details>
           )}
-        </div>
+        </Alert>
       )}
 
       {pending !== undefined && (

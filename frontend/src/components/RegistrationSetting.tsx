@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { api } from '../api/client'
 import { useAsync } from '../hooks/useAsync'
 import { errorMessage } from '../utils/errors'
+import Alert from './Alert'
 import AsyncView from './AsyncView'
 
 export default function RegistrationSetting() {
@@ -44,7 +45,7 @@ export default function RegistrationSetting() {
           </label>
         )}
       </AsyncView>
-      {error && <p role="alert">{error}</p>}
+      {error && <Alert kind="error">{error}</Alert>}
     </section>
   )
 }

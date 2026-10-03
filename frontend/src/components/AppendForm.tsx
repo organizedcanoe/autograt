@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { errorMessage } from '../utils/errors'
+import Alert from './Alert'
 
 interface AppendFormProps {
   subEntryId: number
@@ -39,7 +40,7 @@ export default function AppendForm({ subEntryId, onSubmit }: AppendFormProps) {
           Append
         </button>
       </fieldset>
-      {error && <small role="alert">{error}</small>}
+      {error && <Alert kind="error">{error}</Alert>}
     </form>
   )
 }

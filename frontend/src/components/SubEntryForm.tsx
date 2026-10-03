@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { ENTRY_CATEGORIES, type EntryCategory } from '../api/types'
 import { errorMessage } from '../utils/errors'
+import Alert from './Alert'
 import { categoryTint } from './categoryColors'
 
 type TextForCategory = string | ((category: EntryCategory) => string)
@@ -78,7 +79,7 @@ export default function SubEntryForm({
           style={{ backgroundColor: categoryTint(category) }}
         />
       </label>
-      {error && <p role="alert">{error}</p>}
+      {error && <Alert kind="error">{error}</Alert>}
       <button type="submit" disabled={content.trim() === '' || submitting} aria-busy={submitting}>
         {submitLabel}
       </button>{' '}

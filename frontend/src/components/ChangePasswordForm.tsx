@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { api } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import { errorMessage } from '../utils/errors'
+import Alert from './Alert'
 
 const minPasswordLength = 8
 
@@ -70,8 +71,8 @@ export default function ChangePasswordForm({ currentPasswordLabel = 'Current pas
         Confirm new password
         <input type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
       </label>
-      {error && <p role="alert">{error}</p>}
-      {saved && <p role="status">Password changed. Other devices have been signed out.</p>}
+      {error && <Alert kind="error">{error}</Alert>}
+      {saved && <Alert kind="success">Password changed. Other devices have been signed out.</Alert>}
       <button type="submit" disabled={saving} aria-busy={saving}>
         Change password
       </button>

@@ -5,6 +5,7 @@ import { useAsync } from '../hooks/useAsync'
 import { getPushSupport, type PushSupport } from '../push/pushSupport'
 import { getThisDeviceSubscription, subscribeThisDevice, unsubscribeThisDevice } from '../push/pushSubscription'
 import { errorMessage } from '../utils/errors'
+import Alert from './Alert'
 import AsyncView from './AsyncView'
 
 /** Matches the backend's limit on ReminderTime values. */
@@ -141,7 +142,7 @@ function ReminderForm({ saved }: { saved: Reminders }) {
 
   return (
     <>
-      {error && <p role="alert">{error}</p>}
+      {error && <Alert kind="error">{error}</Alert>}
 
       <p>Reminder times follow your time zone, set above.</p>
 
@@ -203,7 +204,7 @@ function ReminderForm({ saved }: { saved: Reminders }) {
           Send test notification
         </button>
       )}
-      {status && <p role="status">{status}</p>}
+      {status && <Alert kind="success">{status}</Alert>}
     </>
   )
 }
