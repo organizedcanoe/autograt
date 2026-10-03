@@ -122,7 +122,19 @@ describe('SearchPage', () => {
     renderAt('/search?q=walked')
 
     const article = await screen.findByRole('article')
-    expect(within(article).getByText('Walked the dog')).toBeInTheDocument()
+    expect(within(article).getByText('Walked', { selector: 'mark' })).toBeInTheDocument()
+    expect(article).toHaveTextContent('Walked the dog')
     expect(screen.getByText('1 match')).toBeInTheDocument()
+  })
+
+  it('highlights exactly the matched text', async () => {
+    vi.mocked(api.search).mockResolvedValue([{ ...results[0], content: 'Dog walked the dog' }])
+
+    renderAt('/search?q=dog')
+
+    const article = await screen.findByRole('article')
+    const marks = within(article).getAllByText(/dog/i, { selector: 'mark' })
+    expect(marks.map((mark) => mark.textContent)).toEqual(['Dog', 'dog'])
+    expect(article.querySelector('p')).toHaveTextContent('Dog walked the dog')
   })
 })

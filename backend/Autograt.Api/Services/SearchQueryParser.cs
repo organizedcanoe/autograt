@@ -10,6 +10,7 @@ public sealed record SearchQuery(IReadOnlyList<string> Terms, bool CaseSensitive
 /// <summary>
 /// Parses search input per the spec: <c>"quoted"</c> is one exact, case-sensitive term;
 /// <c>a, b</c> matches any term; anything else is one term. Unquoted terms ignore case.
+/// The frontend highlights matches with the same rules (keep in sync with frontend/src/utils/searchTerms.ts).
 /// </summary>
 public static class SearchQueryParser
 {
