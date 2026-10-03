@@ -35,3 +35,14 @@ test('browses past days from the day view and the history page', async ({ page }
   await page.getByRole('button', { name: 'Go' }).click()
   await expect(page).toHaveURL('/day/2020-02-29')
 })
+
+// The admin's only journaled day is today, rated 8 in the journey spec.
+test('summarises the journal on the insights page', async ({ page }) => {
+  await logIn(page, ADMIN_USERNAME)
+  await openMenuItem(page, ADMIN_USERNAME, 'Insights')
+
+  await expect(page.getByRole('article', { name: 'All time' })).toContainText('8.0')
+  await expect(page.getByRole('article', { name: 'Current streak' })).toContainText('1 day')
+  await expect(page.getByLabel('Range')).toHaveValue('30')
+  await expect(page.locator(`a[href="/day/${localToday()}"]`)).toHaveAccessibleName(/: rating 8, \d+ entries$/)
+})

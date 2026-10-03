@@ -6,6 +6,7 @@ import AdminPage from './pages/AdminPage'
 import ChangePasswordPage from './pages/ChangePasswordPage'
 import DayPage from './pages/DayPage'
 import HistoryPage from './pages/HistoryPage'
+import InsightsPage from './pages/InsightsPage'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import SearchPage from './pages/SearchPage'
@@ -40,6 +41,7 @@ function AppRoutes() {
         <Route path="day/:date" element={<DayPage />} />
         <Route path="search" element={<SearchPage />} />
         <Route path="history" element={<HistoryPage />} />
+        <Route path="insights" element={<InsightsPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="admin" element={user.role === 'Admin' ? <AdminPage /> : <Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
