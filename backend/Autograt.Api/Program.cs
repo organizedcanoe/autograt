@@ -104,6 +104,7 @@ builder.Services.AddScoped<AppSettingsService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<JournalService>();
 builder.Services.AddScoped<SearchService>();
+builder.Services.AddScoped<InsightsService>();
 builder.Services.AddScoped<SettingsService>();
 builder.Services.AddScoped<ExportService>();
 builder.Services.AddScoped<ImportService>();

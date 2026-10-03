@@ -64,6 +64,29 @@ export interface HeatmapDay {
   entryCount: number
 }
 
+/** The mean rating of the rated days in a period; null when there are none. */
+export interface RatingAverage {
+  average: number | null
+  ratedDays: number
+}
+
+/** A run of consecutive journaled days, both dates inclusive. */
+export interface StreakRun {
+  days: number
+  from: string
+  to: string
+}
+
+export interface Insights {
+  /** Today in the user's time zone. */
+  today: string
+  ratings: { allTime: RatingAverage; last7Days: RatingAverage; last30Days: RatingAverage }
+  /** Sub-entries in each category, all time; appends are not counted. */
+  categories: { good: number; bad: number; neutral: number }
+  /** `longest` is null until a day is journaled. */
+  streaks: { current: number; longest: StreakRun | null }
+}
+
 export type SearchResultType = 'SubEntry' | 'Append'
 
 export interface SearchResult {

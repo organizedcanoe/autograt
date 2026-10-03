@@ -8,6 +8,7 @@ import type {
   ExportFormat,
   HeatmapDay,
   ImportResult,
+  Insights,
   LoginResponse,
   PushPublicKey,
   PushSubscriptionRequest,
@@ -155,6 +156,8 @@ export const api = {
   deleteAppend: (appendId: number) => request<void>('DELETE', `/journal/appends/${appendId}`),
 
   getHeatmap: (from: string, to: string) => request<HeatmapDay[]>('GET', `/journal/heatmap?from=${from}&to=${to}`),
+
+  getInsights: () => request<Insights>('GET', '/insights'),
 
   search: (query: string) => request<SearchResult[]>('GET', `/journal/search?q=${encodeURIComponent(query)}`),
 

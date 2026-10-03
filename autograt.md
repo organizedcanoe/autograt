@@ -252,6 +252,20 @@ Represents additional notes appended specifically to an existing `JournalSubEntr
 
 * **Heatmap Data:** `GET /api/journal/heatmap?from=yyyy-MM-dd&to=yyyy-MM-dd` returns a contiguous array with one item per day from `from` to `to`, both inclusive, oldest first. For each day, it returns the calendar date, the `DayRating` (or null if no entry exists or the day is unrated), and the aggregate count of all sub-entries and appends for that date. Both dates are required; a `from` after `to`, or a range longer than 366 days, is rejected with `400`. The today view asks for the 30 days ending on the client's current date.
 
+### Insights
+
+* **Endpoint:** `GET /api/insights` (signed-in only, scoped to the signed-in user) returns `{ today, ratings: { allTime, last7Days, last30Days }, categories: { good, bad, neutral }, streaks: { current, longest } }`. A user with no data gets zeros and nulls, not an error.
+
+* **Today:** The date in the user's saved `TimeZone`, or UTC if none is saved, returned as `today`.
+
+* **Journaled Day:** A day whose `JournalEntry` has at least one sub-entry or a rating. An entry left with neither (its last sub-entry deleted, never rated) doesn't count.
+
+* **Averages:** Each of `allTime`, `last7Days` and `last30Days` is `{ average, ratedDays }`: the unrounded mean `DayRating` of the rated days in the period, and how many there are. Unrated days are ignored, not counted as 0, and `average` is null with no rated days. The 7- and 30-day periods are rolling windows ending today, inclusive.
+
+* **Categories:** The number of sub-entries in each category, all time. Appends are not counted.
+
+* **Streaks:** `current` is the number of consecutive journaled days ending today, or ending yesterday while today isn't journaled yet (so it doesn't drop to 0 every morning), and 0 otherwise. `longest` is `{ days, from, to }`, the longest run of consecutive journaled days (the most recent on a tie), or null with no journaled days.
+
 ## 4. Search Query Engine Specification
 
 The search endpoint performs full-text query matching across both `JournalSubEntry.Content` and `JournalAppend.Content` records belonging to the authenticated user.
@@ -334,13 +348,25 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 #### History Page
 
-* The page for browsing past days (`/history`), opened from the user's menu. The menu lists **History** and then **Search**, which opens the search page.
+* The page for browsing past days (`/history`), opened from the user's menu. The menu lists **History**, **Insights** and then **Search**, which opens the search page.
 
 * **Month calendar:** Shown first, on the current month, which loads when the page opens. A month input (no later than the current month) and a **Show** button load another month. The month is laid out as a Sunday-to-Saturday calendar table; each day up to today is colored by its rating like the heatmap and opens its day view, while later days are shown without a link. **← Previous month** and **Next month →** buttons move the shown month; the next month button is disabled on the current month.
 
 * **Jump to a date:** A date input (starting on, and no later than, today) and a **Go** button that opens that day's view.
 
 * **Heatmap:** A range picker (`Last 30 days`, `Last 60 days`, `Last 90 days`, `Last 365 days`, `Year to date`) and a **Show** button. Nothing loads until a range is shown; it then shows a heatmap of the range ending today, with the same blocks, colors and links as the today view's heatmap, wrapping into rows of 30.
+
+#### Insights Page
+
+* A summary of the journal (`/insights`), opened from the user's menu, loaded from `GET /api/insights`. A failed load shows an error. A user with no journaled days sees "No entries yet. Insights appear once you've journaled." instead of the sections below.
+
+* **Ratings:** Cards for **All time**, **Last 7 days** and **Last 30 days**, each with its average to one decimal place (or `—` without rated days) and its number of rated days.
+
+* **Streaks:** **Current streak** and **Longest streak** in days, the longest with its date range.
+
+* **Entries:** **Good**, **Bad** and **Neutral** cards with their number of entries and their share of all entries.
+
+* **Rating trend:** A range select (`Last 30 days`, `Last 90 days`, `Last 365 days`; the last 30 days load on open, and choosing another range loads it straight away) and an inline SVG chart of the range ending today, loaded from the heatmap endpoint. Each rated day is a dot colored like the heatmap that opens its day view; unrated days are gaps. A line shows the 7-day rolling average: the mean of the rated days in the 7 days ending on each date (fewer at the start of the range), with a gap where that window has none. The rating axis is labelled 0, 5 and 10, and the date axis with the first, middle and last dates.
 
 #### Settings Page
 
@@ -459,6 +485,8 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
 * **Export & Import Endpoint Tests:** Verify that both endpoints return 401 without a token and an unknown format returns 400; that the JSON export holds only the user's data, nested and ordered, with category names, no ids and only saved settings; that the Markdown export renders days newest first with ratings (or unrated), categories and appends; that an import creates days with the file's timestamps, replaces days the user already has (reporting them), leaves days not in the file untouched, is idempotent, overwrites only the settings in the file, and round-trips another user's export; and that each invalid file is rejected with 400 and writes nothing.
 
+* **Insights Endpoint Tests:** Verify that the endpoint returns 401 without a token and zeros and nulls without data; that averages ignore unrated days and the 7- and 30-day windows end today; that category counts leave out appends and other users' entries; that streaks count only journaled days, the current one ending today or yesterday and broken by a gap, and the longest one with its dates (the most recent on a tie); and that "today" follows the saved time zone.
+
 * **Search Parser Tests:** Validate search query parsing logic against exact quoted strings, comma-separated OR lists, and standard strings across both sub-entries and appends.
 
 ### Frontend Component Tests (Vitest + React Testing Library)
@@ -478,6 +506,8 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 * Validate that registering a pending account shows the approval notice without logging in, and that the login page hides registration while it is closed (but not when its status fails to load); that the admin page shows the actions for each role, approves pending users, demotes other admins, disables users and deletes them only after confirmation, enables disabled users, and shows server errors; that the registration switch saves and keeps the old value when saving fails; and that a stored session's token and user are refreshed from the server on load, kept when the refresh fails, and refreshed again when the app returns to the foreground a day later but not sooner.
 
 * Validate that the Account section saves a new username into the session and shows server errors; that the password form checks its fields before calling the server, keeps this session signed in on success and shows a wrong password; that deleting the account can be cancelled, needs the password, shows a wrong password in the dialog, and logs out on success; that a user who must change their password sees only the choose a new password page; and that the admin page offers a password reset only for other approved users, confirms first and shows the temporary password once.
+
+* Validate that the insights page shows the ratings, streaks, entries and rating trend sections in that order, each average to one decimal with its rated-day count (or `—`), both streaks with the longest one's dates, and each category's count and share; that it shows the empty message without journaled days and an error on a failed load; that the menu lists Insights between History and Search; that the rating trend loads the last 30 days on open and reloads for another range; that the chart colors and links a dot per rated day, leaves gaps for unrated days and draws the rolling average, breaking it where a window has no rated days; and that the rolling average ignores unrated days.
 
 * Validate that the update dialog appears only when a new version is available, reloads into it, and can be dismissed.
 
@@ -527,5 +557,7 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 * **Settings:** Changing the mode, color and time zone applies the theme straight away and is saved to the account, so a fresh browser that logs in gets the same settings.
 
 * **Browsing:** On a day view, the previous and next day links move between days; the history page has no search bar, opens on the current month with today colored by its rating, shows a heatmap range including today only when asked, and jumping to a date opens it.
+
+* **Insights:** The admin's insights page, opened from the menu, shows the journey's rating as the all-time average, a current streak of 1 day, and today's dot on the 30-day rating trend.
 
 * **Export & Import:** The admin exports their journal as JSON; a second, approved user imports it (confirming the overwrite warning) and sees the admin's rated day on their heatmap.

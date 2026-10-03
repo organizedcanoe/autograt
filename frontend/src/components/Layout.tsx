@@ -38,6 +38,11 @@ export default function Layout() {
                     </Link>
                   </li>
                   <li>
+                    <Link to="/insights" onClick={closeMenu}>
+                      Insights
+                    </Link>
+                  </li>
+                  <li>
                     <Link to="/search" onClick={closeMenu}>
                       Search
                     </Link>

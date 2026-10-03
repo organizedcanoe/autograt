@@ -61,6 +61,11 @@ export function formatShortDate(isoDate: string): string {
   return parseIsoDate(isoDate).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
 }
 
+/** e.g. "Sep 23, 2026" */
+export function formatMediumDate(isoDate: string): string {
+  return parseIsoDate(isoDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
 /** e.g. "September 2026" for "2026-09" */
 export function formatMonth(isoMonth: string): string {
   return parseIsoDate(`${isoMonth}-01`).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })

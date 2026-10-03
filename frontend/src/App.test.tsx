@@ -73,14 +73,30 @@ describe('App', () => {
     expect(menu).not.toHaveAttribute('open')
   })
 
-  it('opens the search page from the menu, listed under History', async () => {
+  it('opens the insights page from the menu, listed between History and Search', async () => {
     signInAs('Standard')
     render(<App />)
 
     const header = within(screen.getByRole('banner'))
     const menu = header.getByText('billy').closest('details')!
     const items = within(menu).getAllByRole('link').map((link) => link.textContent)
-    expect(items.indexOf('Search')).toBe(items.indexOf('History') + 1)
+    expect(items.indexOf('Insights')).toBe(items.indexOf('History') + 1)
+
+    await userEvent.click(header.getByText('billy'))
+    await userEvent.click(within(menu).getByRole('link', { name: 'Insights' }))
+    expect(window.location.pathname).toBe('/insights')
+    expect(screen.getByRole('heading', { level: 1, name: 'Insights' })).toBeInTheDocument()
+    expect(menu).not.toHaveAttribute('open')
+  })
+
+  it('opens the search page from the menu, listed under Insights', async () => {
+    signInAs('Standard')
+    render(<App />)
+
+    const header = within(screen.getByRole('banner'))
+    const menu = header.getByText('billy').closest('details')!
+    const items = within(menu).getAllByRole('link').map((link) => link.textContent)
+    expect(items.indexOf('Search')).toBe(items.indexOf('Insights') + 1)
 
     await userEvent.click(header.getByText('billy'))
     await userEvent.click(within(menu).getByRole('link', { name: 'Search' }))
