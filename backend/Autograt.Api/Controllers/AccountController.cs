@@ -15,7 +15,8 @@ namespace Autograt.Api.Controllers;
 /// </remarks>
 [ApiController]
 [Route("api/account")]
-public class AccountController(AccountService accountService, TokenService tokenService) : ControllerBase
+public class AccountController(AccountService accountService, TokenService tokenService, ILogger<AccountController> logger)
+    : ControllerBase
 {
     /// <returns>A new token for this session; every other session is signed out.</returns>
     [EnableRateLimiting(RateLimitingSetup.AuthPolicy)]
@@ -29,7 +30,13 @@ public class AccountController(AccountService accountService, TokenService token
         }
 
         var result = await accountService.ChangePasswordAsync(User.GetUserId(), request.CurrentPassword, request.NewPassword);
-        return result.IsSuccess ? CreateSession(result.Value) : ToErrorResult(result.Error.Value);
+        if (result.IsSuccess == false)
+        {
+            return ToErrorResult(result.Error.Value);
+        }
+
+        logger.LogInformation("User {UserId} changed their password.", result.Value.Id);
+        return CreateSession(result.Value);
     }
 
     /// <returns>A new token carrying the new username.</returns>
@@ -37,7 +44,13 @@ public class AccountController(AccountService accountService, TokenService token
     public async Task<ActionResult<LoginResponse>> ChangeUsername(ChangeUsernameRequest request)
     {
         var result = await accountService.ChangeUsernameAsync(User.GetUserId(), request.Username);
-        return result.IsSuccess ? CreateSession(result.Value) : ToErrorResult(result.Error.Value);
+        if (result.IsSuccess == false)
+        {
+            return ToErrorResult(result.Error.Value);
+        }
+
+        logger.LogInformation("User {UserId} changed their username to {Username}.", result.Value.Id, result.Value.Username);
+        return CreateSession(result.Value);
     }
 
     /// <summary>Ends every session on every device, this one included.</summary>
@@ -45,7 +58,13 @@ public class AccountController(AccountService accountService, TokenService token
     public async Task<IActionResult> SignOutEverywhere()
     {
         var result = await accountService.SignOutEverywhereAsync(User.GetUserId());
-        return result.IsSuccess ? NoContent() : ToErrorResult(result.Error.Value);
+        if (result.IsSuccess == false)
+        {
+            return ToErrorResult(result.Error.Value);
+        }
+
+        logger.LogInformation("User {UserId} signed out everywhere.", result.Value.Id);
+        return NoContent();
     }
 
     /// <summary>Deletes the account and all its data.</summary>
@@ -54,7 +73,13 @@ public class AccountController(AccountService accountService, TokenService token
     public async Task<IActionResult> Delete(DeleteAccountRequest request)
     {
         var result = await accountService.DeleteAsync(User.GetUserId(), request.Password);
-        return result.IsSuccess ? NoContent() : ToErrorResult(result.Error.Value);
+        if (result.IsSuccess == false)
+        {
+            return ToErrorResult(result.Error.Value);
+        }
+
+        logger.LogInformation("User {UserId} deleted their account.", result.Value.Id);
+        return NoContent();
     }
 
     private LoginResponse CreateSession(User user)
@@ -63,13 +88,22 @@ public class AccountController(AccountService accountService, TokenService token
         return new LoginResponse(token, expiresAtUtc, UserResponse.From(user));
     }
 
-    private ActionResult ToErrorResult(ServiceError error) => error switch
+    private ActionResult ToErrorResult(ServiceError error)
     {
-        ServiceError.WrongPassword => BadRequest(new ProblemDetails { Title = "Current password is incorrect." }),
-        ServiceError.Conflict => Conflict(new ProblemDetails { Title = "That username is already taken." }),
-        ServiceError.InvalidState => BadRequest(new ProblemDetails { Title = "Promote another admin before deleting your account." }),
-        // The user was deleted after the token was checked, e.g. by a request from another device.
-        ServiceError.NotFound => Unauthorized(),
-        _ => throw new InvalidOperationException($"Unexpected error: {error}."),
-    };
+        if (error == ServiceError.WrongPassword)
+        {
+            // A stolen token can't guess the password quietly.
+            logger.LogWarning("User {UserId} entered the wrong password from {ClientIp}.", User.GetUserId(), HttpContext.GetClientIp());
+        }
+
+        return error switch
+        {
+            ServiceError.WrongPassword => BadRequest(new ProblemDetails { Title = "Current password is incorrect." }),
+            ServiceError.Conflict => Conflict(new ProblemDetails { Title = "That username is already taken." }),
+            ServiceError.InvalidState => BadRequest(new ProblemDetails { Title = "Promote another admin before deleting your account." }),
+            // The user was deleted after the token was checked, e.g. by a request from another device.
+            ServiceError.NotFound => Unauthorized(),
+            _ => throw new InvalidOperationException($"Unexpected error: {error}."),
+        };
+    }
 }

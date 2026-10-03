@@ -10,7 +10,8 @@ namespace Autograt.Api.Controllers;
 [ApiController]
 [Route("api/admin/users")]
 [Authorize(Roles = AuthClaims.AdminRole)]
-public class AdminController(UserService userService, AccountService accountService) : ControllerBase
+public class AdminController(UserService userService, AccountService accountService, ILogger<AdminController> logger)
+    : ControllerBase
 {
     [HttpGet]
     public async Task<List<UserResponse>> ListUsers() =>
@@ -18,11 +19,11 @@ public class AdminController(UserService userService, AccountService accountServ
 
     [HttpPost("{id:int}/approve")]
     public async Task<IActionResult> Approve(int id) =>
-        ToActionResult(await userService.ApproveAsync(id), "Only pending users can be approved.");
+        ToActionResult(id, "approved", await userService.ApproveAsync(id), "Only pending users can be approved.");
 
     [HttpPost("{id:int}/promote")]
     public async Task<IActionResult> Promote(int id) =>
-        ToActionResult(await userService.PromoteToAdminAsync(id), "Only standard users can be promoted.");
+        ToActionResult(id, "promoted to admin", await userService.PromoteToAdminAsync(id), "Only standard users can be promoted.");
 
     [HttpPost("{id:int}/demote")]
     public async Task<IActionResult> Demote(int id)
@@ -32,21 +33,21 @@ public class AdminController(UserService userService, AccountService accountServ
             return BadRequest(new ProblemDetails { Title = "Another admin must demote you." });
         }
 
-        return ToActionResult(await userService.DemoteToStandardAsync(id), "Only admins can be demoted, and not the last one.");
+        return ToActionResult(id, "demoted to standard", await userService.DemoteToStandardAsync(id), "Only admins can be demoted, and not the last one.");
     }
 
     [HttpPost("{id:int}/disable")]
     public async Task<IActionResult> Disable(int id) =>
-        ToActionResult(await userService.DisableAsync(id), "Only standard users can be disabled. Demote admins first.");
+        ToActionResult(id, "disabled", await userService.DisableAsync(id), "Only standard users can be disabled. Demote admins first.");
 
     [HttpPost("{id:int}/enable")]
     public async Task<IActionResult> Enable(int id) =>
-        ToActionResult(await userService.EnableAsync(id), "Only disabled users can be enabled.");
+        ToActionResult(id, "enabled", await userService.EnableAsync(id), "Only disabled users can be enabled.");
 
     /// <summary>Deletes a pending, standard or disabled user and all their data.</summary>
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id) =>
-        ToActionResult(await userService.DeleteAsync(id), "Admins can't be deleted. Demote them first.");
+        ToActionResult(id, "deleted", await userService.DeleteAsync(id), "Admins can't be deleted. Demote them first.");
 
     /// <summary>
     /// Sets a random temporary password for an approved user, signs them out everywhere, and makes them choose
@@ -61,6 +62,11 @@ public class AdminController(UserService userService, AccountService accountServ
         }
 
         var result = await accountService.ResetPasswordAsync(id);
+        if (result.IsSuccess)
+        {
+            logger.LogInformation("Admin {AdminId} reset the password of user {UserId}.", User.GetUserId(), id);
+        }
+
         return result.Error switch
         {
             null => new ResetPasswordResponse(result.Value!),
@@ -70,11 +76,20 @@ public class AdminController(UserService userService, AccountService accountServ
         };
     }
 
-    private IActionResult ToActionResult(ServiceResult<User> result, string invalidStateMessage) => result.Error switch
+    /// <param name="action">What was done to the user, for the log, e.g. "approved".</param>
+    private IActionResult ToActionResult(int userId, string action, ServiceResult<User> result, string invalidStateMessage)
     {
-        null => NoContent(),
-        ServiceError.NotFound => NotFound(),
-        ServiceError.InvalidState => BadRequest(new ProblemDetails { Title = invalidStateMessage }),
-        _ => throw new InvalidOperationException($"Unexpected error: {result.Error}."),
-    };
+        if (result.IsSuccess)
+        {
+            logger.LogInformation("Admin {AdminId} {Action} user {UserId}.", User.GetUserId(), action, userId);
+        }
+
+        return result.Error switch
+        {
+            null => NoContent(),
+            ServiceError.NotFound => NotFound(),
+            ServiceError.InvalidState => BadRequest(new ProblemDetails { Title = invalidStateMessage }),
+            _ => throw new InvalidOperationException($"Unexpected error: {result.Error}."),
+        };
+    }
 }

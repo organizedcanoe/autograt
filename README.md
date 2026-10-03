@@ -152,6 +152,8 @@ The frontend (nginx) proxies `/api` to the backend container and has two listene
 - **Port 80, for the Cloudflare Tunnel.** It isn't published, so only cloudflared reaches it over the Docker network. Point the tunnel at `http://frontend:80`. It trusts Cloudflare's `CF-Connecting-IP` header for the client's IP, which the login rate limit uses.
 - **Port 8080, published as port 3000, for direct local or LAN access.** It ignores `CF-Connecting-IP`. If you only use the tunnel, you can remove `ports:` from the `frontend` service to close port 3000.
 
+The backend logs sign-ins, failed logins, account changes, admin actions and rate-limited requests. View them with `docker logs autograt-backend`. Each container keeps at most 50 MB of logs.
+
 ### Update
 
 The footer of every page shows the running version, commit and build date (`GET /api/version` returns the backend's). Compare the commit with the latest on `main`, then update:

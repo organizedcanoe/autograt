@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using WebPush;
 
 namespace Autograt.Tests.Infrastructure;
@@ -34,6 +35,9 @@ public class AutogratApiFactory : WebApplicationFactory<Program>
 
     /// <summary>Records push notifications instead of sending them.</summary>
     public FakePushSender Push { get; } = new();
+
+    /// <summary>Everything the API logs.</summary>
+    public TestLogs Logs { get; } = new();
 
     // Generated once so tests never write a vapid.json into the temp directory.
     private static readonly VapidDetails VapidKeys = VapidHelper.GenerateVapidKeys();
@@ -85,6 +89,7 @@ public class AutogratApiFactory : WebApplicationFactory<Program>
         builder.UseSetting($"{RateLimitingOptions.SectionName}:{nameof(RateLimitingOptions.UserPermitsPerMinute)}", $"{RateLimits.UserPermitsPerMinute}");
         builder.UseSetting($"{PushOptions.SectionName}:{nameof(PushOptions.VapidPublicKey)}", VapidKeys.PublicKey);
         builder.UseSetting($"{PushOptions.SectionName}:{nameof(PushOptions.VapidPrivateKey)}", VapidKeys.PrivateKey);
+        builder.ConfigureLogging(logging => logging.AddProvider(Logs));
         builder.ConfigureTestServices(services =>
         {
             services.AddSingleton<TimeProvider>(Clock);

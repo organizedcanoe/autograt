@@ -11,7 +11,8 @@ namespace Autograt.Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
-public class AuthController(AuthService authService, UserService userService, TokenService tokenService) : ControllerBase
+public class AuthController(AuthService authService, UserService userService, TokenService tokenService, ILogger<AuthController> logger)
+    : ControllerBase
 {
     [AllowAnonymous]
     [EnableRateLimiting(RateLimitingSetup.AuthPolicy)]
@@ -19,6 +20,12 @@ public class AuthController(AuthService authService, UserService userService, To
     public async Task<ActionResult<UserResponse>> Register(RegisterRequest request)
     {
         var result = await authService.RegisterAsync(request.Username, request.Password);
+        if (result.IsSuccess)
+        {
+            logger.LogInformation("User {UserId} registered as {Username} ({Role}) from {ClientIp}.",
+                result.Value.Id, result.Value.Username, result.Value.Role, HttpContext.GetClientIp());
+        }
+
         return result.Error switch
         {
             null => CreatedAtAction(nameof(Me), UserResponse.From(result.Value!)),
@@ -40,19 +47,19 @@ public class AuthController(AuthService authService, UserService userService, To
         var user = await authService.ValidateCredentialsAsync(request.Username, request.Password);
         if (user is null)
         {
+            logger.LogWarning("Failed login for {Username} from {ClientIp}.",
+                SecurityLogging.MaskUsername(request.Username), HttpContext.GetClientIp());
             return Unauthorized(new ProblemDetails { Title = "Invalid username or password." });
         }
 
-        if (user.Role == UserRole.Pending)
+        if (user.Role is UserRole.Pending or UserRole.Disabled)
         {
-            return Problem(title: "Your account is awaiting admin approval.", statusCode: StatusCodes.Status403Forbidden);
+            logger.LogInformation("Refused login for {Role} user {UserId} from {ClientIp}.", user.Role, user.Id, HttpContext.GetClientIp());
+            var title = user.Role == UserRole.Pending ? "Your account is awaiting admin approval." : "This account has been disabled.";
+            return Problem(title: title, statusCode: StatusCodes.Status403Forbidden);
         }
 
-        if (user.Role == UserRole.Disabled)
-        {
-            return Problem(title: "This account has been disabled.", statusCode: StatusCodes.Status403Forbidden);
-        }
-
+        logger.LogInformation("User {UserId} logged in from {ClientIp}.", user.Id, HttpContext.GetClientIp());
         var (token, expiresAtUtc) = tokenService.CreateToken(user);
         return new LoginResponse(token, expiresAtUtc, UserResponse.From(user));
     }
