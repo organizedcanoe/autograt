@@ -85,7 +85,13 @@ function HighlightedText({ content, query }: { content: string; query: string })
   const parts: ReactNode[] = []
   let position = 0
   for (const { start, length } of findHighlights(content, query)) {
-    parts.push(content.slice(position, start), <mark key={start}>{content.slice(start, start + length)}</mark>)
+    parts.push(
+      content.slice(position, start),
+      // Pico pads <mark>, which pushes highlighted words apart from the surrounding text.
+      <mark key={start} style={{ padding: 0 }}>
+        {content.slice(start, start + length)}
+      </mark>,
+    )
     position = start + length
   }
   parts.push(content.slice(position))
