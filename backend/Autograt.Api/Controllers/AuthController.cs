@@ -64,17 +64,21 @@ public class AuthController(AuthService authService, UserService userService, To
         return user is null ? Unauthorized() : UserResponse.From(user);
     }
 
-    /// <returns>A new token for this session, so a session in use never expires. Ended sessions are rejected with 401.</returns>
+    /// <returns>
+    /// A new token for this session, so a session in use doesn't expire until <see cref="TokenService.MaxSessionAge"/>
+    /// after logging in. Ended sessions, and tokens without a login time, are rejected with 401.
+    /// </returns>
     [HttpPost("refresh")]
     public async Task<ActionResult<LoginResponse>> Refresh()
     {
         var user = await userService.FindAsync(User.GetUserId());
-        if (user is null)
+        var authTimeUtc = User.GetAuthTimeUtc();
+        if (user is null || authTimeUtc is null || DateTime.UtcNow - authTimeUtc.Value >= TokenService.MaxSessionAge)
         {
             return Unauthorized();
         }
 
-        var (token, expiresAtUtc) = tokenService.CreateToken(user);
+        var (token, expiresAtUtc) = tokenService.CreateToken(user, authTimeUtc.Value);
         return new LoginResponse(token, expiresAtUtc, UserResponse.From(user));
     }
 }
