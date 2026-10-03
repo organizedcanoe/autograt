@@ -364,7 +364,7 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 * **Streaks:** **Current streak** and **Longest streak** in days, the longest with its date range.
 
-* **Entries:** **Good**, **Bad** and **Neutral** cards with their number of entries and their share of all entries.
+* **Entries:** **Good**, **Bad** and **Neutral** cards with their number of entries and their share of all entries, each tinted with its category colour (see Category Tint).
 
 * **Rating trend:** A range select (`Last 30 days`, `Last 90 days`, `Last 365 days`; the last 30 days load on open, and choosing another range loads it straight away) and an inline SVG chart of the range ending today, loaded from the heatmap endpoint. Each rated day is a dot colored like the heatmap that opens its day view; unrated days are gaps. A line shows the 7-day rolling average: the mean of the rated days in the 7 days ending on each date (fewer at the start of the range), with a gap where that window has none. The rating axis is labelled 0, 5 and 10, and the date axis with the first, middle and last dates.
 
@@ -507,7 +507,7 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
 * Validate that the Account section saves a new username into the session and shows server errors; that the password form checks its fields before calling the server, keeps this session signed in on success and shows a wrong password; that deleting the account can be cancelled, needs the password, shows a wrong password in the dialog, and logs out on success; that a user who must change their password sees only the choose a new password page; and that the admin page offers a password reset only for other approved users, confirms first and shows the temporary password once.
 
-* Validate that the insights page shows the ratings, streaks, entries and rating trend sections in that order, each average to one decimal with its rated-day count (or `—`), both streaks with the longest one's dates, and each category's count and share; that it shows the empty message without journaled days and an error on a failed load; that the menu lists Insights between History and Search; that the rating trend loads the last 30 days on open and reloads for another range; that the chart colors and links a dot per rated day, leaves gaps for unrated days and draws the rolling average, breaking it where a window has no rated days; and that the rolling average ignores unrated days.
+* Validate that the insights page shows the ratings, streaks, entries and rating trend sections in that order, each average to one decimal with its rated-day count (or `—`), both streaks with the longest one's dates, and each category's count and share, tinted with its category colour; that it shows the empty message without journaled days and an error on a failed load; that the menu lists Insights between History and Search; that the rating trend loads the last 30 days on open and reloads for another range; that the chart colors and links a dot per rated day, leaves gaps for unrated days and draws the rolling average, breaking it where a window has no rated days; and that the rolling average ignores unrated days.
 
 * Validate that the update dialog appears only when a new version is available, reloads into it, and can be dismissed.
 
