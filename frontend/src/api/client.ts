@@ -124,6 +124,9 @@ export const api = {
   /** The response is a new session carrying the new username. */
   changeUsername: (username: string) => request<LoginResponse>('PUT', '/account/username', { username }),
 
+  /** Ends every session on every device, this one included. */
+  signOutEverywhere: () => request<void>('POST', '/account/sign-out-everywhere'),
+
   /** Deletes the account and all its data. */
   deleteAccount: (password: string) => request<void>('DELETE', '/account', { password }),
 

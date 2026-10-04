@@ -27,6 +27,20 @@ public class AccountService(AutogratDbContext db, AuthService authService, IPass
         return result;
     }
 
+    /// <summary>Ends every session, this one included, by replacing the security stamp. Fails with NotFound.</summary>
+    public async Task<ServiceResult<User>> SignOutEverywhereAsync(int userId)
+    {
+        var user = await db.Users.FindAsync(userId);
+        if (user is null)
+        {
+            return ServiceResult<User>.Failure(ServiceError.NotFound);
+        }
+
+        user.SecurityStamp = User.NewSecurityStamp();
+        await db.SaveChangesAsync();
+        return ServiceResult<User>.Success(user);
+    }
+
     /// <summary>Renames the user. Usernames are unique ignoring case, but a user may change the case of their own.</summary>
     public async Task<ServiceResult<User>> ChangeUsernameAsync(int userId, string username)
     {

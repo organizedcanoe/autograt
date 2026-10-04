@@ -145,8 +145,14 @@ Pick the tag in `docker-compose.yml` for how much change you want on each `docke
    docker compose pull
    docker compose up -d
    ```
+4. Open the app and register right away: the first account to register becomes the admin.
 
-The frontend (nginx) listens on port 3000 and proxies `/api` to the backend container.
+The frontend (nginx) proxies `/api` to the backend container and has two listeners:
+
+- **Port 80, for the Cloudflare Tunnel.** It isn't published, so only cloudflared reaches it over the Docker network. Point the tunnel at `http://frontend:80`. It trusts Cloudflare's `CF-Connecting-IP` header for the client's IP, which the login rate limit uses.
+- **Port 8080, published as port 3000, for direct local or LAN access.** It ignores `CF-Connecting-IP`. If you only use the tunnel, you can remove `ports:` from the `frontend` service to close port 3000.
+
+The backend logs sign-ins, failed logins, account changes, admin actions and rate-limited requests. View them with `docker logs autograt-backend`. Each container keeps at most 50 MB of logs.
 
 ### Update
 

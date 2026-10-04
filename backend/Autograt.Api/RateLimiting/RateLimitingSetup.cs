@@ -32,12 +32,12 @@ public static class RateLimitingSetup
                 var limits = GetLimits(context);
                 var userId = context.User.FindFirstValue(AuthClaims.UserId);
                 return userId is null
-                    ? FixedWindow($"ip:{GetClientIp(context)}", limits.AnonymousPermitsPerMinute)
+                    ? FixedWindow($"ip:{context.GetClientIp()}", limits.AnonymousPermitsPerMinute)
                     : FixedWindow($"user:{userId}", limits.UserPermitsPerMinute);
             });
 
             options.AddPolicy(AuthPolicy, context =>
-                FixedWindow(GetClientIp(context), GetLimits(context).AuthPermitsPerMinute));
+                FixedWindow(context.GetClientIp(), GetLimits(context).AuthPermitsPerMinute));
         });
 
         return services;
@@ -55,14 +55,14 @@ public static class RateLimitingSetup
     private static RateLimitingOptions GetLimits(HttpContext context) =>
         context.RequestServices.GetRequiredService<IOptions<RateLimitingOptions>>().Value;
 
-    // Behind the proxy this is the forwarded client address (see UseForwardedHeaders in Program.cs).
-    private static string GetClientIp(HttpContext context) =>
-        context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-
     private static async ValueTask WriteRejectionAsync(OnRejectedContext context, CancellationToken cancellationToken)
     {
         var retryAfter = context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var delay) ? delay : Window;
         var seconds = (int)Math.Ceiling(retryAfter.TotalSeconds);
+
+        var request = context.HttpContext.Request;
+        context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(RateLimitingSetup))
+            .LogWarning("Rate limited {Method} {Path} from {ClientIp}.", request.Method, request.Path, context.HttpContext.GetClientIp());
 
         var response = context.HttpContext.Response;
         response.StatusCode = StatusCodes.Status429TooManyRequests;

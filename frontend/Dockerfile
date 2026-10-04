@@ -10,5 +10,7 @@ RUN VITE_APP_VERSION=$VERSION VITE_APP_COMMIT=$COMMIT VITE_BUILD_DATE=$BUILD_DAT
 
 FROM nginx:alpine AS runtime
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx-site.conf /etc/nginx/autograt/site.conf
+COPY nginx-security-headers.conf /etc/nginx/autograt/security-headers.conf
 COPY --from=build /app/dist /usr/share/nginx/html
-EXPOSE 80
+EXPOSE 80 8080

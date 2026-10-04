@@ -1,5 +1,13 @@
 # Image tags: latest, MAJOR (e.g. 0), MAJOR.MINOR (e.g. 0.1) or an exact version (e.g. 0.1.57).
 # Use the same tag for backend and frontend. See README "Production".
+
+# Keep each container's log (docker logs) to 5 rotated files of 10 MB.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 services:
   backend:
     image: ghcr.io/oversizedcanoe/autograt-backend:latest
@@ -11,15 +19,17 @@ services:
     volumes:
       - ./data:/app/data
     restart: unless-stopped
+    logging: *logging
 
   frontend:
     image: ghcr.io/oversizedcanoe/autograt-frontend:latest
     container_name: autograt-frontend
     ports:
-      - "3000:80"
+      - "3000:8080"
     depends_on:
       - backend
     restart: unless-stopped
+    logging: *logging
   
   tunnel:
     image: cloudflare/cloudflared:latest
@@ -28,3 +38,4 @@ services:
     environment:
       - TUNNEL_TOKEN=${CF_TUNNEL_TOKEN}
     restart: unless-stopped
+    logging: *logging

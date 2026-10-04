@@ -9,7 +9,10 @@ import AccountSettings from './AccountSettings'
 
 vi.mock('../api/client', async (importOriginal) => {
   const original = await importOriginal<typeof import('../api/client')>()
-  return { ...original, api: { ...original.api, changeUsername: vi.fn(), deleteAccount: vi.fn() } }
+  return {
+    ...original,
+    api: { ...original.api, changeUsername: vi.fn(), deleteAccount: vi.fn(), signOutEverywhere: vi.fn() },
+  }
 })
 vi.mock('../auth/AuthContext', () => ({ useAuth: vi.fn() }))
 vi.mock('../push/pushSubscription', () => ({ forgetThisDevice: vi.fn() }))
@@ -76,6 +79,26 @@ describe('AccountSettings', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent('Enter a username.')
     expect(api.changeUsername).not.toHaveBeenCalled()
+  })
+
+  it('signs out everywhere, then logs out this device', async () => {
+    vi.mocked(api.signOutEverywhere).mockResolvedValue(undefined)
+    const { logout } = renderSettings()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Sign out everywhere' }))
+
+    expect(api.signOutEverywhere).toHaveBeenCalled()
+    expect(logout).toHaveBeenCalled()
+  })
+
+  it('stays signed in and shows the error when signing out everywhere fails', async () => {
+    vi.mocked(api.signOutEverywhere).mockRejectedValue(new ApiError(500, 'Something went wrong.'))
+    const { logout } = renderSettings()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Sign out everywhere' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Something went wrong.')
+    expect(logout).not.toHaveBeenCalled()
   })
 
   it('can cancel deleting the account', async () => {
