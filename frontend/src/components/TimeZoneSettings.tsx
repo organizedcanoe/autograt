@@ -3,6 +3,7 @@ import { api } from '../api/client'
 import { useAsync } from '../hooks/useAsync'
 import { detectTimeZone, savedTimeZone, timeZoneOptions } from '../utils/timeZones'
 import { errorMessage } from '../utils/errors'
+import Alert from './Alert'
 import AsyncView from './AsyncView'
 
 /** The Time zone section of the settings page. */
@@ -36,7 +37,7 @@ function TimeZoneForm({ saved }: { saved: string | null }) {
 
   return (
     <>
-      {error && <p role="alert">{error}</p>}
+      {error && <Alert kind="error">{error}</Alert>}
       <p>Your time zone decides when each day starts and ends, and when reminders are sent.</p>
 
       <label htmlFor="time-zone">Time zone</label>

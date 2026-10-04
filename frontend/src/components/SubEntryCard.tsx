@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { EntryCategory, SubEntry } from '../api/types'
 import { formatDateTime, formatTime } from '../utils/dates'
 import { errorMessage } from '../utils/errors'
+import Alert from './Alert'
 import AppendForm from './AppendForm'
 import { categoryTint } from './categoryColors'
 import SubEntryForm from './SubEntryForm'
@@ -67,7 +68,7 @@ export default function SubEntryCard({ subEntry, onAppend, onEdit, onDelete, onD
           </span>
         )}
       </header>
-      {error && <p role="alert">{error}</p>}
+      {error && <Alert kind="error">{error}</Alert>}
       {editing ? (
         <SubEntryForm
           initial={subEntry}

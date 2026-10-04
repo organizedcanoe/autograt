@@ -3,8 +3,8 @@ import { api } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import { useAsync } from '../hooks/useAsync'
 import { errorMessage } from '../utils/errors'
+import Alert from '../components/Alert'
 import Wordmark from '../components/Wordmark'
-import './LoginPage.css'
 
 type Mode = 'login' | 'register'
 
@@ -121,16 +121,8 @@ export default function LoginPage() {
               />
             </label>
           )}
-          {notice && (
-            <p role="status" data-alert="warning">
-              {notice}
-            </p>
-          )}
-          {error && (
-            <p role="alert" data-alert="error">
-              {error}
-            </p>
-          )}
+          {notice && <Alert kind="warning">{notice}</Alert>}
+          {error && <Alert kind="error">{error}</Alert>}
           <button type="submit" aria-busy={submitting} disabled={submitting}>
             {isRegister ? 'Create account' : 'Log in'}
           </button>

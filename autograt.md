@@ -286,6 +286,8 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 * **CSS Framework:** Pico CSS for classless, semantic HTML styling.
 
+* **Messages:** Every error, warning and confirmation uses the shared `Alert` component: a card tinted from Pico's background colour (red for errors, amber for warnings, green for confirmations), so it follows light and dark mode. Errors render with `role="alert"`; warnings and confirmations with `role="status"`.
+
 ### Progressive Web App
 
 * **Installable:** The app can be installed from the browser (Add to Home Screen on phones). `vite-plugin-pwa` generates the manifest (`Autograt`, standalone display, Pico azure theme color) and the icons: 64, 192 and 512 px, a maskable 512 px icon, and a 180 px Apple touch icon. Installing and push both need HTTPS; `localhost` counts as secure for development.
@@ -490,6 +492,8 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 * **Search Parser Tests:** Validate search query parsing logic against exact quoted strings, comma-separated OR lists, and standard strings across both sub-entries and appends.
 
 ### Frontend Component Tests (Vitest + React Testing Library)
+
+* Validate that the shared alert renders errors with the `alert` role and warnings and confirmations with the `status` role, each tagged with its kind.
 
 * Validate that the today view always shows the good/good/bad nudge boxes, saves each on its own and replaces it in place by its entry, and that the custom entry form accepts any category.
 

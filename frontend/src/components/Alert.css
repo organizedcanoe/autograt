@@ -1,11 +1,16 @@
 /* Pico has no alert component. These cards tint Pico's own surface with a status color,
    so they follow the light/dark theme. */
 [data-alert] {
+  margin-bottom: var(--pico-spacing);
   padding: var(--pico-spacing);
   border-left: 0.25rem solid var(--alert-color);
   border-radius: var(--pico-border-radius);
   background-color: color-mix(in srgb, var(--alert-color) 15%, var(--pico-background-color));
   color: var(--pico-color);
+}
+
+[data-alert] > :last-child {
+  margin-bottom: 0;
 }
 
 [data-alert="error"] {
@@ -14,4 +19,8 @@
 
 [data-alert="warning"] {
   --alert-color: #e8a317;
+}
+
+[data-alert="success"] {
+  --alert-color: #2e7d32;
 }
