@@ -8,9 +8,22 @@ declare const self: ServiceWorkerGlobalScope
 precacheAndRoute(self.__WB_MANIFEST)
 cleanupOutdatedCaches()
 
-// Client-side routes load the cached index.html. /api is never routed or cached, so journal data
+// Page loads go to the network first, so Cloudflare Access can redirect to its login page once its session
+// expires; the cached index.html is only the offline fallback. /api is never routed or cached, so journal data
 // always comes from the server.
-registerRoute(new NavigationRoute(createHandlerBoundToURL('index.html'), { denylist: [/^\/api\//] }))
+const cachedIndexHtml = createHandlerBoundToURL('index.html')
+registerRoute(
+  new NavigationRoute(
+    async (options) => {
+      try {
+        return await fetch(options.request)
+      } catch {
+        return cachedIndexHtml(options)
+      }
+    },
+    { denylist: [/^\/api\//] },
+  ),
+)
 
 // Sent by the update banner's Reload button (updateServiceWorker) to activate the new version.
 self.addEventListener('message', (event) => {

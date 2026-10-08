@@ -159,4 +159,16 @@ describe('api client', () => {
     await expect(api.me()).rejects.toBeInstanceOf(ApiError)
     expect(onUnauthorized).toHaveBeenCalledOnce()
   })
+
+  it('reloads the page when Cloudflare Access redirects a request to its login page', async () => {
+    // jsdom can't build the opaque response that redirect: 'manual' gives, so stand in for it.
+    const fetchMock = stubFetch({ type: 'opaqueredirect', ok: false, status: 0 } as Response)
+    const reload = vi.fn()
+    vi.stubGlobal('location', { reload })
+
+    await expect(api.me()).rejects.toBeInstanceOf(ApiError)
+    expect(reload).toHaveBeenCalledOnce()
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(init.redirect).toBe('manual')
+  })
 })

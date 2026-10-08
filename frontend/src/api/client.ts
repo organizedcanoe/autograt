@@ -74,8 +74,15 @@ async function send(method: string, path: string, body?: unknown): Promise<Respo
     method,
     headers,
     body: body === undefined ? undefined : JSON.stringify(body),
+    // The API never redirects, but Cloudflare Access does once its session expires. Following that would fail
+    // (cross-origin), so reload instead: the page load lets Access show its login page.
+    redirect: 'manual',
   })
 
+  if (response.type === 'opaqueredirect') {
+    location.reload()
+    throw new ApiError(0, 'Your session expired. Reloading…')
+  }
   if (response.status === 401 && authToken) {
     unauthorizedHandler?.()
   }
