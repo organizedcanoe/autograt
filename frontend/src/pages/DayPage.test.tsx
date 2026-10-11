@@ -71,7 +71,7 @@ describe('DayPage', () => {
     vi.mocked(api.getDay).mockResolvedValue(dayDetail(TODAY))
     renderDay(TODAY)
 
-    expect(await screen.findByRole('button', { name: 'Save rating' })).toBeInTheDocument()
+    expect(await screen.findByLabelText('Change rating')).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Add entry' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Append' })).toBeInTheDocument()
@@ -84,7 +84,6 @@ describe('DayPage', () => {
     renderDay(TODAY)
 
     await user.selectOptions(await screen.findByLabelText('Change rating'), '3')
-    await user.click(screen.getByRole('button', { name: 'Save rating' }))
 
     expect(api.updateRating).toHaveBeenCalledWith(TODAY, 3)
   })
@@ -96,7 +95,7 @@ describe('DayPage', () => {
     expect(await screen.findByText('Walked the dog')).toBeInTheDocument()
     expect(screen.queryByText(/read-only/)).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Append' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Save rating' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Add entry' })).not.toBeInTheDocument()
@@ -146,7 +145,7 @@ describe('DayPage', () => {
     expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(`${formatLongDate(YESTERDAY)}: unrated`)
     expect(screen.getByText('No entries were written.')).toBeInTheDocument()
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Save rating' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
   })
 
   it('nudges with good and bad boxes for today when there is no entry', async () => {

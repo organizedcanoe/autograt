@@ -302,7 +302,7 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 #### Today Journal View
 
-* **Rating Input:** Optional integer selector from 0 to 10 with its own save button. The day can be rated before, after, or without any entries, and the rating can be changed later in the day.
+* **Rating Input:** Optional integer selector from 0 to 10 that saves as soon as a rating is picked, with no save button; the selector is disabled while saving, and a failed save shows the error and returns to the saved rating. The day can be rated before, after, or without any entries, and the rating can be changed later in the day.
 
 * **Default Input Nudge:** Always presents three fixed text boxes, in this order: two for positive/good experiences and one for a negative/bad experience, to encourage a positive ratio. Each box has a fixed category and its own save button. Once saved, a box is replaced in place by its entry (with its append form); nudge boxes never move. Each box is filled by the earliest saved entry of its category.
 
