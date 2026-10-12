@@ -226,9 +226,9 @@ Represents additional notes appended specifically to an existing `JournalSubEntr
 
 ### Build Version
 
-* **Endpoint:** `GET /api/version` (anonymous) returns the running backend build as `{ version, commit, buildDate }`, e.g. `{ "version": "0.1.42", "commit": "a1b2c3d", "buildDate": "2026-09-28T12:00:00Z" }`. Local builds return `0.0.0-dev` / `local` with a null `buildDate`.
+* **Endpoint:** `GET /api/version` (anonymous) returns the running backend build as `{ version, commit, buildDate }`, e.g. `{ "version": "1.2.3", "commit": "a1b2c3d", "buildDate": "2026-09-28T12:00:00Z" }`. Local builds read the version and commit from git (e.g. `1.2.3-4-gabc1234-dirty`) and have a null `buildDate`; without git they return `0.0.0-dev` / `local`.
 
-* **Numbering:** Each image published from `main` is versioned `MAJOR.MINOR.<CI run number>`, where `MAJOR.MINOR` is read from the repo's `VERSION` file and bumped by hand (minor for features or risky changes, major for big or breaking ones). It is stamped with its UTC build date and tagged with the full version, the floating `MAJOR.MINOR` and `MAJOR` tags, `latest`, and the commit SHA.
+* **Numbering:** Releases use semantic versioning. Pushing a `vMAJOR.MINOR.PATCH` git tag publishes images tagged with the full version, the floating `MAJOR.MINOR` and `MAJOR` tags and `latest`, then creates a GitHub Release with notes generated from the merged PRs. Every push to `main` publishes images tagged `main`. Each version is `git describe` without the `v` (e.g. `1.2.3`, or `1.2.3-4-gabc1234` for commits after a release), every image is also tagged with its commit SHA, and is stamped with its UTC build date.
 
 ### Journal Rules & Operations
 
@@ -447,7 +447,7 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
   * Serves `sw.js`, `index.html` and `manifest.webmanifest` (as `application/manifest+json`) with `Cache-Control: no-cache`, so a new deploy is picked up promptly, and the content-hashed files under `/assets/` with `Cache-Control: public, max-age=31536000, immutable`.
 
-* **Build info:** Both images take `VERSION`, `COMMIT` and `BUILD_DATE` build args. Every page shows the frontend build in a footer kept at the bottom of the window (version, commit linked to GitHub, build date), and warns when `GET /api/version` reports a different backend build, meaning one container is stale.
+* **Build info:** Both images take `VERSION`, `COMMIT` and `BUILD_DATE` build args. Every page shows the frontend build in a footer kept at the bottom of the window (version, commit linked to GitHub, build date), and, when both are Docker builds (with a build date), warns when `GET /api/version` reports a different backend build, meaning one container is stale.
 
 ## 7. Testing Strategy Specification
 

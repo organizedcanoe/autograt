@@ -2,22 +2,23 @@
 
 ## Images
 
-Every push to `main` that passes CI publishes images to GitHub Container Registry:
+Images are published to GitHub Container Registry once CI passes:
 
 - `ghcr.io/oversizedcanoe/autograt-backend`
 - `ghcr.io/oversizedcanoe/autograt-frontend`
 
-Each image is versioned `MAJOR.MINOR.<CI run number>`, where `MAJOR.MINOR` comes from the [`VERSION`](../VERSION) file. Every publish pushes these tags:
+Each [release](https://github.com/oversizedcanoe/autograt/releases) publishes the version tags, and every push to `main` publishes `main`:
 
 | Tag | Points to |
 |---|---|
-| `0.1.57` | That exact build; never moves |
-| `0.1` | Newest `0.1.x` build (fixes only) |
-| `0` | Newest `0.x.x` build (fixes and features) |
-| `latest` | Newest build |
+| `1` | Newest `1.x.x` release (fixes and features). **Recommended.** |
+| `1.2` | Newest `1.2.x` release (fixes only) |
+| `1.2.3` | That exact release; never moves |
+| `latest` | Newest release, including a new major version that may need manual steps |
+| `main` | Newest commit on `main`; may be unfinished |
 | Commit SHA | Build of that commit; never moves |
 
-Pick the tag in `docker-compose.yml` for how much change you want on each `docker compose pull`. Use the same tag for both images.
+Pick the tag in `docker-compose.yml` for how much change you want on each `docker compose pull`. Pin a major version (e.g. `1`) rather than `latest`, so a breaking release is never pulled by surprise. Use the same tag for both images.
 
 `docker-compose.yml` runs those images. It does not build from source.
 
@@ -52,7 +53,7 @@ The backend logs sign-ins, failed logins, account changes, admin actions and rat
 
 ## Update
 
-The footer of every page shows the running version, commit and build date (`GET /api/version` returns the backend's). Compare the commit with the latest on `main`, then update:
+The footer of every page shows the running version, commit and build date (`GET /api/version` returns the backend's). Compare the version with the newest [release](https://github.com/oversizedcanoe/autograt/releases), then update:
 
 ```sh
 docker compose pull
@@ -65,6 +66,15 @@ When a new version has database migrations to run, the backend first copies the 
 
 ## Versioning
 
-Bug fixes and very small features just merge to `main`; the run number goes up on its own. For a feature or anything risky, bump the minor number in `VERSION` (e.g. `0.1` → `0.2`) in that PR. For a big or breaking change, bump the major number (e.g. `0.2` → `1.0`). The run number never resets, so versions go `0.1.57` → `0.2.58`.
+Releases follow [semantic versioning](https://semver.org/). Merging to `main` publishes only the `main` tag; to release, tag a commit on `main` and push the tag:
+
+```sh
+git tag v1.2.3
+git push origin v1.2.3
+```
+
+Once CI passes, this publishes `1.2.3`, `1.2`, `1` and `latest`, and creates a GitHub Release whose notes list the PRs merged since the previous release. Bump the patch number for fixes, the minor number for features or anything risky, and the major number for breaking changes (anything that needs manual steps to upgrade).
+
+Builds between releases are versioned by `git describe`, e.g. `1.2.3-4-gabc1234` is 4 commits after `v1.2.3`. Local builds add `-dirty` when there are uncommitted changes.
 
 Database migrations only go forward, so moving back to an older version after a newer one has migrated the database can fail. Any schema change should bump at least the minor number.

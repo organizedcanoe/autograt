@@ -119,7 +119,7 @@ export interface PushSubscriptionRequest {
   keys: { p256dh: string; auth: string }
 }
 
-/** A running build; local dev builds are "0.0.0-dev" / "local" with no build date. */
+/** A running build; local dev builds read version and commit from git (or "0.0.0-dev" / "local" without it) and have no build date. */
 export interface BuildVersion {
   version: string
   commit: string

@@ -1,9 +1,32 @@
 /// <reference types="vitest/config" />
 import react from '@vitejs/plugin-react'
+import { execSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { configDefaults } from 'vitest/config'
+
+/** Runs a git command, or returns undefined when git or the repo isn't there (e.g. in the Docker build). */
+function git(args: string): string | undefined {
+  try {
+    return execSync(`git ${args}`, { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim() || undefined
+  } catch {
+    return undefined
+  }
+}
+
+/** Fills in a build info variable from git, unless the Docker build passed it in. */
+function setFromGit(name: string, value: () => string | undefined) {
+  if (process.env[name]) return
+  const fromGit = value()
+  if (fromGit) process.env[name] = fromGit
+}
+
+// Local builds show their git version, e.g. "1.2.3-4-gabc1234-dirty"; tests keep the dev fallback.
+if (!process.env.VITEST) {
+  setFromGit('VITE_APP_VERSION', () => git('describe --tags --match "v[0-9]*" --dirty')?.replace(/^v/, ''))
+  setFromGit('VITE_APP_COMMIT', () => git('rev-parse --short=7 HEAD'))
+}
 
 // https://vite.dev/config/
 export default defineConfig({
