@@ -62,6 +62,30 @@ public class SettingsEndpointsTests : IClassFixture<AutogratApiFactory>
         Assert.Equal(["violet"], settings[Setting.ColourTheme]);
     }
 
+    public static TheoryData<string, string[][]> ConcurrentSaves => new()
+    {
+        { "TimeZone", [["UTC"], ["America/Toronto"], ["Europe/London"], ["Asia/Tokyo"], ["Australia/Sydney"]] },
+        { "ReminderTime", [["08:00"], ["09:00", "21:00"], ["10:00", "14:00", "18:00"], ["06:00", "12:00", "17:00", "22:00"]] },
+    };
+
+    [Theory]
+    [MemberData(nameof(ConcurrentSaves))]
+    public async Task UpdateSetting_ConcurrentSaves_KeepExactlyOneRequestsValues(string setting, string[][] valueSets)
+    {
+        var client = await _factory.CreateAuthenticatedClientAsync();
+
+        // Several rounds, since a single round may not interleave the requests.
+        for (var round = 0; round < 5; round++)
+        {
+            var responses = await Task.WhenAll(valueSets.Select(values =>
+                client.PutAsJsonAsync($"/api/settings/{setting}", new { values })));
+
+            Assert.All(responses, response => response.EnsureSuccessStatusCode());
+            var saved = (await GetSettingsAsync(client))[Enum.Parse<Setting>(setting)];
+            Assert.Contains(valueSets, values => values.SequenceEqual(saved));
+        }
+    }
+
     [Fact]
     public async Task UpdateSetting_OnlyAffectsTheSignedInUser()
     {

@@ -42,10 +42,13 @@ public class SettingsService(AutogratDbContext db)
     /// <summary>Replaces the user's values for one setting. The values must already be validated.</summary>
     public async Task<SettingResponse> UpdateAsync(int userId, Setting setting, IReadOnlyList<string> values)
     {
-        var existing = await db.UserSettings.Where(s => s.UserId == userId && s.Setting == setting).ToListAsync();
-        db.UserSettings.RemoveRange(existing);
+        // Deleting first takes SQLite's write lock before anything is read, so concurrent saves of the
+        // same setting run one after another instead of both keeping their rows.
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        await db.UserSettings.Where(s => s.UserId == userId && s.Setting == setting).ExecuteDeleteAsync();
         db.UserSettings.AddRange(values.Select(value => new UserSetting { UserId = userId, Setting = setting, Value = value }));
         await db.SaveChangesAsync();
+        await transaction.CommitAsync();
 
         return new SettingResponse(setting, values);
     }
