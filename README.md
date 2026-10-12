@@ -20,7 +20,7 @@ Full transparency: this app was developed using Claude Code. I was curious about
 
 ### Run it (Docker)
 
-1. Copy [`docker-compose.yml`](docker-compose.yml) to your server.
+1. Copy [`docker-compose.yml`](docker-compose.yml) to your server. It pins major version `1`, so updates never pull a breaking release; see [image tags](docs/deployment.md#images).
 2. Create a `.env` file next to it with your Cloudflare Tunnel token: `CF_TUNNEL_TOKEN=<your-token>`. Not using Cloudflare? Remove the `tunnel` service from `docker-compose.yml`.
 3. Start it:
 
@@ -45,7 +45,7 @@ Open http://localhost:5173.
 ## Documentation
 
 - [Development](docs/development.md): running locally, database migrations, tests.
-- [Deployment](docs/deployment.md): image tags, networking, updating, versioning.
+- [Deployment](docs/deployment.md): image tags, networking, updating, versioning and releases.
 - [Configuration](docs/configuration.md): signing keys, Web Push reminders, environment variables.
 - [Backup and restore](docs/backup-restore.md): backing up and restoring `./data`, per-user export.
 - [Users](docs/users.md): registration, approval and admin actions.

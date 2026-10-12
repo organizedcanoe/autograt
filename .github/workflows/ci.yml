@@ -3,11 +3,11 @@
 
 name: CI
 
+# Pushes to main and version tags run this through publish.yml, before publishing images.
 on:
-  push:
-    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  workflow_call:
 
 jobs:
   backend:

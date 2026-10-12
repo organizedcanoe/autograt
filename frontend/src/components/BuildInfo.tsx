@@ -6,7 +6,7 @@ const DEV_VERSION = '0.0.0-dev'
 const DEV_COMMIT = 'local'
 const COMMIT_URL = 'https://github.com/oversizedcanoe/autograt/commit/'
 
-/** The frontend's own build, baked in by the Docker build; local dev falls back like the backend does. */
+/** The frontend's own build, baked in by the Docker build or from git; falls back like the backend does. */
 function frontendBuild(): BuildVersion {
   return {
     version: import.meta.env.VITE_APP_VERSION || DEV_VERSION,

@@ -4,10 +4,27 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <!-- Local builds report the dev fallback; the Docker build overrides Version and InformationalVersion. -->
+    <!-- Local builds take their version from git (see SetVersionFromGit); the Docker build passes in Version and InformationalVersion. -->
     <Version>0.0.0-dev</Version>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
+
+  <!-- Sets InformationalVersion to "<git describe>+<commit>", e.g. "1.2.3-4-gabc1234-dirty+abc1234". Without git, the dev fallback stays. -->
+  <Target Name="SetVersionFromGit" BeforeTargets="GetAssemblyVersion" Condition="'$(InformationalVersion)' == ''">
+    <Exec Command="git describe --tags --match &quot;v[0-9]*&quot; --dirty" ConsoleToMSBuild="true" IgnoreExitCode="true" EchoOff="true" StandardOutputImportance="low" StandardErrorImportance="low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="GitDescribe" />
+      <Output TaskParameter="ExitCode" PropertyName="GitDescribeExitCode" />
+    </Exec>
+    <Exec Command="git rev-parse --short=7 HEAD" ConsoleToMSBuild="true" IgnoreExitCode="true" EchoOff="true" StandardOutputImportance="low" StandardErrorImportance="low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="GitCommit" />
+      <Output TaskParameter="ExitCode" PropertyName="GitCommitExitCode" />
+    </Exec>
+    <PropertyGroup Condition="'$(GitCommitExitCode)' == '0'">
+      <GitVersion>$(Version)</GitVersion>
+      <GitVersion Condition="'$(GitDescribeExitCode)' == '0'">$([System.Text.RegularExpressions.Regex]::Replace($(GitDescribe), '^v', ''))</GitVersion>
+      <InformationalVersion>$(GitVersion)+$(GitCommit)</InformationalVersion>
+    </PropertyGroup>
+  </Target>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.31" />
