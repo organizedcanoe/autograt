@@ -50,3 +50,8 @@ Open http://localhost:5173.
 - [Backup and restore](docs/backup-restore.md): backing up and restoring `./data`, per-user export.
 - [Users](docs/users.md): registration, approval and admin actions.
 - [Specification](docs/spec.md): features and database schema.
+
+## Screenshots
+<img width="1621" height="886" alt="image" src="https://github.com/user-attachments/assets/23481ace-0c48-448d-8222-97e3be03f908" />
+<img width="1295" height="805" alt="image" src="https://github.com/user-attachments/assets/1ef6d277-153c-4a11-8b4d-f22285ec3d81" />
+<img width="1209" height="859" alt="image" src="https://github.com/user-attachments/assets/23478fb8-3533-48af-9eaa-e68da98ad78a" />
