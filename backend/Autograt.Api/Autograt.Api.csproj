@@ -11,11 +11,16 @@
 
   <!-- Sets InformationalVersion to "<git describe>+<commit>", e.g. "1.2.3-4-gabc1234-dirty+abc1234". Without git, the dev fallback stays. -->
   <Target Name="SetVersionFromGit" BeforeTargets="GetAssemblyVersion" Condition="'$(InformationalVersion)' == ''">
-    <Exec Command="git describe --tags --match &quot;v[0-9]*&quot; --dirty" ConsoleToMSBuild="true" IgnoreExitCode="true" EchoOff="true" StandardOutputImportance="low" StandardErrorImportance="low">
+    <!-- ConsoleOutput captures stderr too, so discard it; otherwise a git warning would become the version. -->
+    <PropertyGroup>
+      <GitNullDevice Condition="'$(OS)' == 'Windows_NT'">NUL</GitNullDevice>
+      <GitNullDevice Condition="'$(OS)' != 'Windows_NT'">/dev/null</GitNullDevice>
+    </PropertyGroup>
+    <Exec Command="git describe --tags --match &quot;v[0-9]*&quot; --dirty 2&gt;$(GitNullDevice)" ConsoleToMSBuild="true" IgnoreExitCode="true" EchoOff="true" StandardOutputImportance="low" StandardErrorImportance="low">
       <Output TaskParameter="ConsoleOutput" PropertyName="GitDescribe" />
       <Output TaskParameter="ExitCode" PropertyName="GitDescribeExitCode" />
     </Exec>
-    <Exec Command="git rev-parse --short=7 HEAD" ConsoleToMSBuild="true" IgnoreExitCode="true" EchoOff="true" StandardOutputImportance="low" StandardErrorImportance="low">
+    <Exec Command="git rev-parse --short=7 HEAD 2&gt;$(GitNullDevice)" ConsoleToMSBuild="true" IgnoreExitCode="true" EchoOff="true" StandardOutputImportance="low" StandardErrorImportance="low">
       <Output TaskParameter="ConsoleOutput" PropertyName="GitCommit" />
       <Output TaskParameter="ExitCode" PropertyName="GitCommitExitCode" />
     </Exec>

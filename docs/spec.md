@@ -447,7 +447,7 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
   * Serves `sw.js`, `index.html` and `manifest.webmanifest` (as `application/manifest+json`) with `Cache-Control: no-cache`, so a new deploy is picked up promptly, and the content-hashed files under `/assets/` with `Cache-Control: public, max-age=31536000, immutable`.
 
-* **Build info:** Both images take `VERSION`, `COMMIT` and `BUILD_DATE` build args. Every page shows the frontend build in a footer kept at the bottom of the window (version, commit linked to GitHub, build date), and warns when `GET /api/version` reports a different backend build, meaning one container is stale.
+* **Build info:** Both images take `VERSION`, `COMMIT` and `BUILD_DATE` build args. Every page shows the frontend build in a footer kept at the bottom of the window (version, commit linked to GitHub, build date), and, when both are Docker builds (with a build date), warns when `GET /api/version` reports a different backend build, meaning one container is stale.
 
 ## 7. Testing Strategy Specification
 

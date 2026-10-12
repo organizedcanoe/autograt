@@ -21,9 +21,9 @@ public class VersionEndpointTests : IClassFixture<AutogratApiFactory>
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<VersionResponse>();
-        // A local build's version and commit come from git, so they change with every commit.
-        Assert.False(string.IsNullOrWhiteSpace(body?.Version));
-        Assert.False(string.IsNullOrWhiteSpace(body?.Commit));
+        // A local build's version and commit come from git, so they change with every commit; check their shape.
+        Assert.Matches(@"^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$", body?.Version);
+        Assert.Matches("^([0-9a-f]{7,}|local)$", body?.Commit);
         Assert.Null(body?.BuildDate);
     }
 

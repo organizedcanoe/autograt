@@ -19,6 +19,11 @@ function isSameBuild(a: BuildVersion, b: BuildVersion): boolean {
   return a.version === b.version && a.commit === b.commit
 }
 
+/** Only Docker builds (which have a build date) can be stale; local dev servers restart separately, so their git versions drift. */
+function isStaleContainer(frontend: BuildVersion, backend: BuildVersion): boolean {
+  return frontend.buildDate !== null && backend.buildDate !== null && !isSameBuild(frontend, backend)
+}
+
 /** Shows the running build, and warns when the backend container is on a different one. */
 export default function BuildInfo() {
   const [frontend] = useState(frontendBuild)
@@ -38,7 +43,7 @@ export default function BuildInfo() {
         <a href={COMMIT_URL + frontend.commit}>{frontend.commit}</a>
       )}
       {frontend.buildDate && <> · {frontend.buildDate.slice(0, 10)}</>}
-      {backend && !isSameBuild(frontend, backend) && (
+      {backend && isStaleContainer(frontend, backend) && (
         <>
           <br />
           <mark>
