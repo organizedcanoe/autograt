@@ -116,6 +116,12 @@ var app = builder.Build();
 await using (var scope = app.Services.CreateAsyncScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AutogratDbContext>();
+    // If the backup fails, startup stops here rather than migrating without one.
+    var backupPath = await MigrationBackup.BackupIfMigratingAsync(db);
+    if (backupPath is not null)
+    {
+        app.Logger.LogInformation("Backed up the database to {BackupPath} before migrating", backupPath);
+    }
     await db.Database.MigrateAsync();
 }
 
