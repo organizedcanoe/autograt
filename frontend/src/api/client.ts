@@ -64,6 +64,25 @@ async function readError(response: Response): Promise<ApiError> {
   }
 }
 
+const accessReloadKey = 'autograt.accessReloadAt'
+/** A redirect sooner than this after the last reload means reloading didn't help, so it would only loop. */
+const accessReloadCooldownMs = 30_000
+
+/**
+ * Reloads so the page load reaches Cloudflare Access, which shows its login page. The promise never settles, so
+ * no error flashes up before the page unloads. Throws instead if the last reload was moments ago.
+ */
+function reloadForAccessLogin(): Promise<never> {
+  const lastReloadAt = Number(sessionStorage.getItem(accessReloadKey))
+  if (Date.now() - lastReloadAt < accessReloadCooldownMs) {
+    throw new ApiError(0, "Couldn't renew your Cloudflare sign-in. Try again later.")
+  }
+
+  sessionStorage.setItem(accessReloadKey, String(Date.now()))
+  location.reload()
+  return new Promise<never>(() => {})
+}
+
 /** Sends a request with the bearer token, throwing ApiError unless it succeeds. */
 async function send(method: string, path: string, body?: unknown): Promise<Response> {
   const headers = new Headers()
@@ -80,8 +99,7 @@ async function send(method: string, path: string, body?: unknown): Promise<Respo
   })
 
   if (response.type === 'opaqueredirect') {
-    location.reload()
-    throw new ApiError(0, 'Your session expired. Reloading…')
+    return reloadForAccessLogin()
   }
   if (response.status === 401 && authToken) {
     unauthorizedHandler?.()

@@ -160,15 +160,55 @@ describe('api client', () => {
     expect(onUnauthorized).toHaveBeenCalledOnce()
   })
 
-  it('reloads the page when Cloudflare Access redirects a request to its login page', async () => {
+  describe('when Cloudflare Access redirects a request to its login page', () => {
     // jsdom can't build the opaque response that redirect: 'manual' gives, so stand in for it.
-    const fetchMock = stubFetch({ type: 'opaqueredirect', ok: false, status: 0 } as Response)
-    const reload = vi.fn()
-    vi.stubGlobal('location', { reload })
+    const redirected = { type: 'opaqueredirect', ok: false, status: 0 } as Response
 
-    await expect(api.me()).rejects.toBeInstanceOf(ApiError)
-    expect(reload).toHaveBeenCalledOnce()
-    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
-    expect(init.redirect).toBe('manual')
+    afterEach(() => {
+      vi.useRealTimers()
+      sessionStorage.clear()
+    })
+
+    it('reloads the page without settling, so no error shows before it unloads', async () => {
+      const fetchMock = stubFetch(redirected)
+      const reload = vi.fn()
+      vi.stubGlobal('location', { reload })
+
+      const settled = vi.fn()
+      api.me().then(settled, settled)
+      await vi.waitFor(() => expect(reload).toHaveBeenCalledOnce())
+
+      expect(settled).not.toHaveBeenCalled()
+      const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+      expect(init.redirect).toBe('manual')
+    })
+
+    it('throws instead of reloading again when the last reload was moments ago', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] })
+      stubFetch(redirected)
+      const reload = vi.fn()
+      vi.stubGlobal('location', { reload })
+
+      void api.me()
+      await vi.waitFor(() => expect(reload).toHaveBeenCalledOnce())
+      vi.advanceTimersByTime(5_000)
+
+      await expect(api.me()).rejects.toBeInstanceOf(ApiError)
+      expect(reload).toHaveBeenCalledOnce()
+    })
+
+    it('reloads again once the last reload is long past', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] })
+      stubFetch(redirected)
+      const reload = vi.fn()
+      vi.stubGlobal('location', { reload })
+
+      void api.me()
+      await vi.waitFor(() => expect(reload).toHaveBeenCalledOnce())
+      vi.advanceTimersByTime(60_000)
+
+      void api.me()
+      await vi.waitFor(() => expect(reload).toHaveBeenCalledTimes(2))
+    })
   })
 })

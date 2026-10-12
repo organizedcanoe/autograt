@@ -1,16 +1,17 @@
 /// <reference lib="webworker" />
-import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from 'workbox-precaching'
+import { addRoute, cleanupOutdatedCaches, createHandlerBoundToURL, precache } from 'workbox-precaching'
 import { NavigationRoute, registerRoute } from 'workbox-routing'
 
 declare const self: ServiceWorkerGlobalScope
 
 // The built app shell (JS/CSS/HTML/icons), listed by vite-plugin-pwa at build time.
-precacheAndRoute(self.__WB_MANIFEST)
+precache(self.__WB_MANIFEST)
 cleanupOutdatedCaches()
 
 // Page loads go to the network first, so Cloudflare Access can redirect to its login page once its session
 // expires; the cached index.html is only the offline fallback. /api is never routed or cached, so journal data
-// always comes from the server.
+// always comes from the server. Registered before the precache route, which would otherwise answer a load of /
+// with the cached index.html.
 const cachedIndexHtml = createHandlerBoundToURL('index.html')
 registerRoute(
   new NavigationRoute(
@@ -24,6 +25,8 @@ registerRoute(
     { denylist: [/^\/api\//] },
   ),
 )
+// Serves the precached app files (JS/CSS/icons) to the page.
+addRoute()
 
 // Sent by the update banner's Reload button (updateServiceWorker) to activate the new version.
 self.addEventListener('message', (event) => {
