@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api, ApiError, setAuthToken, setUnauthorizedHandler } from './client'
 
 function stubFetch(response: Response) {
@@ -160,15 +160,83 @@ describe('api client', () => {
     expect(onUnauthorized).toHaveBeenCalledOnce()
   })
 
-  it('reloads the page when Cloudflare Access redirects a request to its login page', async () => {
+  describe('when Cloudflare Access redirects a request to its login page', () => {
     // jsdom can't build the opaque response that redirect: 'manual' gives, so stand in for it.
-    const fetchMock = stubFetch({ type: 'opaqueredirect', ok: false, status: 0 } as Response)
-    const reload = vi.fn()
-    vi.stubGlobal('location', { reload })
+    const redirected = { type: 'opaqueredirect', ok: false, status: 0 } as Response
+    let reload: ReturnType<typeof vi.fn>
+    let client: typeof import('./client')
 
-    await expect(api.me()).rejects.toBeInstanceOf(ApiError)
-    expect(reload).toHaveBeenCalledOnce()
-    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
-    expect(init.redirect).toBe('manual')
+    /** Records an Access reload by an earlier page load, this many milliseconds ago. */
+    function reloadedAgo(ms: number) {
+      sessionStorage.setItem('autograt.accessReloadAt', String(Date.now() - ms))
+    }
+
+    /** Settles to 'pending' if the promise is still waiting once other pending work has run. */
+    async function outcome(promise: Promise<unknown>) {
+      const pending = new Promise((resolve) => setTimeout(() => resolve('pending'), 0))
+      return Promise.race([promise.then(() => 'resolved', () => 'rejected'), pending])
+    }
+
+    beforeEach(async () => {
+      sessionStorage.clear()
+      stubFetch(redirected)
+      reload = vi.fn()
+      vi.stubGlobal('location', { reload })
+      // A fresh module per test, as each page load gets, so one test's reload doesn't carry over to the next.
+      vi.resetModules()
+      client = await import('./client')
+    })
+
+    afterEach(() => {
+      vi.restoreAllMocks()
+      sessionStorage.clear()
+    })
+
+    it('reloads the page without settling, so no error shows before it unloads', async () => {
+      expect(await outcome(client.api.me())).toBe('pending')
+      expect(reload).toHaveBeenCalledOnce()
+      const [, init] = vi.mocked(fetch).mock.calls[0] as [string, RequestInit]
+      expect(init.redirect).toBe('manual')
+    })
+
+    it('reloads once for requests redirected together, and none of them shows an error', async () => {
+      const outcomes = await Promise.all([client.api.me(), client.api.refresh(), client.api.getSettings()].map(outcome))
+
+      expect(outcomes).toEqual(['pending', 'pending', 'pending'])
+      expect(reload).toHaveBeenCalledOnce()
+    })
+
+    it('throws instead of reloading again when an earlier page load reloaded moments ago', async () => {
+      reloadedAgo(5_000)
+
+      await expect(client.api.me()).rejects.toBeInstanceOf(client.ApiError)
+      expect(reload).not.toHaveBeenCalled()
+    })
+
+    it('reloads again once the earlier reload is long past', async () => {
+      reloadedAgo(60_000)
+
+      expect(await outcome(client.api.me())).toBe('pending')
+      expect(reload).toHaveBeenCalledOnce()
+    })
+
+    it('reloads when the clock has moved back past the earlier reload', async () => {
+      reloadedAgo(-60_000)
+
+      expect(await outcome(client.api.me())).toBe('pending')
+      expect(reload).toHaveBeenCalledOnce()
+    })
+
+    it('still reloads when storage is blocked', async () => {
+      vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+        throw new DOMException('Blocked', 'SecurityError')
+      })
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new DOMException('Blocked', 'SecurityError')
+      })
+
+      expect(await outcome(client.api.me())).toBe('pending')
+      expect(reload).toHaveBeenCalledOnce()
+    })
   })
 })
