@@ -13,11 +13,18 @@ cleanupOutdatedCaches()
 // always comes from the server. Registered before the precache route, which would otherwise answer a load of /
 // with the cached index.html.
 const cachedIndexHtml = createHandlerBoundToURL('index.html')
+// On a stalled connection, opening the app shouldn't wait on a fetch that may hang for a long time.
+const pageLoadTimeoutMs = 4_000
+
+function timeout(ms: number): Promise<never> {
+  return new Promise((_, reject) => setTimeout(() => reject(new Error(`Timed out after ${ms} ms`)), ms))
+}
+
 registerRoute(
   new NavigationRoute(
     async (options) => {
       try {
-        return await fetch(options.request)
+        return await Promise.race([fetch(options.request), timeout(pageLoadTimeoutMs)])
       } catch {
         return cachedIndexHtml(options)
       }
