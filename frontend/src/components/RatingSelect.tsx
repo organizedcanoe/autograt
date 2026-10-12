@@ -11,14 +11,16 @@ interface RatingSelectProps {
   /** The chosen rating as a string, or '' when none is chosen yet. */
   value: string
   onChange: (value: string) => void
+  /** Disables the picker while its rating is being saved. */
+  busy?: boolean
 }
 
 /** A required 0–10 day rating picker. */
-export default function RatingSelect({ label, value, onChange }: RatingSelectProps) {
+export default function RatingSelect({ label, value, onChange, busy = false }: RatingSelectProps) {
   return (
     <label>
       {label}
-      <select value={value} onChange={(e) => onChange(e.target.value)} required>
+      <select value={value} onChange={(e) => onChange(e.target.value)} disabled={busy} aria-busy={busy} required>
         <option value="" disabled>
           Choose a rating from 0 to 10
         </option>

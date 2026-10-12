@@ -24,7 +24,6 @@ test('complete user journey: register, rate, heatmap, append, search', async ({ 
   await page.getByRole('button', { name: 'Save', exact: true }).last().click()
   await expect(page.getByRole('article').filter({ hasText: 'Missed the morning bus' })).toBeVisible()
   await page.getByLabel('How was your day?').selectOption('8')
-  await page.getByRole('button', { name: 'Save rating' }).click()
 
   // 3. The rating is saved and today's heatmap block reflects it.
   await expect(page.getByLabel('Change rating')).toHaveValue('8')
