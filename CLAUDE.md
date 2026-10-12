@@ -4,7 +4,8 @@
 * `/backend`: ASP.NET Core 8 Web API.
 * `/frontend`: React 19 + Vite + TypeScript.
 * `/docker-compose.yml`: Production orchestration using the published GHCR images.
-* `autograt.md`: The single source of truth for feature specifications and database schema. 
+* `/docs`: Setup, deployment, configuration and backup guides, plus the spec.
+* `docs/spec.md`: The single source of truth for feature specifications and database schema. 
 
 ## Build & Run Commands
 * **Start Full Stack (Local):** `cd frontend && npm run dev:all`
@@ -28,7 +29,7 @@
 * **Styling Strict Rule:** Use Pico CSS (`@picocss/pico`). Rely on semantic HTML tags (`<main>`, `<article>`, `<dialog>`) first; Pico's own modifier classes (`secondary`, `outline`, `contrast`) are allowed, but do not invent custom classes. Do not write custom CSS or use inline styles unless absolutely necessary (e.g. the Heatmap Grid colors).
 
 ## Agent Operational Directives
-1. **Always read `autograt.md`** before implementing new features to understand the exact schema and requirements.
+1. **Always read `docs/spec.md`** before implementing new features to understand the exact schema and requirements.
 2. When creating new endpoints or UI components, write the tests (xUnit or Vitest) first, then implement the code.
 3. Run `dotnet test` or `npm run test` to verify your own work before declaring a task complete.
 4. If a task requires modifying more than two files, output a brief plan and wait for user approval before writing code.
