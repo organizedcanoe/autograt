@@ -5,6 +5,7 @@ import { forgetThisDevice } from '../push/pushSubscription'
 import { errorMessage } from '../utils/errors'
 import Alert from './Alert'
 import ChangePasswordForm from './ChangePasswordForm'
+import Modal from './Modal'
 import './AccountSettings.css'
 
 /** The signed-in user's username and password, their sessions, and deleting their account. */
@@ -133,35 +134,32 @@ function DeleteAccount() {
         Delete account…
       </button>
       {confirming && (
-        <dialog open>
-          <article>
-            <h3>Delete your account?</h3>
-            <p>
-              All your entries, ratings and settings will be deleted permanently. This cannot be undone. To keep a
-              copy, export your journal in the <strong>Your data</strong> section first.
-            </p>
-            <form id="delete-account" onSubmit={(e) => void handleSubmit(e)}>
-              <label>
-                Password
-                <input
-                  type="password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </label>
-              {error && <Alert kind="error">{error}</Alert>}
-            </form>
-            <footer data-confirm-actions>
-              <button type="button" onClick={close}>
-                Cancel
-              </button>
-              <button type="submit" form="delete-account" data-danger disabled={!password || deleting} aria-busy={deleting}>
-                Delete forever
-              </button>
-            </footer>
-          </article>
-        </dialog>
+        <Modal title="Delete your account?" onClose={close}>
+          <p>
+            All your entries, ratings and settings will be deleted permanently. This cannot be undone. To keep a
+            copy, export your journal in the <strong>Your data</strong> section first.
+          </p>
+          <form id="delete-account" onSubmit={(e) => void handleSubmit(e)}>
+            <label>
+              Password
+              <input
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </label>
+            {error && <Alert kind="error">{error}</Alert>}
+          </form>
+          <footer data-confirm-actions>
+            <button type="button" onClick={close}>
+              Cancel
+            </button>
+            <button type="submit" form="delete-account" data-danger disabled={!password || deleting} aria-busy={deleting}>
+              Delete forever
+            </button>
+          </footer>
+        </Modal>
       )}
     </>
   )

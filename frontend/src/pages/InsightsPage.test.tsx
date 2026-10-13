@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../api/client'
 import type { Insights } from '../api/types'
 import { categoryTint } from '../components/categoryColors'
+import { expectNoAxeViolations } from '../test/axe'
 import { formatMediumDate } from '../utils/dates'
 import InsightsPage from './InsightsPage'
 
@@ -54,6 +55,17 @@ describe('InsightsPage', () => {
     await screen.findByRole('heading', { level: 2, name: 'Ratings' })
     const sections = screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)
     expect(sections).toEqual(['Ratings', 'Streaks', 'Entries', 'Rating trend'])
+  })
+
+  it('passes an axe check', async () => {
+    vi.mocked(api.getHeatmap).mockResolvedValue([
+      { date: '2026-09-22', dayRating: 4, entryCount: 1 },
+      { date: '2026-09-23', dayRating: 8, entryCount: 2 },
+    ])
+    renderInsights()
+    await screen.findByRole('group', { name: 'Rating trend' })
+
+    await expectNoAxeViolations(document.body)
   })
 
   it('shows each average to one decimal place with its rated-day count, and a dash without rated days', async () => {

@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../api/client'
 import type { HeatmapDay } from '../api/types'
 import { monthDates } from '../utils/dates'
-import { NO_ENTRY_COLOR, ratingColor } from './heatmapColors'
+import { NO_ENTRY_COLOR, ratingColor, ratingTextColor } from './heatmapColors'
 import MonthCalendar from './MonthCalendar'
 
 vi.mock('../api/client', async (importOriginal) => {
@@ -76,6 +76,34 @@ describe('MonthCalendar', () => {
     expect(days[0]).toHaveStyle({ backgroundColor: NO_ENTRY_COLOR })
     expect(days[14]).toHaveStyle({ backgroundColor: ratingColor(9) })
     expect(days[14]).toHaveAccessibleName(/rating 9, 2 entries/)
+  })
+
+  it('shows each rating as text as well as colour', async () => {
+    renderCalendar()
+
+    const calendar = await screen.findByRole('table', { name: 'September 2026' })
+    const days = within(calendar).getAllByRole('link')
+    expect(days[14]).toHaveTextContent(/^15\s*9$/)
+    expect(days[14]).toHaveStyle({ color: ratingTextColor(9) })
+    expect(days[13]).toHaveTextContent(/^14$/)
+    expect(screen.getByRole('list', { name: 'Rating colours' })).toBeInTheDocument()
+  })
+
+  it('is a single tab stop on today and moves by day and week with the arrow keys', async () => {
+    const user = userEvent.setup()
+    renderCalendar()
+
+    const calendar = await screen.findByRole('table', { name: 'September 2026' })
+    const days = within(calendar).getAllByRole('link')
+    expect(days.filter((day) => day.tabIndex === 0)).toEqual([days[22]])
+
+    days[22].focus()
+    await user.keyboard('{ArrowUp}')
+    expect(days[15]).toHaveFocus()
+    await user.keyboard('{ArrowLeft}')
+    expect(days[14]).toHaveFocus()
+    await user.keyboard('{ArrowDown}{ArrowDown}')
+    expect(days[21]).toHaveFocus()
   })
 
   it('starts the month on its weekday', async () => {

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../api/client'
 import { useTheme } from '../theme/ThemeContext'
+import { expectNoAxeViolations } from '../test/axe'
 import SettingsPage from './SettingsPage'
 
 vi.mock('../theme/ThemeContext', () => ({ useTheme: vi.fn() }))
@@ -27,6 +28,12 @@ function renderPage(setTheme = vi.fn().mockResolvedValue(undefined), reloadTheme
 describe('SettingsPage', () => {
   afterEach(() => {
     vi.resetAllMocks()
+  })
+
+  it('passes an axe check', async () => {
+    renderPage()
+
+    await expectNoAxeViolations(document.body)
   })
 
   it('saves a new theme choice', async () => {

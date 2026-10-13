@@ -3,10 +3,13 @@ import { Link } from 'react-router'
 import { api } from '../api/client'
 import type { HeatmapDay } from '../api/types'
 import { useAsync } from '../hooks/useAsync'
+import { useGridNavigation, type GridItemProps } from '../hooks/useGridNavigation'
 import { addMonths, formatMonth, monthDates, todayIso, weekdayNames, weekdayOf } from '../utils/dates'
 import AsyncView from './AsyncView'
+import './DayBlock.css'
 import { describeDay } from './describeDay'
-import { ratingColor } from './heatmapColors'
+import { dayColors } from './heatmapColors'
+import RatingLegend from './RatingLegend'
 
 // Inline styles (CLAUDE.md exception): each day is colored by its rating, like the heatmap blocks.
 const dayStyle: CSSProperties = {
@@ -51,6 +54,7 @@ export default function MonthCalendar() {
         </fieldset>
       </form>
       <MonthGrid key={shownMonth} month={shownMonth} />
+      <RatingLegend />
       <nav>
         <ul>
           <li>
@@ -80,48 +84,65 @@ function MonthGrid({ month }: { month: string }) {
   const dates = monthDates(month)
   const days = useAsync(() => api.getHeatmap(dates[0], dates[dates.length - 1]), [month])
 
+  return <AsyncView state={days}>{(loaded) => <MonthTable month={month} days={loaded} />}</AsyncView>
+}
+
+/**
+ * The month as a Sunday-to-Saturday table. The linked days are a single tab stop on the latest, and the arrow keys
+ * move by day and by week.
+ */
+function MonthTable({ month, days }: { month: string; days: HeatmapDay[] }) {
+  const today = todayIso()
+  const itemProps = useGridNavigation(days.filter((day) => day.date <= today).length, DAYS_PER_WEEK)
+
   return (
-    <AsyncView state={days}>
-      {(loaded) => (
-        <table aria-label={formatMonth(month)}>
-          <thead>
-            <tr>
-              {weekdayNames().map((name) => (
-                <th key={name} scope="col">
-                  {name}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {toWeeks(loaded).map((week) => (
-              <tr key={week.find((day) => day !== null)!.date}>
-                {week.map((day, index) => (
-                  <td key={day?.date ?? `blank-${index}`}>{day && <CalendarDay day={day} />}</td>
-                ))}
-              </tr>
+    <table aria-label={formatMonth(month)}>
+      <thead>
+        <tr>
+          {weekdayNames().map((name) => (
+            <th key={name} scope="col">
+              {name}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {toWeeks(days).map((week) => (
+          <tr key={week.find((day) => day !== null)!.date}>
+            {week.map((day, index) => (
+              <td key={day?.date ?? `blank-${index}`}>
+                {day && <CalendarDay day={day} navigation={itemProps(days.indexOf(day))} />}
+              </td>
             ))}
-          </tbody>
-        </table>
-      )}
-    </AsyncView>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   )
 }
 
-function CalendarDay({ day }: { day: HeatmapDay }) {
+/** A day up to today links to its day view and shows its rating under the date; a later day is plain text. */
+function CalendarDay({ day, navigation }: { day: HeatmapDay; navigation: GridItemProps }) {
   const dayOfMonth = Number(day.date.slice(8))
   if (day.date > todayIso()) return <span style={dayStyle}>{dayOfMonth}</span>
 
   const description = describeDay(day)
-  const style: CSSProperties = {
-    ...dayStyle,
-    backgroundColor: ratingColor(day.dayRating),
-    // Rated days have a saturated background, so white text reads best on them.
-    color: day.dayRating === null ? undefined : 'white',
-  }
   return (
-    <Link to={`/day/${day.date}`} aria-label={description} title={description} style={style}>
+    <Link
+      to={`/day/${day.date}`}
+      aria-label={description}
+      title={description}
+      data-day-block
+      style={{ ...dayStyle, ...dayColors(day) }}
+      {...navigation}
+    >
       {dayOfMonth}
+      {day.dayRating !== null && (
+        <>
+          <br />
+          <small>{day.dayRating}</small>
+        </>
+      )}
     </Link>
   )
 }

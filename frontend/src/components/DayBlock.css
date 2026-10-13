@@ -1,0 +1,5 @@
+/* Pico's focus ring is a translucent glow in the primary colour, which is hard to see on the rating colours. */
+[data-day-block]:focus-visible {
+  outline: 3px solid var(--pico-contrast);
+  outline-offset: 2px;
+}

@@ -8,7 +8,14 @@ import { addDays, formatLongDate, isIsoDate, isPastDate } from '../utils/dates'
 
 export default function DayPage() {
   const { date } = useParams()
-  if (!isIsoDate(date)) return <p>That isn't a valid date.</p>
+  if (!isIsoDate(date)) {
+    return (
+      <>
+        <h1>Day not found</h1>
+        <p>That isn't a valid date.</p>
+      </>
+    )
+  }
 
   return (
     <>
@@ -50,28 +57,31 @@ function DayView({ date }: { date: string }) {
   }
 
   return (
-    <AsyncView state={day}>
-      {(detail) => {
-        const rating = detail?.dayRating ?? null
-        return (
-          <>
-            <h1>
-              {formatLongDate(date)}: {rating === null ? 'unrated' : `${rating}/10`}
-            </h1>
-            {readOnly ? (
-              <>
-                {/* A past day without an entry looks the same as one with a rating but no entries. */}
-                {!detail?.subEntries.length && <p>No entries were written.</p>}
-                {detail?.subEntries.map((subEntry) => (
-                  <SubEntryCard key={subEntry.id} subEntry={subEntry} onAppend={addAppend} />
-                ))}
-              </>
-            ) : (
-              <TodayJournal date={date} day={detail} onChange={day.reload} />
-            )}
-          </>
-        )
-      }}
-    </AsyncView>
+    <>
+      {/* Outside the loading state, so the page has its heading (and focus target) straight away. */}
+      <h1>
+        {formatLongDate(date)}
+        {day.data !== undefined && `: ${ratingText(day.data?.dayRating ?? null)}`}
+      </h1>
+      <AsyncView state={day}>
+        {(detail) =>
+          readOnly ? (
+            <>
+              {/* A past day without an entry looks the same as one with a rating but no entries. */}
+              {!detail?.subEntries.length && <p>No entries were written.</p>}
+              {detail?.subEntries.map((subEntry) => (
+                <SubEntryCard key={subEntry.id} subEntry={subEntry} onAppend={addAppend} />
+              ))}
+            </>
+          ) : (
+            <TodayJournal date={date} day={detail} onChange={day.reload} />
+          )
+        }
+      </AsyncView>
+    </>
   )
+}
+
+function ratingText(rating: number | null): string {
+  return rating === null ? 'unrated' : `${rating}/10`
 }

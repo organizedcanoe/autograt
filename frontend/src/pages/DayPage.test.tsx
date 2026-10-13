@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../api/client'
 import type { DayDetail } from '../api/types'
+import { expectNoAxeViolations } from '../test/axe'
 import { formatLongDate } from '../utils/dates'
 import DayPage from './DayPage'
 
@@ -65,6 +66,27 @@ describe('DayPage', () => {
 
     const heading = await screen.findByRole('heading', { level: 1 })
     expect(heading).toHaveTextContent(`${formatLongDate(YESTERDAY)}: 7/10`)
+  })
+
+  it('shows the date in the heading while the day loads', () => {
+    vi.mocked(api.getDay).mockReturnValue(new Promise(() => {}))
+    renderDay(YESTERDAY)
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(formatLongDate(YESTERDAY))
+  })
+
+  it('has a heading for an invalid date', () => {
+    renderDay('not-a-date')
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Day not found')
+  })
+
+  it.each([TODAY, YESTERDAY])('passes an axe check on %s', async (date) => {
+    vi.mocked(api.getDay).mockResolvedValue(dayDetail(date))
+    renderDay(date)
+    await screen.findByText('Walked the dog')
+
+    await expectNoAxeViolations(document.body)
   })
 
   it("lets today's rating and entries be edited", async () => {

@@ -1,6 +1,7 @@
-import type { MouseEvent } from 'react'
+import { useId, type MouseEvent } from 'react'
 import { useNavigate } from 'react-router'
 import type { HeatmapDay } from '../api/types'
+import { useGridNavigation } from '../hooks/useGridNavigation'
 import { formatShortDate } from '../utils/dates'
 import { rollingAverage } from '../utils/rollingAverage'
 import { describeDay } from './describeDay'
@@ -12,6 +13,7 @@ const HEIGHT = 220
 const PLOT = { left: 28, right: WIDTH - 12, top: 10, bottom: HEIGHT - 26 }
 const MAX_RATING = 10
 const RATING_TICKS = [0, 5, 10]
+const NO_VALUE = '—'
 
 // Inline SVG styles (CLAUDE.md exception): Pico has no chart primitives; the colors follow its theme variables.
 const gridLineStyle = { stroke: 'var(--pico-muted-border-color)' }
@@ -20,11 +22,16 @@ const averageLineStyle = { fill: 'none', stroke: 'var(--pico-primary)', strokeWi
 
 /**
  * Each rated day as a dot colored like the heatmap (unrated days are gaps), with a line for the 7-day rolling
- * average. Clicking a dot opens that day.
+ * average. Clicking a dot opens that day. The dots are a single tab stop moved with the arrow keys, and the data can
+ * also be read as a table.
  */
 export default function RatingTrendChart({ days }: { days: HeatmapDay[] }) {
   const navigate = useNavigate()
+  const summaryId = useId()
+  const ratedDays = days.filter((day) => day.dayRating !== null)
+  const dotProps = useGridNavigation(ratedDays.length, 1)
   if (days.length === 0) return null
+  const averages = rollingAverage(days.map((day) => day.dayRating))
 
   const step = days.length > 1 ? (PLOT.right - PLOT.left) / (days.length - 1) : 0
   const x = (index: number) => PLOT.left + index * step
@@ -38,36 +45,81 @@ export default function RatingTrendChart({ days }: { days: HeatmapDay[] }) {
   }
 
   return (
-    <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} width="100%" aria-label="Rating trend">
-      {RATING_TICKS.map((rating) => (
-        <g key={rating}>
-          <line x1={PLOT.left} x2={PLOT.right} y1={y(rating)} y2={y(rating)} style={gridLineStyle} />
-          <text x={PLOT.left - 6} y={y(rating)} textAnchor="end" dominantBaseline="middle" style={labelStyle}>
-            {rating}
+    <>
+      <svg
+        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+        width="100%"
+        role="group"
+        aria-label="Rating trend"
+        aria-describedby={summaryId}
+      >
+        <desc id={summaryId}>{summarise(days, ratedDays)}</desc>
+        {RATING_TICKS.map((rating) => (
+          <g key={rating}>
+            <line x1={PLOT.left} x2={PLOT.right} y1={y(rating)} y2={y(rating)} style={gridLineStyle} />
+            <text x={PLOT.left - 6} y={y(rating)} textAnchor="end" dominantBaseline="middle" style={labelStyle}>
+              {rating}
+            </text>
+          </g>
+        ))}
+  
+        {[...new Set(dateLabels)].map((index) => (
+          <text key={index} x={x(index)} y={HEIGHT - 6} textAnchor={anchorFor(index, days.length)} style={labelStyle}>
+            {formatShortDate(days[index].date)}
           </text>
-        </g>
-      ))}
-
-      {[...new Set(dateLabels)].map((index) => (
-        <text key={index} x={x(index)} y={HEIGHT - 6} textAnchor={anchorFor(index, days.length)} style={labelStyle}>
-          {formatShortDate(days[index].date)}
-        </text>
-      ))}
-
-      <path data-testid="rolling-average" d={linePath(rollingAverage(days.map((day) => day.dayRating)), x, y)} style={averageLineStyle} />
-
-      {days.map((day, index) => {
-        if (day.dayRating === null) return null
-        const description = describeDay(day)
-        return (
-          <a key={day.date} href={`/day/${day.date}`} aria-label={description} onClick={(event) => openDay(event, day.date)}>
-            <title>{description}</title>
-            <circle cx={x(index)} cy={y(day.dayRating)} r={dotRadius} fill={ratingColor(day.dayRating)} />
-          </a>
-        )
-      })}
-    </svg>
+        ))}
+  
+        <path data-testid="rolling-average" d={linePath(averages, x, y)} style={averageLineStyle} />
+  
+        {days.map((day, index) => {
+          if (day.dayRating === null) return null
+          const description = describeDay(day)
+          return (
+            <a
+              key={day.date}
+              href={`/day/${day.date}`}
+              aria-label={description}
+              onClick={(event) => openDay(event, day.date)}
+              {...dotProps(ratedDays.indexOf(day))}
+            >
+              <title>{description}</title>
+              <circle cx={x(index)} cy={y(day.dayRating)} r={dotRadius} fill={ratingColor(day.dayRating)} />
+            </a>
+          )
+        })}
+      </svg>
+      <details>
+        <summary>Show as a table</summary>
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Date</th>
+              <th scope="col">Rating</th>
+              <th scope="col">7-day average</th>
+            </tr>
+          </thead>
+          <tbody>
+            {days.map((day, index) => (
+              <tr key={day.date}>
+                <th scope="row">{formatShortDate(day.date)}</th>
+                <td>{day.dayRating ?? NO_VALUE}</td>
+                <td>{averages[index]?.toFixed(1) ?? NO_VALUE}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </details>
+    </>
   )
+}
+
+/** e.g. "Sep 1 to Sep 30: 21 rated days, average 6.4." */
+function summarise(days: HeatmapDay[], ratedDays: HeatmapDay[]): string {
+  const range = `${formatShortDate(days[0].date)} to ${formatShortDate(days[days.length - 1].date)}`
+  if (ratedDays.length === 0) return `${range}: no rated days.`
+  const average = ratedDays.reduce((sum, day) => sum + day.dayRating!, 0) / ratedDays.length
+  const count = ratedDays.length === 1 ? '1 rated day' : `${ratedDays.length} rated days`
+  return `${range}: ${count}, average ${average.toFixed(1)}.`
 }
 
 /** An SVG path through the non-null values, starting a new segment after each gap. */

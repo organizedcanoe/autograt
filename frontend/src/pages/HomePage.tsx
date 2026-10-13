@@ -17,13 +17,13 @@ export default function HomePage() {
 
   return (
     <>
+      <h1>{formatLongDate(today)}</h1>
       <section>
         <h2>Last 30 days</h2>
         <AsyncView state={heatmap}>{(days) => <Heatmap days={days} />}</AsyncView>
       </section>
 
-      <section>
-        <h2>{formatLongDate(today)}</h2>
+      <section aria-label="Journal">
         <AsyncView state={todayEntry}>{(day) => <TodayJournal date={today} day={day} onChange={reload} />}</AsyncView>
       </section>
     </>

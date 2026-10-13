@@ -6,6 +6,7 @@ import AsyncView from './AsyncView'
 import { useAsync } from '../hooks/useAsync'
 import { errorMessage } from '../utils/errors'
 import Alert from './Alert'
+import Modal from './Modal'
 import './AdminUsers.css'
 
 interface UserAction {
@@ -116,27 +117,24 @@ export default function AdminUsers() {
         )}
       </AsyncView>
       {reset && (
-        <dialog open>
-          <article>
-            <h3>Temporary password for {reset.username}</h3>
-            <p>
-              <code>{reset.temporaryPassword}</code>
-            </p>
-            <p>Give it to {reset.username}; they will choose a new password when they log in. It won't be shown again.</p>
-            <footer>
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => void navigator.clipboard?.writeText(reset.temporaryPassword).catch(() => {})}
-              >
-                Copy
-              </button>
-              <button type="button" onClick={() => setReset(null)}>
-                Done
-              </button>
-            </footer>
-          </article>
-        </dialog>
+        <Modal title={`Temporary password for ${reset.username}`} onClose={() => setReset(null)}>
+          <p>
+            <code>{reset.temporaryPassword}</code>
+          </p>
+          <p>Give it to {reset.username}; they will choose a new password when they log in. It won't be shown again.</p>
+          <footer>
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => void navigator.clipboard?.writeText(reset.temporaryPassword).catch(() => {})}
+            >
+              Copy
+            </button>
+            <button type="button" onClick={() => setReset(null)}>
+              Done
+            </button>
+          </footer>
+        </Modal>
       )}
     </>
   )

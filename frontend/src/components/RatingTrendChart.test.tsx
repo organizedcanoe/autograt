@@ -62,6 +62,40 @@ describe('RatingTrendChart', () => {
     expect(path?.match(/[ML]/g)).toEqual(['M', 'L', 'L', 'L', 'L', 'L', 'L', 'M'])
   })
 
+  it('is a single tab stop on the latest dot, moving between dots with the arrow keys', async () => {
+    const user = userEvent.setup()
+    renderChart()
+    const dots = screen.getAllByRole('link')
+
+    await user.tab()
+    expect(dots[2]).toHaveFocus()
+    await user.keyboard('{ArrowLeft}')
+    expect(dots[1]).toHaveFocus()
+  })
+
+  it('summarises the chart for screen readers', () => {
+    renderChart()
+
+    expect(screen.getByRole('group', { name: 'Rating trend' })).toHaveAccessibleDescription(
+      `${formatShortDate('2026-09-20')} to ${formatShortDate('2026-09-23')}: 3 rated days, average 6.7.`,
+    )
+  })
+
+  it('offers the data as a table', async () => {
+    renderChart()
+
+    await userEvent.click(screen.getByText('Show as a table'))
+
+    const rows = screen.getAllByRole('row').map((row) => [...row.children].map((cell) => cell.textContent))
+    expect(rows).toEqual([
+      ['Date', 'Rating', '7-day average'],
+      [formatShortDate('2026-09-20'), '2', '2.0'],
+      [formatShortDate('2026-09-21'), '—', '2.0'],
+      [formatShortDate('2026-09-22'), '8', '5.0'],
+      [formatShortDate('2026-09-23'), '10', '6.7'],
+    ])
+  })
+
   it('labels the rating axis from 0 to 10 and the first and last dates', () => {
     renderChart()
 

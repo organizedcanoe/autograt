@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api, ApiError } from '../api/client'
 import { AuthProvider } from '../auth/AuthContext'
+import { expectNoAxeViolations } from '../test/axe'
 import LoginPage from './LoginPage'
 
 vi.mock('../api/client', async (importOriginal) => {
@@ -27,6 +28,13 @@ describe('LoginPage', () => {
     vi.mocked(api.login).mockReset()
     vi.mocked(api.register).mockReset()
     vi.mocked(api.getRegistrationStatus).mockReset()
+  })
+
+  it('passes an axe check', async () => {
+    renderLoginPage()
+    await screen.findByRole('button', { name: 'Need an account? Register' })
+
+    await expectNoAxeViolations(document.body)
   })
 
   it('hides registration when an admin has closed it', async () => {
