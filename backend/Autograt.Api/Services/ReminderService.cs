@@ -8,7 +8,8 @@ namespace Autograt.Api.Services;
 /// Every minute, sends a reminder to each user whose reminder time has come, unless they have already rated
 /// the day and written an entry. Each slot is handled once, even across restarts, via <see cref="User.LastReminderAtUtc"/>.
 /// </summary>
-public class ReminderService(IServiceScopeFactory scopeFactory, TimeProvider timeProvider, ILogger<ReminderService> logger)
+public class ReminderService(
+    IServiceScopeFactory scopeFactory, TimeProvider timeProvider, Random random, ILogger<ReminderService> logger)
     : BackgroundService
 {
     private static readonly TimeSpan TickInterval = TimeSpan.FromMinutes(1);
@@ -90,8 +91,15 @@ public class ReminderService(IServiceScopeFactory scopeFactory, TimeProvider tim
             .Select(e => new { HasEntries = e.SubEntries.Any(), HasRating = e.DayRating != null })
             .SingleOrDefaultAsync(cancellationToken);
 
+        // A day is journaled once it has an entry or a rating, as on the insights page.
+        var journaledDays = await db.JournalEntries
+            .Where(e => e.UserId == user.Id && (e.DayRating != null || e.SubEntries.Any()))
+            .Select(e => e.EntryDate)
+            .ToListAsync(cancellationToken);
+        var streaks = InsightsStats.GetStreaks(journaledDays, slot.LocalDate);
+
         // No message means the day already has entries and a rating, so the reminder is skipped.
-        var message = ReminderMessages.For(slot.LocalTime, day?.HasEntries ?? false, day?.HasRating ?? false);
+        var message = ReminderMessages.For(slot.LocalTime, day?.HasEntries ?? false, day?.HasRating ?? false, streaks, random);
         if (message is not null)
         {
             await pushService.SendToUserAsync(user.Id, message, cancellationToken);
