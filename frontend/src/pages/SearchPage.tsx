@@ -68,9 +68,12 @@ function SearchResults({ query }: { query: string }) {
 function SearchResultCard({ match, query }: { match: SearchResult; query: string }) {
   const kind = match.type === 'Append' ? `Note on a ${match.category} entry` : `${match.category} entry`
 
+  // As on the day page: the header repeats the translucent tint so Pico's own header background doesn't cover it.
+  const tint = { backgroundColor: categoryTint(match.category) }
+
   return (
-    <article style={{ backgroundColor: categoryTint(match.category) }}>
-      <header>
+    <article style={tint}>
+      <header style={tint}>
         <Link to={`/day/${match.entryDate}`}>{formatLongDate(match.entryDate)}</Link> · <small>{kind}</small>
       </header>
       <p>

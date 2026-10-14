@@ -81,6 +81,8 @@ describe('SearchPage', () => {
     const matches = await screen.findAllByRole('article')
     expect(matches[0]).toHaveStyle({ backgroundColor: categoryTint('Good') })
     expect(matches[1]).toHaveStyle({ backgroundColor: categoryTint('Bad') })
+    expect(matches[0].querySelector('header')).toHaveStyle({ backgroundColor: categoryTint('Good') })
+    expect(matches[1].querySelector('header')).toHaveStyle({ backgroundColor: categoryTint('Bad') })
   })
 
   it('says so when nothing matches', async () => {

@@ -27,6 +27,14 @@ describe('SubEntryCard', () => {
     expect(screen.getByRole('article')).toHaveStyle({ backgroundColor: categoryTint('Bad') })
   })
 
+  it('tints the header and footer too, so the colour covers the whole card', () => {
+    render(<SubEntryCard subEntry={{ ...subEntry, category: 'Bad' }} onAppend={vi.fn()} />)
+
+    const card = screen.getByRole('article')
+    expect(card.querySelector(':scope > header')).toHaveStyle({ backgroundColor: categoryTint('Bad') })
+    expect(card.querySelector(':scope > footer')).toHaveStyle({ backgroundColor: categoryTint('Bad') })
+  })
+
   it("shows each append's content followed by its full date and time", () => {
     render(<SubEntryCard subEntry={{ ...subEntry, appends: [append] }} onAppend={vi.fn()} />)
 

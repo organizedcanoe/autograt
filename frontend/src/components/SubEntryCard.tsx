@@ -38,9 +38,13 @@ export default function SubEntryCard({ subEntry, onAppend, onEdit, onDelete, onD
     }
   }
 
+  // Inline styles (CLAUDE.md exception): the category tint. Pico paints the header and footer over the card's
+  // background, so they repeat the translucent tint, which layers into a slightly deeper shade of it.
+  const tint = { backgroundColor: categoryTint(subEntry.category) }
+
   return (
-    <article style={{ backgroundColor: categoryTint(subEntry.category) }}>
-      <header data-row-actions>
+    <article style={tint}>
+      <header data-row-actions style={tint}>
         <span>
           <strong>{subEntry.category}</strong> ·{' '}
           <small>
@@ -107,7 +111,7 @@ export default function SubEntryCard({ subEntry, onAppend, onEdit, onDelete, onD
           ))}
         </ul>
       )}
-      <footer>
+      <footer style={tint}>
         <AppendForm subEntryId={subEntry.id} onSubmit={onAppend} />
       </footer>
     </article>
