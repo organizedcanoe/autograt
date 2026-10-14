@@ -55,14 +55,14 @@ export default function SubEntryCard({ subEntry, onAppend, onEdit, onDelete, onD
         {editing === false && (onEdit || onDelete) && (
           <span data-row-actions>
             {onEdit && (
-              <button type="button" className="outline secondary" onClick={() => setEditing(true)}>
+              <button type="button" className="outline contrast" onClick={() => setEditing(true)}>
                 Edit
               </button>
             )}
             {onDelete && (
               <button
                 type="button"
-                className="outline secondary"
+                className="outline contrast"
                 onClick={() =>
                   confirmDelete('Delete this entry and its notes? This cannot be undone.', () => onDelete(subEntry.id))
                 }
@@ -99,7 +99,7 @@ export default function SubEntryCard({ subEntry, onAppend, onEdit, onDelete, onD
                   {' '}
                   <button
                     type="button"
-                    className="outline secondary"
+                    className="outline contrast"
                     onClick={() =>
                       confirmDelete('Delete this note? This cannot be undone.', () => onDeleteAppend(append.id))
                     }

@@ -72,7 +72,7 @@ function SearchResultCard({ match, query }: { match: SearchResult; query: string
   return (
     <article style={{ backgroundColor: categoryTint(match.category) }}>
       <header style={{ backgroundColor: categorySectionTint(match.category) }}>
-        <Link to={`/day/${match.entryDate}`}>{formatLongDate(match.entryDate)}</Link> · <small>{kind}</small>
+        <Link to={`/day/${match.entryDate}`} className="contrast">{formatLongDate(match.entryDate)}</Link> · <small>{kind}</small>
       </header>
       <p>
         <HighlightedText content={match.content} query={query} />
