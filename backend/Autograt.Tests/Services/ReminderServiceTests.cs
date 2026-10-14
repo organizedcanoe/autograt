@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using Autograt.Api.Contracts;
 using Autograt.Api.Data;
 using Autograt.Api.Models;
 using Autograt.Api.Services;
@@ -13,6 +14,7 @@ namespace Autograt.Tests.Services;
 public class ReminderServiceTests : IClassFixture<AutogratApiFactory>
 {
     private static readonly DateOnly Today = TestClock.DefaultToday;
+    private static readonly Streaks NoStreak = new(0, null);
 
     private readonly AutogratApiFactory _factory;
     private readonly ReminderService _reminders;
@@ -20,8 +22,7 @@ public class ReminderServiceTests : IClassFixture<AutogratApiFactory>
     public ReminderServiceTests(AutogratApiFactory factory)
     {
         _factory = factory;
-        _reminders = new ReminderService(
-            factory.Services.GetRequiredService<IServiceScopeFactory>(), factory.Clock, NullLogger<ReminderService>.Instance);
+        _reminders = CreateReminders(new FakeRandom());
     }
 
     [Fact]
@@ -33,7 +34,7 @@ public class ReminderServiceTests : IClassFixture<AutogratApiFactory>
 
         await RunAtAsync(12, 0);
 
-        var expected = ReminderMessages.For(new TimeOnly(12, 0), hasEntries: false, hasRating: false);
+        var expected = ReminderMessages.For(new TimeOnly(12, 0), hasEntries: false, hasRating: false, NoStreak, new FakeRandom());
         Assert.Equal([expected!], _factory.Push.SentTo(phone.Endpoint));
         Assert.Equal([expected!], _factory.Push.SentTo(laptop));
     }
@@ -57,7 +58,7 @@ public class ReminderServiceTests : IClassFixture<AutogratApiFactory>
 
         await RunAtAsync(20, 3);
 
-        var expected = ReminderMessages.For(new TimeOnly(20, 0), hasEntries: false, hasRating: false);
+        var expected = ReminderMessages.For(new TimeOnly(20, 0), hasEntries: false, hasRating: false, NoStreak, new FakeRandom());
         Assert.Equal([expected!], _factory.Push.SentTo(device.Endpoint));
     }
 
@@ -150,6 +151,27 @@ public class ReminderServiceTests : IClassFixture<AutogratApiFactory>
     }
 
     [Fact]
+    public async Task CurrentStreak_IsMentioned()
+    {
+        var (_, device) = await CreateUserWithRemindersAsync();
+        // Past days are read-only, so each is journaled on its own day.
+        using (_factory.Clock.TravelTo(Today.AddDays(-2)))
+        {
+            await device.Client.AddSubEntryAsync(Today.AddDays(-2), "Good", "Went for a run");
+        }
+
+        using (_factory.Clock.TravelTo(Today.AddDays(-1)))
+        {
+            await device.Client.RateDayAsync(Today.AddDays(-1), 7);
+        }
+
+        await RunAtAsync(12, 0, CreateReminders(new FakeRandom(0)));
+
+        var message = Assert.Single(_factory.Push.SentTo(device.Endpoint));
+        Assert.Equal("Journal today for your longest streak yet: 3 days.", message.Body);
+    }
+
+    [Fact]
     public async Task ExpiredSubscription_IsDeleted()
     {
         var (_, device) = await CreateUserWithRemindersAsync();
@@ -162,10 +184,13 @@ public class ReminderServiceTests : IClassFixture<AutogratApiFactory>
         Assert.False(await db.PushSubscriptions.AnyAsync(s => s.Endpoint == device.Endpoint));
     }
 
-    private async Task RunAtAsync(int hour, int minute)
+    private ReminderService CreateReminders(Random random) => new(
+        _factory.Services.GetRequiredService<IServiceScopeFactory>(), _factory.Clock, random, NullLogger<ReminderService>.Instance);
+
+    private async Task RunAtAsync(int hour, int minute, ReminderService? reminders = null)
     {
         using var _ = _factory.Clock.TravelTo(new DateTimeOffset(Today.ToDateTime(new TimeOnly(hour, minute)), TimeSpan.Zero));
-        await _reminders.SendDueRemindersAsync(CancellationToken.None);
+        await (reminders ?? _reminders).SendDueRemindersAsync(CancellationToken.None);
     }
 
     private async Task<(string Username, Device Device)> CreateUserWithRemindersAsync(bool remindersEnabled = true)
