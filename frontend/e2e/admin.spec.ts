@@ -42,15 +42,14 @@ test('admin deletes a pending user only after confirming', async ({ page, reques
   const row = userRow(page, username)
 
   // Cancelling the confirmation keeps the user.
-  page.once('dialog', (dialog) => void dialog.dismiss())
   await chooseUserAction(page, username, 'Delete')
+  await page.getByRole('dialog').getByRole('button', { name: 'Cancel' }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(row).toBeVisible()
 
-  page.once('dialog', (dialog) => {
-    expect(dialog.message()).toContain(username)
-    void dialog.accept()
-  })
   await chooseUserAction(page, username, 'Delete')
+  await expect(page.getByRole('dialog')).toContainText(username)
+  await page.getByRole('dialog').getByRole('button', { name: 'Delete user' }).click()
   await expect(row).toHaveCount(0)
 
   // The deleted account no longer exists, so its login is rejected.
@@ -101,8 +100,8 @@ test('admin disables a user, who can no longer log in until enabled again', asyn
   await logIn(page, ADMIN_USERNAME)
   await openMenuItem(page, ADMIN_USERNAME, 'Admin')
   const row = userRow(page, username)
-  page.once('dialog', (dialog) => void dialog.accept())
   await chooseUserAction(page, username, 'Disable')
+  await page.getByRole('dialog').getByRole('button', { name: 'Disable user' }).click()
   await expect(row.getByRole('cell', { name: 'Disabled', exact: true })).toBeVisible()
   await logOut(page, ADMIN_USERNAME)
 

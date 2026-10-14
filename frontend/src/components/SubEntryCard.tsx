@@ -5,6 +5,7 @@ import { errorMessage } from '../utils/errors'
 import Alert from './Alert'
 import AppendForm from './AppendForm'
 import { categorySectionTint, categoryTint } from './categoryColors'
+import ConfirmDialog from './ConfirmDialog'
 import SubEntryForm from './SubEntryForm'
 
 interface SubEntryCardProps {
@@ -22,14 +23,18 @@ interface SubEntryCardProps {
 export default function SubEntryCard({ subEntry, onAppend, onEdit, onDelete, onDeleteAppend }: SubEntryCardProps) {
   const [editing, setEditing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // The delete waiting for the user to confirm it.
+  const [confirming, setConfirming] = useState<{ title: string; message: string; deleteItem: () => Promise<void> } | null>(
+    null,
+  )
 
   async function saveEdit(category: EntryCategory, content: string) {
     await onEdit?.(subEntry.id, category, content)
     setEditing(false)
   }
 
-  async function confirmDelete(question: string, deleteItem: () => Promise<void>) {
-    if (!window.confirm(question)) return
+  async function runDelete(deleteItem: () => Promise<void>) {
+    setConfirming(null)
     setError(null)
     try {
       await deleteItem()
@@ -64,7 +69,11 @@ export default function SubEntryCard({ subEntry, onAppend, onEdit, onDelete, onD
                 type="button"
                 className="outline contrast"
                 onClick={() =>
-                  confirmDelete('Delete this entry and its notes? This cannot be undone.', () => onDelete(subEntry.id))
+                  setConfirming({
+                    title: 'Delete entry?',
+                    message: 'Delete this entry and its notes? This cannot be undone.',
+                    deleteItem: () => onDelete(subEntry.id),
+                  })
                 }
               >
                 Delete
@@ -101,7 +110,11 @@ export default function SubEntryCard({ subEntry, onAppend, onEdit, onDelete, onD
                     type="button"
                     className="outline contrast"
                     onClick={() =>
-                      confirmDelete('Delete this note? This cannot be undone.', () => onDeleteAppend(append.id))
+                      setConfirming({
+                        title: 'Delete note?',
+                        message: 'Delete this note? This cannot be undone.',
+                        deleteItem: () => onDeleteAppend(append.id),
+                      })
                     }
                   >
                     Delete note
@@ -115,6 +128,16 @@ export default function SubEntryCard({ subEntry, onAppend, onEdit, onDelete, onD
       <footer style={sectionTint}>
         <AppendForm subEntryId={subEntry.id} onSubmit={onAppend} />
       </footer>
+      {confirming && (
+        <ConfirmDialog
+          title={confirming.title}
+          message={confirming.message}
+          confirmLabel="Delete"
+          danger
+          onConfirm={() => void runDelete(confirming.deleteItem)}
+          onCancel={() => setConfirming(null)}
+        />
+      )}
     </article>
   )
 }
