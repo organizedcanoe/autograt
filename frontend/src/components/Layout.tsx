@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import { Link, Outlet } from 'react-router'
 import { useAuth } from '../auth/AuthContext'
+import { useFocusHeadingOnNavigate } from '../hooks/useFocusHeadingOnNavigate'
 import { useSaveDetectedTimeZone } from '../hooks/useSaveDetectedTimeZone'
 import BuildInfo from './BuildInfo'
 import Wordmark from './Wordmark'
@@ -8,7 +9,9 @@ import Wordmark from './Wordmark'
 export default function Layout() {
   const { user, logout } = useAuth()
   const menuRef = useRef<HTMLDetailsElement>(null)
+  const mainRef = useRef<HTMLElement>(null)
   useSaveDetectedTimeZone(user?.id)
+  useFocusHeadingOnNavigate(mainRef)
 
   // The header stays mounted across pages, so the menu has to be closed after choosing an item.
   function closeMenu() {
@@ -71,7 +74,7 @@ export default function Layout() {
           </ul>
         </nav>
       </header>
-      <main>
+      <main ref={mainRef}>
         <Outlet />
       </main>
       <footer>

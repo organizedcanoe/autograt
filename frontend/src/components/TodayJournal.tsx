@@ -94,7 +94,7 @@ export default function TodayJournal({ date, day, onChange }: TodayJournalProps)
       {custom.map((subEntry) => renderSubEntry(subEntry, subEntry.id))}
 
       <hr />
-      <h3>Custom Entry</h3>
+      <h2>Custom Entry</h2>
       <SubEntryForm
         contentLabel={(category) => `${category} thing`}
         placeholder={(category) => CUSTOM_PLACEHOLDERS[category]}

@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../api/client'
 import type { SearchResult } from '../api/types'
 import { categoryTint } from '../components/categoryColors'
+import { expectNoAxeViolations } from '../test/axe'
 import SearchPage from './SearchPage'
 
 vi.mock('../api/client', async (importOriginal) => {
@@ -46,6 +47,14 @@ function renderAt(url: string) {
 describe('SearchPage', () => {
   afterEach(() => {
     vi.resetAllMocks()
+  })
+
+  it('passes an axe check', async () => {
+    vi.mocked(api.search).mockResolvedValue(results)
+    renderAt('/search?q=dog')
+    await screen.findAllByRole('article')
+
+    await expectNoAxeViolations(document.body)
   })
 
   it('searches for the query in the URL and links each match to its day', async () => {

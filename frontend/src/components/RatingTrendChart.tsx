@@ -1,4 +1,4 @@
-import type { MouseEvent } from 'react'
+import { useId, type MouseEvent } from 'react'
 import { useNavigate } from 'react-router'
 import type { HeatmapDay } from '../api/types'
 import { formatShortDate } from '../utils/dates'
@@ -24,6 +24,7 @@ const averageLineStyle = { fill: 'none', stroke: 'var(--pico-primary)', strokeWi
  */
 export default function RatingTrendChart({ days }: { days: HeatmapDay[] }) {
   const navigate = useNavigate()
+  const summaryId = useId()
   if (days.length === 0) return null
 
   const step = days.length > 1 ? (PLOT.right - PLOT.left) / (days.length - 1) : 0
@@ -38,7 +39,14 @@ export default function RatingTrendChart({ days }: { days: HeatmapDay[] }) {
   }
 
   return (
-    <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} width="100%" aria-label="Rating trend">
+    <svg
+      viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+      width="100%"
+      role="group"
+      aria-label="Rating trend"
+      aria-describedby={summaryId}
+    >
+      <desc id={summaryId}>{summarise(days)}</desc>
       {RATING_TICKS.map((rating) => (
         <g key={rating}>
           <line x1={PLOT.left} x2={PLOT.right} y1={y(rating)} y2={y(rating)} style={gridLineStyle} />
@@ -68,6 +76,16 @@ export default function RatingTrendChart({ days }: { days: HeatmapDay[] }) {
       })}
     </svg>
   )
+}
+
+/** e.g. "Sep 1 to Sep 30: 21 rated days, average 6.4." */
+function summarise(days: HeatmapDay[]): string {
+  const ratedDays = days.filter((day) => day.dayRating !== null)
+  const range = `${formatShortDate(days[0].date)} to ${formatShortDate(days[days.length - 1].date)}`
+  if (ratedDays.length === 0) return `${range}: no rated days.`
+  const average = ratedDays.reduce((sum, day) => sum + day.dayRating!, 0) / ratedDays.length
+  const count = ratedDays.length === 1 ? '1 rated day' : `${ratedDays.length} rated days`
+  return `${range}: ${count}, average ${average.toFixed(1)}.`
 }
 
 /** An SVG path through the non-null values, starting a new segment after each gap. */

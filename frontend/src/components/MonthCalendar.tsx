@@ -6,7 +6,7 @@ import { useAsync } from '../hooks/useAsync'
 import { addMonths, formatMonth, monthDates, todayIso, weekdayNames, weekdayOf } from '../utils/dates'
 import AsyncView from './AsyncView'
 import { describeDay } from './describeDay'
-import { ratingColor } from './heatmapColors'
+import { ratingColor, ratingTextColor } from './heatmapColors'
 
 // Inline styles (CLAUDE.md exception): each day is colored by its rating, like the heatmap blocks.
 const dayStyle: CSSProperties = {
@@ -116,8 +116,8 @@ function CalendarDay({ day }: { day: HeatmapDay }) {
   const style: CSSProperties = {
     ...dayStyle,
     backgroundColor: ratingColor(day.dayRating),
-    // Rated days have a saturated background, so white text reads best on them.
-    color: day.dayRating === null ? undefined : 'white',
+    // Readable text on the rating colour; on the grey wash, Pico's contrast colour, as the link colour is too faint.
+    color: day.dayRating === null ? 'var(--pico-contrast)' : ratingTextColor(day.dayRating),
   }
   return (
     <Link to={`/day/${day.date}`} aria-label={description} title={description} style={style}>

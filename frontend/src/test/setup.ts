@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
 import { afterEach } from 'vitest'
+import './dialogStub'
 
 // Testing Library only unmounts automatically when Vitest globals are enabled.
 afterEach(() => {

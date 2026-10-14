@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../api/client'
 import type { HeatmapDay } from '../api/types'
 import { monthDates } from '../utils/dates'
-import { NO_ENTRY_COLOR, ratingColor } from './heatmapColors'
+import { NO_ENTRY_COLOR, ratingColor, ratingTextColor } from './heatmapColors'
 import MonthCalendar from './MonthCalendar'
 
 vi.mock('../api/client', async (importOriginal) => {
@@ -76,6 +76,14 @@ describe('MonthCalendar', () => {
     expect(days[0]).toHaveStyle({ backgroundColor: NO_ENTRY_COLOR })
     expect(days[14]).toHaveStyle({ backgroundColor: ratingColor(9) })
     expect(days[14]).toHaveAccessibleName(/rating 9, 2 entries/)
+  })
+
+  it('uses readable text on each rating colour', async () => {
+    renderCalendar()
+
+    const calendar = await screen.findByRole('table', { name: 'September 2026' })
+    const days = within(calendar).getAllByRole('link')
+    expect(days[14]).toHaveStyle({ color: ratingTextColor(9) })
   })
 
   it('starts the month on its weekday', async () => {

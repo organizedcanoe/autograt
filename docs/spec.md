@@ -302,6 +302,8 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 #### Today Journal View
 
+* **Layout:** The page heading (`<h1>`) is today's long date, followed by the 30-day heatmap and then the journal below.
+
 * **Rating Input:** Optional integer selector from 0 to 10 that saves as soon as a rating is picked, with no save button; the selector is disabled while saving, and a failed save shows the error and returns to the saved rating. The day can be rated before, after, or without any entries, and the rating can be changed later in the day.
 
 * **Default Input Nudge:** Always presents three fixed text boxes, in this order: two for positive/good experiences and one for a negative/bad experience, to encourage a positive ratio. Each box has a fixed category and its own save button. Once saved, a box is replaced in place by its entry (with its append form); nudge boxes never move. Each box is filled by the earliest saved entry of its category.
@@ -320,7 +322,7 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
   * **Rated day:** One smooth scale from red (0) through yellow/amber (5) to green (10). Every rating from 0 to 10 has its own distinct color, each step slightly greener than the one below.
 
-* Interaction: Clicking any day block opens the detail view for that specific day.
+* Interaction: Clicking any day block opens the detail view for that specific day. Each block is named for screen readers (e.g. "Wed, Sep 23: rating 8, 2 entries").
 
 #### Day Detail & Append View
 
@@ -352,7 +354,7 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 * The page for browsing past days (`/history`), opened from the user's menu. The menu lists **History**, **Insights** and then **Search**, which opens the search page.
 
-* **Month calendar:** Shown first, on the current month, which loads when the page opens. A month input (no later than the current month) and a **Show** button load another month. The month is laid out as a Sunday-to-Saturday calendar table; each day up to today is colored by its rating like the heatmap and opens its day view, while later days are shown without a link. **← Previous month** and **Next month →** buttons move the shown month; the next month button is disabled on the current month.
+* **Month calendar:** Shown first, on the current month, which loads when the page opens. A month input (no later than the current month) and a **Show** button load another month. The month is laid out as a Sunday-to-Saturday calendar table; each day up to today is colored by its rating like the heatmap and opens its day view, while later days are shown without a link. The date on a rating colour is black or white, whichever contrasts more, and on an empty day it uses Pico's contrast colour. **← Previous month** and **Next month →** buttons move the shown month; the next month button is disabled on the current month.
 
 * **Jump to a date:** A date input (starting on, and no later than, today) and a **Go** button that opens that day's view.
 
@@ -368,7 +370,7 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 * **Entries:** **Good**, **Bad** and **Neutral** cards with their number of entries and their share of all entries, each tinted with its category colour (see Category Tint).
 
-* **Rating trend:** A range select (`Last 30 days`, `Last 90 days`, `Last 365 days`; the last 30 days load on open, and choosing another range loads it straight away) and an inline SVG chart of the range ending today, loaded from the heatmap endpoint. Each rated day is a dot colored like the heatmap that opens its day view; unrated days are gaps. A line shows the 7-day rolling average: the mean of the rated days in the 7 days ending on each date (fewer at the start of the range), with a gap where that window has none. The rating axis is labelled 0, 5 and 10, and the date axis with the first, middle and last dates.
+* **Rating trend:** A range select (`Last 30 days`, `Last 90 days`, `Last 365 days`; the last 30 days load on open, and choosing another range loads it straight away) and an inline SVG chart of the range ending today, loaded from the heatmap endpoint. Each rated day is a dot colored like the heatmap that opens its day view; unrated days are gaps. A line shows the 7-day rolling average: the mean of the rated days in the 7 days ending on each date (fewer at the start of the range), with a gap where that window has none. The rating axis is labelled 0, 5 and 10, and the date axis with the first, middle and last dates. Screen readers get a summary of the range (e.g. "Sep 1 to Sep 30: 21 rated days, average 6.4.").
 
 #### Settings Page
 
@@ -424,6 +426,18 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 * Below the users, a **Registration** section has an **Open registration** switch. While registration is closed, the login page shows "Registration is closed. Ask an admin for an account." instead of the register link. If the status can't be loaded, the register link stays.
 
 * On load, a signed-in browser refreshes its session from `POST /api/auth/refresh`, replacing the stored token and user, so the session keeps sliding and a demoted admin loses the Admin menu item. An app left open (e.g. an installed PWA) refreshes again when it returns to the foreground more than a day after the last refresh. A failed refresh keeps the current session, unless it is rejected with 401.
+
+### Accessibility
+
+* **Headings and landmarks:** Every page has exactly one `<h1>`, with headings in order below it, inside the layout's `<header>`/`<nav>`, `<main>` and `<footer>`. The day view shows its date heading straight away, adding the rating once it loads; an invalid date shows a "Day not found" heading.
+
+* **Focus on navigation:** After moving to another page in the app, focus moves to the new page's `<h1>` (made focusable with `tabindex="-1"`), so screen readers announce it. The first page loaded keeps the browser's default focus.
+
+* **Dialogs:** Confirmation dialogs (deleting the account, the temporary password after a reset, and the import overwrite warning) open as modal dialogs (`showModal`), named by their heading. Focus moves into them and stays there, Escape closes them like their cancel button, and focus returns to the control that opened them. The new version notice stays non-modal.
+
+* **Announcements:** Errors use the `alert` role and confirmations and warnings the `status` role (see the shared alert), so screen readers announce them.
+
+* **Contrast:** Text meets WCAG AA contrast in both themes, including the dates on the month calendar's rating colours.
 
 ## 6. Docker & Containerization Specification
 
@@ -517,6 +531,8 @@ The application deployment is governed by a `docker-compose.yml` file defining t
 
 * Validate that the update dialog appears only when a new version is available, reloads into it, and can be dismissed.
 
+* Validate accessibility: that the text colour on every rating colour has a contrast of at least 4.5:1 and the calendar uses it; that the rating trend has a summary; that the shared modal dialog opens with `showModal`, is named by its title, closes on Escape and returns focus to its opener; that focus moves to the new page's heading after navigating but not on the first page; that the today and day views have a single `<h1>`; and that each page passes an axe check (contrast and landmarks are left to the end-to-end audit).
+
 * Validate push support detection (supported, unsupported, blocked, and iOS outside the Home Screen app), base64url key decoding, and subscribing/unsubscribing this device, including reusing an existing subscription and unsubscribing when the server had no record of it.
 
 * Validate that the Your data section exports in each format and saves the file, reports a failed export, confirms before importing (and can be cancelled), shows the import result and replaced days, reminds the user to enable reminders on this device when the import turned them on, lists every server validation problem, and rejects a non-JSON file without calling the server.
@@ -557,6 +573,8 @@ The application deployment is governed by a `docker-compose.yml` file defining t
   * The admin demotes another admin who is signed in elsewhere; after a reload, that user has no Admin menu item.
 
   * The admin closes registration: the login page hides the register link and registering is rejected; reopening brings the link back. This spec runs after all the others, since it would break specs that register users.
+
+* **Accessibility:** A new user with a rated entry today visits every page in the light and dark themes, and the admin visits the admin page, each passing axe's WCAG 2.1 A and AA rules (including contrast); the login page passes in both themes; and opening a day from the history page moves focus to its heading.
 
 * **Account:** A user changes their password and logs in with the new one; an admin resets a user's password, and the user logs in with the temporary password, must choose a new one, and then reaches the today view; a user deletes their account (after cancelling once) and can no longer log in.
 

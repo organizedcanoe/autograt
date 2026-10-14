@@ -4,6 +4,7 @@ import type { ExportFormat, ImportResult } from '../api/types'
 import { saveFile } from '../utils/download'
 import { errorMessage } from '../utils/errors'
 import Alert from './Alert'
+import Modal from './Modal'
 
 interface Props {
   /** Called after a successful import, so the page can pick up the imported settings. */
@@ -149,24 +150,21 @@ export default function DataSettings({ onImported }: Props) {
       )}
 
       {pending !== undefined && (
-        <dialog open>
-          <article>
-            <h3>Overwrite matching dates?</h3>
-            <p>
-              Importing will overwrite your entries and ratings on any dates that are also in this file. Entries and
-              ratings on dates not in the file will be kept. Settings in the file will replace yours. This cannot be
-              undone.
-            </p>
-            <footer>
-              <button type="button" className="secondary" onClick={() => setPending(undefined)}>
-                Cancel
-              </button>
-              <button type="button" onClick={() => void runImport()}>
-                Replace and import
-              </button>
-            </footer>
-          </article>
-        </dialog>
+        <Modal title="Overwrite matching dates?" onClose={() => setPending(undefined)}>
+          <p>
+            Importing will overwrite your entries and ratings on any dates that are also in this file. Entries and
+            ratings on dates not in the file will be kept. Settings in the file will replace yours. This cannot be
+            undone.
+          </p>
+          <footer>
+            <button type="button" className="secondary" onClick={() => setPending(undefined)}>
+              Cancel
+            </button>
+            <button type="button" onClick={() => void runImport()}>
+              Replace and import
+            </button>
+          </footer>
+        </Modal>
       )}
     </section>
   )

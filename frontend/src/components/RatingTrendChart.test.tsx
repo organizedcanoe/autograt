@@ -62,6 +62,14 @@ describe('RatingTrendChart', () => {
     expect(path?.match(/[ML]/g)).toEqual(['M', 'L', 'L', 'L', 'L', 'L', 'L', 'M'])
   })
 
+  it('summarises the chart for screen readers', () => {
+    renderChart()
+
+    expect(screen.getByRole('group', { name: 'Rating trend' })).toHaveAccessibleDescription(
+      `${formatShortDate('2026-09-20')} to ${formatShortDate('2026-09-23')}: 3 rated days, average 6.7.`,
+    )
+  })
+
   it('labels the rating axis from 0 to 10 and the first and last dates', () => {
     renderChart()
 
