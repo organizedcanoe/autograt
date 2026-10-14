@@ -40,7 +40,8 @@ button[data-link-button] {
   padding: 0;
   border: none;
   background: none;
-  color: var(--pico-muted-color);
+  /* Pico's muted colour fails contrast on the category tints, so it keeps the text colour. */
+  color: inherit;
   font-size: 0.875em;
   text-decoration: underline;
   text-decoration-color: transparent;
@@ -49,7 +50,6 @@ button[data-link-button] {
 
 button[data-link-button]:hover,
 button[data-link-button]:focus-visible {
-  color: var(--pico-color);
   text-decoration-color: currentColor;
 }
 
