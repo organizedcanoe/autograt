@@ -3,6 +3,7 @@ import { api } from '../api/client'
 import type { User, UserRole } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import AsyncView from './AsyncView'
+import ConfirmDialog from './ConfirmDialog'
 import { useAsync } from '../hooks/useAsync'
 import { errorMessage } from '../utils/errors'
 import Alert from './Alert'
@@ -14,6 +15,15 @@ interface UserAction {
   run: () => void
   /** Shown in red, for actions that can't be undone. */
   danger?: boolean
+}
+
+/** An action waiting for the admin to confirm it. */
+interface PendingConfirmation {
+  title: string
+  message: string
+  confirmLabel: string
+  danger?: boolean
+  run: () => Promise<void>
 }
 
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -29,6 +39,7 @@ export default function AdminUsers() {
   const [error, setError] = useState<string | null>(null)
   // Shown once after a reset; the server never returns it again.
   const [reset, setReset] = useState<{ username: string; temporaryPassword: string } | null>(null)
+  const [confirming, setConfirming] = useState<PendingConfirmation | null>(null)
 
   async function runAction(action: () => Promise<void>) {
     setError(null)
@@ -40,31 +51,44 @@ export default function AdminUsers() {
     }
   }
 
+  function confirmAction() {
+    if (!confirming) return
+    setConfirming(null)
+    void runAction(confirming.run)
+  }
+
   function deleteUser(user: User) {
-    const question =
-      user.role === 'Pending'
-        ? `Delete pending user '${user.username}'? This cannot be undone.`
-        : `Delete '${user.username}' and all their journal entries, ratings and settings? This cannot be undone.`
-    if (window.confirm(question)) {
-      void runAction(() => api.deleteUser(user.id))
-    }
+    setConfirming({
+      title: `Delete ${user.username}?`,
+      message:
+        user.role === 'Pending'
+          ? `Delete pending user '${user.username}'? This cannot be undone.`
+          : `Delete '${user.username}' and all their journal entries, ratings and settings? This cannot be undone.`,
+      confirmLabel: 'Delete user',
+      danger: true,
+      run: () => api.deleteUser(user.id),
+    })
   }
 
   function disableUser(user: User) {
-    const question = `Disable '${user.username}'? They will be signed out and can't log in until enabled again. Their journal is kept.`
-    if (window.confirm(question)) {
-      void runAction(() => api.disableUser(user.id))
-    }
+    setConfirming({
+      title: `Disable ${user.username}?`,
+      message: `Disable '${user.username}'? They will be signed out and can't log in until enabled again. Their journal is kept.`,
+      confirmLabel: 'Disable user',
+      run: () => api.disableUser(user.id),
+    })
   }
 
   function resetPassword(user: User) {
-    const question = `Reset the password for '${user.username}'? They will be signed out everywhere and must choose a new password when they next log in.`
-    if (window.confirm(question)) {
-      void runAction(async () => {
+    setConfirming({
+      title: `Reset password for ${user.username}?`,
+      message: `Reset the password for '${user.username}'? They will be signed out everywhere and must choose a new password when they next log in.`,
+      confirmLabel: 'Reset password',
+      run: async () => {
         const { temporaryPassword } = await api.resetUserPassword(user.id)
         setReset({ username: user.username, temporaryPassword })
-      })
-    }
+      },
+    })
   }
 
   /** The actions that apply to a user's role, in the order the dropdown lists them. */
@@ -116,6 +140,16 @@ export default function AdminUsers() {
           </table>
         )}
       </AsyncView>
+      {confirming && (
+        <ConfirmDialog
+          title={confirming.title}
+          message={confirming.message}
+          confirmLabel={confirming.confirmLabel}
+          danger={confirming.danger}
+          onConfirm={confirmAction}
+          onCancel={() => setConfirming(null)}
+        />
+      )}
       {reset && (
         <Modal title={`Temporary password for ${reset.username}`} onClose={() => setReset(null)}>
           <p>

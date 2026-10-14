@@ -44,6 +44,13 @@ async function chooseAction(user: UserEvent, username: string, label: string) {
   await user.click(row.getByRole('button', { name: label }))
 }
 
+/** Expects the confirm dialog to ask the question, then answers it with one of its buttons. */
+async function answerConfirmation(user: UserEvent, question: string, button: string) {
+  const dialog = within(await screen.findByRole('dialog'))
+  expect(dialog.getByText(question)).toBeInTheDocument()
+  await user.click(dialog.getByRole('button', { name: button }))
+}
+
 describe('AdminUsers', () => {
   beforeEach(() => {
     // Signed in as the first user.
@@ -109,7 +116,6 @@ describe('AdminUsers', () => {
 
   it('closes the actions menu after choosing', async () => {
     const user = userEvent.setup()
-    vi.spyOn(window, 'confirm').mockReturnValue(false)
     vi.mocked(api.listUsers).mockResolvedValue(users)
     render(<AdminUsers />)
 
@@ -120,27 +126,29 @@ describe('AdminUsers', () => {
 
   it('disables a user once confirmed', async () => {
     const user = userEvent.setup()
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     vi.mocked(api.listUsers).mockResolvedValue(users)
     vi.mocked(api.disableUser).mockResolvedValue(undefined)
     render(<AdminUsers />)
 
     await chooseAction(user, 'regular', 'Disable')
 
-    expect(window.confirm).toHaveBeenCalledWith(
+    await answerConfirmation(
+      user,
       "Disable 'regular'? They will be signed out and can't log in until enabled again. Their journal is kept.",
+      'Disable user',
     )
     expect(api.disableUser).toHaveBeenCalledWith(2)
   })
 
   it('does not disable when the confirmation is cancelled', async () => {
     const user = userEvent.setup()
-    vi.spyOn(window, 'confirm').mockReturnValue(false)
     vi.mocked(api.listUsers).mockResolvedValue(users)
     render(<AdminUsers />)
 
     await chooseAction(user, 'regular', 'Disable')
+    await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancel' }))
 
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(api.disableUser).not.toHaveBeenCalled()
   })
 
@@ -157,17 +165,31 @@ describe('AdminUsers', () => {
 
   it('deletes an approved user and their journal once confirmed', async () => {
     const user = userEvent.setup()
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     vi.mocked(api.listUsers).mockResolvedValue(users)
     vi.mocked(api.deleteUser).mockResolvedValue(undefined)
     render(<AdminUsers />)
 
     await chooseAction(user, 'regular', 'Delete')
 
-    expect(window.confirm).toHaveBeenCalledWith(
+    await answerConfirmation(
+      user,
       "Delete 'regular' and all their journal entries, ratings and settings? This cannot be undone.",
+      'Delete user',
     )
     expect(api.deleteUser).toHaveBeenCalledWith(2)
+  })
+
+  it('styles only the delete confirmation as danger', async () => {
+    const user = userEvent.setup()
+    vi.mocked(api.listUsers).mockResolvedValue(users)
+    render(<AdminUsers />)
+
+    await chooseAction(user, 'regular', 'Delete')
+    expect(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Delete user' })).toHaveAttribute('data-danger')
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    await chooseAction(user, 'regular', 'Disable')
+    expect(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Disable user' })).not.toHaveAttribute('data-danger')
   })
 
   it('shows a server error from an action', async () => {
@@ -195,26 +217,26 @@ describe('AdminUsers', () => {
 
   it('deletes a pending user once confirmed and reloads the list', async () => {
     const user = userEvent.setup()
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     vi.mocked(api.listUsers).mockResolvedValue(users)
     vi.mocked(api.deleteUser).mockResolvedValue(undefined)
     render(<AdminUsers />)
 
     await chooseAction(user, 'newcomer', 'Delete')
 
-    expect(window.confirm).toHaveBeenCalledWith("Delete pending user 'newcomer'? This cannot be undone.")
+    await answerConfirmation(user, "Delete pending user 'newcomer'? This cannot be undone.", 'Delete user')
     expect(api.deleteUser).toHaveBeenCalledWith(3)
     expect(api.listUsers).toHaveBeenCalledTimes(2)
   })
 
   it('does not delete when the confirmation is cancelled', async () => {
     const user = userEvent.setup()
-    vi.spyOn(window, 'confirm').mockReturnValue(false)
     vi.mocked(api.listUsers).mockResolvedValue(users)
     render(<AdminUsers />)
 
     await chooseAction(user, 'newcomer', 'Delete')
+    await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancel' }))
 
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(api.deleteUser).not.toHaveBeenCalled()
   })
 
@@ -230,15 +252,16 @@ describe('AdminUsers', () => {
 
   it('resets a password once confirmed and shows the temporary password until closed', async () => {
     const user = userEvent.setup()
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     vi.mocked(api.listUsers).mockResolvedValue(users)
     vi.mocked(api.resetUserPassword).mockResolvedValue({ temporaryPassword: 'Temp4321abcd' })
     render(<AdminUsers />)
 
     await chooseAction(user, 'regular', 'Reset password')
 
-    expect(window.confirm).toHaveBeenCalledWith(
+    await answerConfirmation(
+      user,
       "Reset the password for 'regular'? They will be signed out everywhere and must choose a new password when they next log in.",
+      'Reset password',
     )
     expect(api.resetUserPassword).toHaveBeenCalledWith(2)
     const dialog = within(await screen.findByRole('dialog'))
@@ -251,13 +274,13 @@ describe('AdminUsers', () => {
 
   it('copies the temporary password', async () => {
     const user = userEvent.setup()
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined)
     vi.mocked(api.listUsers).mockResolvedValue(users)
     vi.mocked(api.resetUserPassword).mockResolvedValue({ temporaryPassword: 'Temp4321abcd' })
     render(<AdminUsers />)
 
     await chooseAction(user, 'regular', 'Reset password')
+    await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Reset password' }))
     await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Copy' }))
 
     expect(writeText).toHaveBeenCalledWith('Temp4321abcd')
@@ -265,12 +288,13 @@ describe('AdminUsers', () => {
 
   it('does not reset when the confirmation is cancelled', async () => {
     const user = userEvent.setup()
-    vi.spyOn(window, 'confirm').mockReturnValue(false)
     vi.mocked(api.listUsers).mockResolvedValue(users)
     render(<AdminUsers />)
 
     await chooseAction(user, 'regular', 'Reset password')
+    await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancel' }))
 
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(api.resetUserPassword).not.toHaveBeenCalled()
   })
 })

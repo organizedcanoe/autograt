@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -125,17 +125,18 @@ describe('DayPage', () => {
 
   it("deletes today's entry and its note, then reloads the day", async () => {
     const user = userEvent.setup()
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     const append = { id: 4, subEntryId: 1, content: 'Long walk', createdAtUtc: `${TODAY}T19:00:00Z` }
     const detail = dayDetail(TODAY)
     vi.mocked(api.getDay).mockResolvedValue({ ...detail, subEntries: [{ ...detail.subEntries[0], appends: [append] }] })
     renderDay(TODAY)
 
     await user.click(await screen.findByRole('button', { name: 'Delete note' }))
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }))
     expect(api.deleteAppend).toHaveBeenCalledWith(4)
 
     vi.mocked(api.getDay).mockResolvedValue({ ...detail, subEntries: [] })
     await user.click(screen.getByRole('button', { name: 'Delete' }))
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }))
 
     expect(api.deleteSubEntry).toHaveBeenCalledWith(1)
     // The emptied nudge slot offers its box again.
