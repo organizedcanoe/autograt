@@ -4,7 +4,7 @@ import { formatDateTime, formatTime } from '../utils/dates'
 import { errorMessage } from '../utils/errors'
 import Alert from './Alert'
 import AppendForm from './AppendForm'
-import { categoryTint } from './categoryColors'
+import { categorySectionTint, categoryTint } from './categoryColors'
 import SubEntryForm from './SubEntryForm'
 
 interface SubEntryCardProps {
@@ -38,13 +38,14 @@ export default function SubEntryCard({ subEntry, onAppend, onEdit, onDelete, onD
     }
   }
 
-  // Inline styles (CLAUDE.md exception): the category tint. Pico paints the header and footer over the card's
-  // background, so they repeat the translucent tint, which layers into a slightly deeper shade of it.
+  // Inline styles (CLAUDE.md exception): the category tint, with a fainter one on the header and footer since Pico
+  // paints them over the card's background.
   const tint = { backgroundColor: categoryTint(subEntry.category) }
+  const sectionTint = { backgroundColor: categorySectionTint(subEntry.category) }
 
   return (
     <article style={tint}>
-      <header data-row-actions style={tint}>
+      <header data-row-actions style={sectionTint}>
         <span>
           <strong>{subEntry.category}</strong> ·{' '}
           <small>
@@ -111,7 +112,7 @@ export default function SubEntryCard({ subEntry, onAppend, onEdit, onDelete, onD
           ))}
         </ul>
       )}
-      <footer style={tint}>
+      <footer style={sectionTint}>
         <AppendForm subEntryId={subEntry.id} onSubmit={onAppend} />
       </footer>
     </article>

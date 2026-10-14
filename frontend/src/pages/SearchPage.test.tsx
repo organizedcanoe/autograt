@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../api/client'
 import type { SearchResult } from '../api/types'
-import { categoryTint } from '../components/categoryColors'
+import { categorySectionTint, categoryTint } from '../components/categoryColors'
 import { expectNoAxeViolations } from '../test/axe'
 import SearchPage from './SearchPage'
 
@@ -81,8 +81,8 @@ describe('SearchPage', () => {
     const matches = await screen.findAllByRole('article')
     expect(matches[0]).toHaveStyle({ backgroundColor: categoryTint('Good') })
     expect(matches[1]).toHaveStyle({ backgroundColor: categoryTint('Bad') })
-    expect(matches[0].querySelector('header')).toHaveStyle({ backgroundColor: categoryTint('Good') })
-    expect(matches[1].querySelector('header')).toHaveStyle({ backgroundColor: categoryTint('Bad') })
+    expect(matches[0].querySelector('header')).toHaveStyle({ backgroundColor: categorySectionTint('Good') })
+    expect(matches[1].querySelector('header')).toHaveStyle({ backgroundColor: categorySectionTint('Bad') })
   })
 
   it('says so when nothing matches', async () => {
