@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router'
 import { api } from '../api/client'
 import type { SearchResult } from '../api/types'
 import AsyncView from '../components/AsyncView'
-import { categoryTint } from '../components/categoryColors'
+import { categorySectionTint, categoryTint } from '../components/categoryColors'
 import SearchBar from '../components/SearchBar'
 import { useAsync } from '../hooks/useAsync'
 import { formatLongDate } from '../utils/dates'
@@ -68,10 +68,11 @@ function SearchResults({ query }: { query: string }) {
 function SearchResultCard({ match, query }: { match: SearchResult; query: string }) {
   const kind = match.type === 'Append' ? `Note on a ${match.category} entry` : `${match.category} entry`
 
+  // As on the day page: the header gets its own fainter tint so Pico's header background doesn't cover the card's.
   return (
     <article style={{ backgroundColor: categoryTint(match.category) }}>
-      <header>
-        <Link to={`/day/${match.entryDate}`}>{formatLongDate(match.entryDate)}</Link> · <small>{kind}</small>
+      <header style={{ backgroundColor: categorySectionTint(match.category) }}>
+        <Link to={`/day/${match.entryDate}`} className="contrast">{formatLongDate(match.entryDate)}</Link> · <small>{kind}</small>
       </header>
       <p>
         <HighlightedText content={match.content} query={query} />

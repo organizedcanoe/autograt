@@ -4,7 +4,7 @@ import { formatDateTime, formatTime } from '../utils/dates'
 import { errorMessage } from '../utils/errors'
 import Alert from './Alert'
 import AppendForm from './AppendForm'
-import { categoryTint } from './categoryColors'
+import { categorySectionTint, categoryTint } from './categoryColors'
 import ConfirmDialog from './ConfirmDialog'
 import SubEntryForm from './SubEntryForm'
 
@@ -43,9 +43,14 @@ export default function SubEntryCard({ subEntry, onAppend, onEdit, onDelete, onD
     }
   }
 
+  // Inline styles (CLAUDE.md exception): the category tint, with a fainter one on the header and footer since Pico
+  // paints them over the card's background.
+  const tint = { backgroundColor: categoryTint(subEntry.category) }
+  const sectionTint = { backgroundColor: categorySectionTint(subEntry.category) }
+
   return (
-    <article style={{ backgroundColor: categoryTint(subEntry.category) }}>
-      <header data-row-actions>
+    <article style={tint}>
+      <header data-row-actions style={sectionTint}>
         <span>
           <strong>{subEntry.category}</strong> ·{' '}
           <small>
@@ -55,14 +60,14 @@ export default function SubEntryCard({ subEntry, onAppend, onEdit, onDelete, onD
         {editing === false && (onEdit || onDelete) && (
           <span data-row-actions>
             {onEdit && (
-              <button type="button" className="outline secondary" onClick={() => setEditing(true)}>
+              <button type="button" className="outline contrast" onClick={() => setEditing(true)}>
                 Edit
               </button>
             )}
             {onDelete && (
               <button
                 type="button"
-                className="outline secondary"
+                className="outline contrast"
                 onClick={() =>
                   setConfirming({
                     title: 'Delete entry?',
@@ -103,7 +108,7 @@ export default function SubEntryCard({ subEntry, onAppend, onEdit, onDelete, onD
                   {' '}
                   <button
                     type="button"
-                    className="outline secondary"
+                    className="outline contrast"
                     onClick={() =>
                       setConfirming({
                         title: 'Delete note?',
@@ -120,7 +125,7 @@ export default function SubEntryCard({ subEntry, onAppend, onEdit, onDelete, onD
           ))}
         </ul>
       )}
-      <footer>
+      <footer style={sectionTint}>
         <AppendForm subEntryId={subEntry.id} onSubmit={onAppend} />
       </footer>
       {confirming && (

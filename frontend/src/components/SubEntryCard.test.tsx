@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SubEntry } from '../api/types'
 import { formatDateTime } from '../utils/dates'
 import SubEntryCard from './SubEntryCard'
-import { categoryTint } from './categoryColors'
+import { categorySectionTint, categoryTint } from './categoryColors'
 
 const subEntry: SubEntry = {
   id: 5,
@@ -32,6 +32,14 @@ describe('SubEntryCard', () => {
     render(<SubEntryCard subEntry={{ ...subEntry, category: 'Bad' }} onAppend={vi.fn()} />)
 
     expect(screen.getByRole('article')).toHaveStyle({ backgroundColor: categoryTint('Bad') })
+  })
+
+  it('tints the header and footer too, so the colour covers the whole card', () => {
+    render(<SubEntryCard subEntry={{ ...subEntry, category: 'Bad' }} onAppend={vi.fn()} />)
+
+    const card = screen.getByRole('article')
+    expect(card.querySelector(':scope > header')).toHaveStyle({ backgroundColor: categorySectionTint('Bad') })
+    expect(card.querySelector(':scope > footer')).toHaveStyle({ backgroundColor: categorySectionTint('Bad') })
   })
 
   it("shows each append's content followed by its full date and time", () => {
