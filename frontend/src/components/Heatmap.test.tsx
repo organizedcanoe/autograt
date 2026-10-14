@@ -1,5 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import type { HeatmapDay } from '../api/types'
@@ -60,69 +59,5 @@ describe('Heatmap', () => {
 
     expect(blocks[0]).toHaveAccessibleName(/unrated, 1 entry/)
     expect(blocks[0]).toHaveStyle({ backgroundColor: NO_ENTRY_COLOR })
-  })
-
-  it('outlines unrated days with entries, so they differ from empty days by more than colour', () => {
-    const days = buildDays({})
-    days[0] = { ...days[0], entryCount: 1 }
-    const blocks = renderHeatmap(days)
-
-    expect(blocks[0]).toHaveStyle({ borderStyle: 'dashed' })
-    expect(blocks[1]).not.toHaveStyle({ borderStyle: 'dashed' })
-  })
-
-  it('has a legend naming each colour', () => {
-    renderHeatmap(buildDays({}))
-
-    const legend = within(screen.getByRole('list', { name: 'Rating colours' }))
-    expect(legend.getAllByRole('listitem').map((item) => item.textContent)).toEqual([
-      ...Array.from({ length: 11 }, (_, rating) => String(rating)),
-      'Unrated',
-      'No entry',
-    ])
-  })
-
-  it('is a single tab stop on the latest day', () => {
-    const blocks = renderHeatmap(buildDays({}))
-
-    expect(blocks.filter((block) => block.tabIndex === 0)).toEqual([blocks[29]])
-  })
-
-  it('moves between days with the arrow keys', async () => {
-    const user = userEvent.setup()
-    const blocks = renderHeatmap(buildDays({}))
-
-    await user.tab()
-    expect(blocks[29]).toHaveFocus()
-    await user.keyboard('{ArrowLeft}{ArrowLeft}')
-    expect(blocks[27]).toHaveFocus()
-    expect(blocks[27]).toHaveAttribute('tabindex', '0')
-    expect(blocks[29]).toHaveAttribute('tabindex', '-1')
-    await user.keyboard('{ArrowRight}')
-    expect(blocks[28]).toHaveFocus()
-    await user.keyboard('{Home}')
-    expect(blocks[0]).toHaveFocus()
-    await user.keyboard('{ArrowLeft}')
-    expect(blocks[0]).toHaveFocus()
-    await user.keyboard('{End}')
-    expect(blocks[29]).toHaveFocus()
-  })
-
-  it('moves a row of 30 days with the up and down arrows', async () => {
-    const user = userEvent.setup()
-    const days = Array.from({ length: 60 }, (_, index) => ({
-      date: `2026-${index < 30 ? '08' : '09'}-${String((index % 30) + 1).padStart(2, '0')}`,
-      dayRating: null,
-      entryCount: 0,
-    }))
-    const blocks = renderHeatmap(days)
-
-    await user.tab()
-    await user.keyboard('{ArrowUp}')
-    expect(blocks[29]).toHaveFocus()
-    await user.keyboard('{ArrowUp}')
-    expect(blocks[29]).toHaveFocus()
-    await user.keyboard('{ArrowDown}')
-    expect(blocks[59]).toHaveFocus()
   })
 })

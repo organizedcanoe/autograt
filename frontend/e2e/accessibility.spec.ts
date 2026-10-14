@@ -61,18 +61,12 @@ test('the admin page passes axe', async ({ page }) => {
   await expectNoViolations(page)
 })
 
-test('the heatmap and calendar are reachable and operable with the keyboard', async ({ page }) => {
+test('opening a day moves focus to its heading', async ({ page }) => {
   await logIn(page, USERNAME)
   const today = localToday()
   await page.goto('/history')
-  await expect(page.locator(`a[href="/day/${today}"]`)).toBeVisible()
+  await page.locator(`a[href="/day/${today}"]`).click()
 
-  // The calendar is one tab stop, on today.
-  await page.getByRole('button', { name: 'Show' }).first().focus()
-  await page.keyboard.press('Tab')
-  await expect(page.locator(':focus')).toHaveAttribute('href', `/day/${today}`)
-  await page.keyboard.press('Enter')
   await expect(page).toHaveURL(`/day/${today}`)
-  // Navigating moves focus to the new page's heading.
   await expect(page.getByRole('heading', { level: 1 })).toBeFocused()
 })

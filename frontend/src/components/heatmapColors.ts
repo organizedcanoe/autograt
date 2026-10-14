@@ -1,15 +1,5 @@
-import type { CSSProperties } from 'react'
-import type { HeatmapDay } from '../api/types'
-
 // A faint wash of Pico's muted text color, so empty days stay visible but subdued in light and dark mode.
 export const NO_ENTRY_COLOR = 'color-mix(in srgb, var(--pico-muted-color) 30%, transparent)'
-
-// Unrated days with entries share the empty colour, so a dashed outline tells them apart without relying on colour.
-export const UNRATED_OUTLINE: CSSProperties = {
-  borderWidth: '2px',
-  borderStyle: 'dashed',
-  borderColor: 'var(--pico-muted-color)',
-}
 
 const RED_HUE = 0
 const GREEN_HUE = 120
@@ -36,15 +26,6 @@ export function ratingTextColor(rating: number): string {
   const onWhite = 1.05 / (background + 0.05)
   const onBlack = (background + 0.05) / 0.05
   return onWhite >= onBlack ? WHITE : BLACK
-}
-
-/** The colours of a day's block: its rating colour with readable text, or the empty colour, outlined if unrated. */
-export function dayColors(day: HeatmapDay): CSSProperties {
-  if (day.dayRating !== null) {
-    return { backgroundColor: ratingColor(day.dayRating), color: ratingTextColor(day.dayRating) }
-  }
-  // Pico's contrast colour (near black or white), as the link colour is too faint on the grey wash.
-  return { backgroundColor: NO_ENTRY_COLOR, color: 'var(--pico-contrast)', ...(day.entryCount > 0 ? UNRATED_OUTLINE : {}) }
 }
 
 /** WCAG relative luminance of the rating colour with this hue. */

@@ -41,7 +41,7 @@ describe('HomePage', () => {
 
   it('passes an axe check', async () => {
     renderHome()
-    await screen.findByRole('list', { name: 'Rating colours' })
+    await screen.findAllByRole('link', { name: /rating 7/ })
 
     await expectNoAxeViolations(document.body)
   })

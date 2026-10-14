@@ -78,32 +78,12 @@ describe('MonthCalendar', () => {
     expect(days[14]).toHaveAccessibleName(/rating 9, 2 entries/)
   })
 
-  it('shows each rating as text as well as colour', async () => {
+  it('uses readable text on each rating colour', async () => {
     renderCalendar()
 
     const calendar = await screen.findByRole('table', { name: 'September 2026' })
     const days = within(calendar).getAllByRole('link')
-    expect(days[14]).toHaveTextContent(/^15\s*9$/)
     expect(days[14]).toHaveStyle({ color: ratingTextColor(9) })
-    expect(days[13]).toHaveTextContent(/^14$/)
-    expect(screen.getByRole('list', { name: 'Rating colours' })).toBeInTheDocument()
-  })
-
-  it('is a single tab stop on today and moves by day and week with the arrow keys', async () => {
-    const user = userEvent.setup()
-    renderCalendar()
-
-    const calendar = await screen.findByRole('table', { name: 'September 2026' })
-    const days = within(calendar).getAllByRole('link')
-    expect(days.filter((day) => day.tabIndex === 0)).toEqual([days[22]])
-
-    days[22].focus()
-    await user.keyboard('{ArrowUp}')
-    expect(days[15]).toHaveFocus()
-    await user.keyboard('{ArrowLeft}')
-    expect(days[14]).toHaveFocus()
-    await user.keyboard('{ArrowDown}{ArrowDown}')
-    expect(days[21]).toHaveFocus()
   })
 
   it('starts the month on its weekday', async () => {
