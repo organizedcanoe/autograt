@@ -100,6 +100,22 @@ describe('SubEntryCard', () => {
     expect(screen.getByLabelText('Entry')).toBeInTheDocument()
   })
 
+  it('shows its actions as link-style buttons', () => {
+    render(
+      <SubEntryCard
+        subEntry={{ ...subEntry, appends: [append] }}
+        onAppend={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onDeleteAppend={vi.fn()}
+      />,
+    )
+
+    for (const name of ['Edit', 'Delete', 'Delete note']) {
+      expect(screen.getByRole('button', { name })).toHaveAttribute('data-link-button')
+    }
+  })
+
   it('has no delete buttons when deleting is not allowed', () => {
     render(<SubEntryCard subEntry={{ ...subEntry, appends: [append] }} onAppend={vi.fn()} />)
 

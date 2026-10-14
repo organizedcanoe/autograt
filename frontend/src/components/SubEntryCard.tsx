@@ -60,14 +60,15 @@ export default function SubEntryCard({ subEntry, onAppend, onEdit, onDelete, onD
         {editing === false && (onEdit || onDelete) && (
           <span data-row-actions>
             {onEdit && (
-              <button type="button" className="outline contrast" onClick={() => setEditing(true)}>
+              <button type="button" data-link-button onClick={() => setEditing(true)}>
                 Edit
               </button>
             )}
+            {onEdit && onDelete && <small aria-hidden="true">·</small>}
             {onDelete && (
               <button
                 type="button"
-                className="outline contrast"
+                data-link-button="danger"
                 onClick={() =>
                   setConfirming({
                     title: 'Delete entry?',
@@ -108,7 +109,8 @@ export default function SubEntryCard({ subEntry, onAppend, onEdit, onDelete, onD
                   {' '}
                   <button
                     type="button"
-                    className="outline contrast"
+                    data-link-button="danger"
+                    aria-label="Delete note"
                     onClick={() =>
                       setConfirming({
                         title: 'Delete note?',
@@ -117,7 +119,7 @@ export default function SubEntryCard({ subEntry, onAppend, onEdit, onDelete, onD
                       })
                     }
                   >
-                    Delete note
+                    Delete
                   </button>
                 </>
               )}

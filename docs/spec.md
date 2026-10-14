@@ -336,7 +336,7 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 * Provides an append interface attached to each `JournalSubEntry` containing a text input field to submit new append notes directly to `JournalAppend`.
 
-* For the current day, each `JournalSubEntry` can be edited (category and text) or deleted, each of its appends can be deleted, and new entries can be added. Each delete asks for confirmation first; deleting an entry that filled a nudge box shows that box again.
+* For the current day, each `JournalSubEntry` can be edited (category and text) or deleted, each of its appends can be deleted, and new entries can be added. The **Edit** and **Delete** actions sit in the entry's header (separated by a `·`), and each append has a **Delete** action after its time; all are small muted text links rather than full buttons, with Delete turning red on hover. Each delete asks for confirmation first; deleting an entry that filled a nudge box shows that box again.
 
 * Past days are read-only: the rating, entry editing, delete, and add-entry controls are hidden, and only the append interface remains. A past day with no sub-entries, whether or not it has an entry or a rating, shows its heading (e.g. "…: unrated") followed by "No entries were written.", and offers no submission form.
 
