@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { render, screen, within } from '@testing-library/react'
+import userEvent, { type UserEvent } from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SubEntry } from '../api/types'
 import { formatDateTime } from '../utils/dates'
@@ -15,6 +15,13 @@ const subEntry: SubEntry = {
 }
 
 const append = { id: 9, subEntryId: 5, content: 'Still tired', createdAtUtc: '2026-09-25T08:30:00Z' }
+
+/** Expects the confirm dialog to ask the question, then answers it with one of its buttons. */
+async function answerConfirmation(user: UserEvent, question: string, button: string) {
+  const dialog = within(await screen.findByRole('dialog'))
+  expect(dialog.getByText(question)).toBeInTheDocument()
+  await user.click(dialog.getByRole('button', { name: button }))
+}
 
 describe('SubEntryCard', () => {
   afterEach(() => {
@@ -94,46 +101,55 @@ describe('SubEntryCard', () => {
 
   it('deletes the entry once confirmed', async () => {
     const user = userEvent.setup()
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     const onDelete = vi.fn().mockResolvedValue(undefined)
     render(<SubEntryCard subEntry={subEntry} onAppend={vi.fn()} onDelete={onDelete} />)
 
     await user.click(screen.getByRole('button', { name: 'Delete' }))
 
-    expect(window.confirm).toHaveBeenCalledWith('Delete this entry and its notes? This cannot be undone.')
+    await answerConfirmation(user, 'Delete this entry and its notes? This cannot be undone.', 'Delete')
     expect(onDelete).toHaveBeenCalledWith(5)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
   it('keeps the entry when the confirmation is cancelled', async () => {
     const user = userEvent.setup()
-    vi.spyOn(window, 'confirm').mockReturnValue(false)
     const onDelete = vi.fn()
     render(<SubEntryCard subEntry={subEntry} onAppend={vi.fn()} onDelete={onDelete} />)
 
     await user.click(screen.getByRole('button', { name: 'Delete' }))
+    await answerConfirmation(user, 'Delete this entry and its notes? This cannot be undone.', 'Cancel')
 
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(onDelete).not.toHaveBeenCalled()
   })
 
   it('deletes a note once confirmed', async () => {
     const user = userEvent.setup()
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     const onDeleteAppend = vi.fn().mockResolvedValue(undefined)
     render(<SubEntryCard subEntry={{ ...subEntry, appends: [append] }} onAppend={vi.fn()} onDeleteAppend={onDeleteAppend} />)
 
     await user.click(screen.getByRole('button', { name: 'Delete note' }))
 
-    expect(window.confirm).toHaveBeenCalledWith('Delete this note? This cannot be undone.')
+    await answerConfirmation(user, 'Delete this note? This cannot be undone.', 'Delete')
     expect(onDeleteAppend).toHaveBeenCalledWith(9)
+  })
+
+  it('styles the delete confirmation as danger', async () => {
+    const user = userEvent.setup()
+    render(<SubEntryCard subEntry={subEntry} onAppend={vi.fn()} onDelete={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: 'Delete' }))
+
+    expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' })).toHaveAttribute('data-danger')
   })
 
   it('shows the error when deleting fails', async () => {
     const user = userEvent.setup()
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     const onDelete = vi.fn().mockRejectedValue(new Error('Past days are read-only.'))
     render(<SubEntryCard subEntry={subEntry} onAppend={vi.fn()} onDelete={onDelete} />)
 
     await user.click(screen.getByRole('button', { name: 'Delete' }))
+    await answerConfirmation(user, 'Delete this entry and its notes? This cannot be undone.', 'Delete')
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Past days are read-only.')
   })

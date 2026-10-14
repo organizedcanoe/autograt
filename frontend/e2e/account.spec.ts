@@ -32,8 +32,8 @@ test('an admin resets a password and the user must choose a new one', async ({ p
 
   await logIn(page, ADMIN_USERNAME)
   await openMenuItem(page, ADMIN_USERNAME, 'Admin')
-  page.once('dialog', (dialog) => void dialog.accept())
   await chooseUserAction(page, username, 'Reset password')
+  await page.getByRole('dialog').getByRole('button', { name: 'Reset password' }).click()
   const temporaryPassword = await page.getByRole('dialog').locator('code').innerText()
   await page.getByRole('button', { name: 'Done' }).click()
   await logOut(page, ADMIN_USERNAME)

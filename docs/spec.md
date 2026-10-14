@@ -433,7 +433,7 @@ The search endpoint performs full-text query matching across both `JournalSubEnt
 
 * **Focus on navigation:** After moving to another page in the app, focus moves to the new page's `<h1>` (made focusable with `tabindex="-1"`), so screen readers announce it. The first page loaded keeps the browser's default focus.
 
-* **Dialogs:** Confirmation dialogs (deleting the account, the temporary password after a reset, and the import overwrite warning) open as modal dialogs (`showModal`), named by their heading. Focus moves into them and stays there, Escape closes them like their cancel button, and focus returns to the control that opened them. The new version notice stays non-modal.
+* **Dialogs:** Confirmation dialogs (deleting the account, deleting, disabling or resetting the password of a user, the temporary password after a reset, deleting an entry or note, and the import overwrite warning) open as modal dialogs (`showModal`), named by their heading. Focus moves into them and stays there, Escape closes them like their cancel button, and focus returns to the control that opened them. The app uses its own dialogs rather than the browser's `confirm()`, and confirmations of deletes use the red danger button. The new version notice stays non-modal.
 
 * **Announcements:** Errors use the `alert` role and confirmations and warnings the `status` role (see the shared alert), so screen readers announce them.
 
