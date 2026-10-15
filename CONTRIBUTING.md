@@ -6,7 +6,7 @@ Thanks for your interest in autograt. Bug reports, ideas and pull requests are w
 
 - For anything beyond a small fix, open an issue first so we can agree on the approach.
 - Features and the database schema are described in [docs/spec.md](docs/spec.md). Changes to either should update it.
-- Security issues: see [SECURITY.md](.github/SECURITY.md) instead of opening an issue.
+- Security issues: see [SECURITY.md](SECURITY.md) instead of opening an issue.
 
 ## Setting up
 

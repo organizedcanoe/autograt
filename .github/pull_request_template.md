@@ -8,5 +8,5 @@
 
 ## Checklist
 
-- [ ] Tests pass (`dotnet test`, `npm run test`)
+- [ ] Tests pass: `dotnet test`, `npm run test` and `npm run test:e2e` (or `scripts/verify.ps1`, which runs all three)
 - [ ] `docs/spec.md` updated if features or the schema changed
