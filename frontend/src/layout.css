@@ -32,3 +32,33 @@ h1 ~ * h3 {
 [data-row-actions] button {
   margin: 0;
 }
+
+/* A compact action shown as a small text link rather than a full button, e.g. Edit · Delete on an entry card.
+   It stays a <button> so it keeps button semantics and keyboard behaviour. */
+button[data-link-button] {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  /* Pico's muted colour fails contrast on the category tints, so it keeps the text colour. */
+  color: inherit;
+  font-size: 0.875em;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 0.2em;
+}
+
+button[data-link-button]:hover,
+button[data-link-button]:focus-visible {
+  text-decoration-color: currentColor;
+}
+
+/* Pico's focus ring stays for keyboard focus, but not after a mouse click. */
+button[data-link-button]:focus:not(:focus-visible) {
+  box-shadow: none;
+}
+
+button[data-link-button="danger"]:hover,
+button[data-link-button="danger"]:focus-visible {
+  color: #c62828;
+}
