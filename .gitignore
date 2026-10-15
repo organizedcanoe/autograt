@@ -28,3 +28,8 @@ playwright-report/
 notes.txt
 .env
 security*.md
+!/.github/SECURITY.md
+
+# Claude Code (settings.json is shared)
+.claude/worktrees/
+.claude/settings.local.json
