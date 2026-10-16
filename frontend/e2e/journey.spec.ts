@@ -32,6 +32,8 @@ test('complete user journey: register, rate, heatmap, append, search', async ({ 
   // 4. Open the day view and append a note to a specific sub-entry.
   await todayBlock.click()
   await expect(page).toHaveURL(`/day/${today}`)
+  // The home page shows the same entries, so wait for the day view to replace it before typing.
+  await expect(page.getByRole('link', { name: '← Previous day' })).toBeVisible()
   const goodEntry = page.getByRole('article').filter({ hasText: 'Walked the dog in the sunshine' })
   await goodEntry.getByLabel('Add a note').fill('The dog napped all afternoon')
   await goodEntry.getByRole('button', { name: 'Append' }).click()
