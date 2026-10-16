@@ -29,7 +29,7 @@ describe('BuildInfo', () => {
     expect(screen.getByText(/2026-09-28/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'a1b2c3d' })).toHaveAttribute(
       'href',
-      'https://github.com/oversizedcanoe/autograt/commit/a1b2c3d',
+      'https://github.com/organizedcanoe/autograt/commit/a1b2c3d',
     )
     await vi.waitFor(() => expect(api.getVersion).toHaveBeenCalled())
     expect(screen.queryByText(/stale/)).not.toBeInTheDocument()

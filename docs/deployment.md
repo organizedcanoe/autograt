@@ -4,10 +4,10 @@
 
 Images are published to GitHub Container Registry once CI passes:
 
-- `ghcr.io/oversizedcanoe/autograt-backend`
-- `ghcr.io/oversizedcanoe/autograt-frontend`
+- `ghcr.io/organizedcanoe/autograt-backend`
+- `ghcr.io/organizedcanoe/autograt-frontend`
 
-Each [release](https://github.com/oversizedcanoe/autograt/releases) publishes the version tags, and every push to `main` publishes `main`:
+Each [release](https://github.com/organizedcanoe/autograt/releases) publishes the version tags, and every push to `main` publishes `main`:
 
 | Tag | Points to |
 |---|---|
@@ -53,7 +53,7 @@ The backend logs sign-ins, failed logins, account changes, admin actions and rat
 
 ## Update
 
-The footer of every page shows the running version, commit and build date (`GET /api/version` returns the backend's). Compare the version with the newest [release](https://github.com/oversizedcanoe/autograt/releases), then update:
+The footer of every page shows the running version, commit and build date (`GET /api/version` returns the backend's). Compare the version with the newest [release](https://github.com/organizedcanoe/autograt/releases), then update:
 
 ```sh
 docker compose pull

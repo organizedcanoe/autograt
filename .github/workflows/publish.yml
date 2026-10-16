@@ -65,14 +65,14 @@ jobs:
           labels: *image-labels
 
       - name: Login to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and Push Backend
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./backend/Autograt.Api
           file: ./backend/Autograt.Api/Dockerfile
@@ -85,7 +85,7 @@ jobs:
             BUILD_DATE=${{ steps.build.outputs.date }}
 
       - name: Build and Push Frontend
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./frontend
           file: ./frontend/Dockerfile
