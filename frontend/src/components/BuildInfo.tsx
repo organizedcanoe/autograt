@@ -4,7 +4,7 @@ import type { BuildVersion } from '../api/types'
 
 const DEV_VERSION = '0.0.0-dev'
 const DEV_COMMIT = 'local'
-const COMMIT_URL = 'https://github.com/oversizedcanoe/autograt/commit/'
+const COMMIT_URL = 'https://github.com/organizedcanoe/autograt/commit/'
 
 /** The frontend's own build, baked in by the Docker build or from git; falls back like the backend does. */
 function frontendBuild(): BuildVersion {
