@@ -10,7 +10,7 @@ x-logging: &logging
 
 services:
   backend:
-    image: ghcr.io/oversizedcanoe/autograt-backend:1
+    image: ghcr.io/organizedcanoe/autograt-backend:1
     container_name: autograt-backend
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
@@ -22,7 +22,7 @@ services:
     logging: *logging
 
   frontend:
-    image: ghcr.io/oversizedcanoe/autograt-frontend:1
+    image: ghcr.io/organizedcanoe/autograt-frontend:1
     container_name: autograt-frontend
     ports:
       - "3000:8080"
