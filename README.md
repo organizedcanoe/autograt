@@ -1,8 +1,12 @@
 # autograt
 
+[![Publish](https://github.com/organizedcanoe/autograt/actions/workflows/publish.yml/badge.svg)](https://github.com/organizedcanoe/autograt/actions/workflows/publish.yml)
+[![Release](https://img.shields.io/github/v/release/organizedcanoe/autograt)](https://github.com/organizedcanoe/autograt/releases/latest)
+[![License: MIT](https://img.shields.io/github/license/organizedcanoe/autograt)](LICENSE)
+
 A self-hosted personal journaling app.
 
-Full transparency: this app was developed using Claude Code. I was curious about it's capabilities, and wanted to build something *somewhat* complex with it.
+Full transparency: this app was developed using Claude Code. I was curious about its capabilities, and wanted to build something *somewhat* complex with it.
 
 ## Features
 
