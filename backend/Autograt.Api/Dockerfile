@@ -8,7 +8,7 @@ COPY . .
 RUN dotnet publish -c Release -o /app/publish --no-restore \
     /p:Version=$VERSION /p:InformationalVersion=$VERSION+$COMMIT
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 ARG BUILD_DATE=
 WORKDIR /app
 ENV ASPNETCORE_HTTP_PORTS=8080
