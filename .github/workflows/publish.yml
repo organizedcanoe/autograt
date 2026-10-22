@@ -40,7 +40,7 @@ jobs:
 
       - name: Backend image metadata
         id: backend-meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository_owner }}/autograt-backend
           flavor: latest=false
@@ -57,7 +57,7 @@ jobs:
 
       - name: Frontend image metadata
         id: frontend-meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository_owner }}/autograt-frontend
           flavor: latest=false
